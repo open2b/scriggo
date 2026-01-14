@@ -26,28 +26,28 @@ func (p Position) String() string {
 
 // BuildError represents an error occurred building a program or template.
 type BuildError struct {
-	err compiler.Error
+	Err compiler.Error
 }
 
 // Error returns a string representation of the error.
 func (err *BuildError) Error() string {
-	return err.err.Error()
+	return err.Err.Error()
 }
 
 // Path returns the path of the file where the error occurred.
 func (err *BuildError) Path() string {
-	return err.err.Path()
+	return err.Err.Path()
 }
 
 // Position returns the position in the file where the error occurred.
 func (err *BuildError) Position() Position {
-	pos := err.err.Position()
+	pos := err.Err.Position()
 	return Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
 }
 
 // Message returns the error message.
 func (err *BuildError) Message() string {
-	return err.err.Message()
+	return err.Err.Message()
 }
 
 // ExitError represents an exit from an execution with a non-zero status code.
@@ -61,7 +61,7 @@ type ExitError struct {
 }
 
 // NewExitError returns an exit error with the given status code and error.
-// The status code should be in the range [1, 125] and err can be nil.
+// The status code should be in the range [1, 125] and Err can be nil.
 // It panics if code is zero.
 func NewExitError(code int, err error) *ExitError {
 	if code == 0 {
