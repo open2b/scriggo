@@ -272,6 +272,13 @@ func Walk(v Visitor, node ast.Node) {
 	case *ast.UnaryOperator:
 		Walk(v, n.Expr)
 
+	case *ast.Using:
+		Walk(v, n.Statement)
+		if n.Type != nil {
+			Walk(v, n.Type)
+		}
+		Walk(v, n.Body)
+
 	case *ast.Var:
 		for _, ident := range n.Lhs {
 			Walk(v, ident)
