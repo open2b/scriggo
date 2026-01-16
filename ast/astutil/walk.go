@@ -274,9 +274,7 @@ func Walk(v Visitor, node ast.Node) {
 
 	case *ast.Using:
 		Walk(v, n.Statement)
-		if n.Type != nil {
-			Walk(v, n.Type)
-		}
+		Walk(v, n.Type)
 		Walk(v, n.Body)
 
 	case *ast.Var:
