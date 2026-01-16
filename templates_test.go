@@ -7,9 +7,11 @@ package scriggo
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/ast/astutil"
 	"github.com/open2b/scriggo/internal/compiler"
 	"github.com/open2b/scriggo/internal/fstest"
 )
@@ -174,7 +176,7 @@ func TestFormatFS(t *testing.T) {
 	for _, format := range []Format{FormatText, FormatHTML, FormatCSS, FormatJS, FormatJSON, FormatMarkdown} {
 		fsys.format = format
 		options := BuildOptions{
-			TreeTransformer: func(tree *ast.Tree) error {
+			ExpandedTransformer: func(tree *ast.Tree) error {
 				if tree.Format != ast.Format(format) {
 					return fmt.Errorf("expected format %s, got %s", format, tree.Format)
 				}
@@ -185,5 +187,46 @@ func TestFormatFS(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+// TestUnexpandedTransformer ensures the transformer runs before expansion.
+func TestUnexpandedTransformer(t *testing.T) {
+	fsys := fstest.Files{
+		"index.html": `before {{ render "a.html" }} after`,
+		"a.html":     "A",
+		"b.html":     "B",
+	}
+	options := BuildOptions{
+		UnexpandedTransformer: func(tree *ast.Tree) error {
+			if tree.Path != "index.html" {
+				return nil
+			}
+			var render *ast.Render
+			astutil.Inspect(tree, func(node ast.Node) bool {
+				if render == nil {
+					render, _ = node.(*ast.Render)
+				}
+				return render == nil
+			})
+			if render == nil {
+				return fmt.Errorf("expected render node, got none")
+			}
+			render.Path = "b.html"
+			return nil
+		},
+	}
+	template, err := BuildTemplate(fsys, "index.html", &options)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	var out strings.Builder
+	err = template.Run(&out, nil, nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	const expected = "before B after"
+	if out.String() != expected {
+		t.Fatalf("expected %q, got %q", expected, out.String())
 	}
 }

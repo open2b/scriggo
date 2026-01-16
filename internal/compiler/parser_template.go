@@ -28,10 +28,11 @@ type FormatFS interface {
 // Any error related to the compilation itself is returned as a CompilerError.
 //
 // If noParseShow is true, short show statements are not parsed.
+// If a transformer is provided, invoke it with the tree before it is expanded.
 //
 // ParseTemplate expands the nodes Extends, Import and Render parsing the
 // relative trees.
-func ParseTemplate(fsys fs.FS, name string, noParseShow bool) (*ast.Tree, error) {
+func ParseTemplate(fsys fs.FS, name string, noParseShow bool, transformer func(*ast.Tree) error) (*ast.Tree, error) {
 
 	if name == "." || strings.HasSuffix(name, "/") {
 		return nil, os.ErrInvalid
@@ -48,6 +49,7 @@ func ParseTemplate(fsys fs.FS, name string, noParseShow bool) (*ast.Tree, error)
 		paths:       []string{},
 		canExtend:   true,
 		noParseShow: noParseShow,
+		transformer: transformer,
 	}
 
 	tree, err := pp.parseSource(src, name, format, false)
@@ -70,6 +72,7 @@ type templateExpansion struct {
 	paths       []string
 	canExtend   bool
 	noParseShow bool
+	transformer func(*ast.Tree) error
 }
 
 // parsedTree represents a parsed tree. parent is the file path and node that
@@ -189,6 +192,14 @@ func (pp *templateExpansion) parseSource(src []byte, path string, format ast.For
 		return nil, err
 	}
 	tree.Path = path
+
+	// Transform the tree.
+	if pp.transformer != nil {
+		err := pp.transformer(tree)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// Expand the nodes.
 	pp.paths = append(pp.paths, path)

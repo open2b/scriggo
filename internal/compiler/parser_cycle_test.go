@@ -168,7 +168,7 @@ var cycleTemplateTests = []struct {
 func TestCyclicTemplates(t *testing.T) {
 	for _, test := range cycleTemplateTests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := ParseTemplate(test.fsys, "index.html", false)
+			_, err := ParseTemplate(test.fsys, "index.html", false, nil)
 			if err == nil {
 				t.Fatal("expecting cycle error, got no error")
 			}
