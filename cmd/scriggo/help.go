@@ -44,7 +44,7 @@ Additional help topics:
 `
 
 const helpBuild = `
-usage: scriggo build [-o output] [dir]
+usage: scriggo build [-llms url] [-o output] [dir]
 
 Build processes the template rooted at the current directory and writes the
 generated files to the 'public' directory by default. If the 'public' directory
@@ -54,8 +54,8 @@ directory.
 
 Directories whose names start with an underscore (_), and files or directories
 whose names start with a dot (.), are skipped. Only files with extension '.md'
-and '.html' are built, non-template files, such as CSS and JavaScript files are
-copied as-is. 
+and '.html' are built; non-template files, such as CSS and JavaScript files, are
+copied as-is. Markdown templates render to HTML.
 
 For example:
 
@@ -67,12 +67,23 @@ processing Markdown and HTML files and generating their final output in the
 without modification, resulting in a complete static site ready for deployment.
 If 'dist' already exists, the command returns an error.
 
+The -llms flag generates an additional Markdown output intended for LLMs. The
+flag value is a base URL (for example, "https://example.com/"). When set, any
+Markdown template that extends an HTML template also produces a sibling '.md'
+output file. For that LLM output, Scriggo rewrites extends/import/render paths
+ending in '.html' to '.md' and converts relative Markdown link destinations to
+absolute URLs using the provided base URL. Absolute URLs, and destinations that
+are only a fragment or query string, are left unchanged. Links without an
+extension, or ending in '.html', are rewritten to '.md'.
+
 The -o flag allows specifying an alternative output directory instead of the
 default 'public'.
 
 Examples:
 
 	scriggo build src
+
+	scriggo build -llms https://docs.example.com/ src
 
 	scriggo build -o ../public
 
