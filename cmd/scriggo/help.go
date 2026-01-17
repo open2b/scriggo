@@ -54,8 +54,8 @@ directory.
 
 Directories whose names start with an underscore (_), and files or directories
 whose names start with a dot (.), are skipped. Only files with extension '.md'
-and '.html' are built; non-template files, such as CSS and JavaScript files, are
-copied as-is. Markdown templates render to HTML.
+and '.html' are built, non-template files, such as CSS and JavaScript files, are
+copied as-is.
 
 For example:
 
@@ -67,14 +67,25 @@ processing Markdown and HTML files and generating their final output in the
 without modification, resulting in a complete static site ready for deployment.
 If 'dist' already exists, the command returns an error.
 
-The -llms flag generates an additional Markdown output intended for LLMs. The
-flag value is a base URL (for example, "https://example.com/"). When set, any
-Markdown template that extends an HTML template also produces a sibling '.md'
-output file. For that LLM output, Scriggo rewrites extends/import/render paths
-ending in '.html' to '.md' and converts relative Markdown link destinations to
-absolute URLs using the provided base URL. Absolute URLs, and destinations that
-are only a fragment or query string, are left unchanged. Links without an
-extension, or ending in '.html', are rewritten to '.md'.
+The -llms flag generates two outputs for each template file: an HTML version and
+a Markdown version. Both share the same path but use different file extensions.
+The Markdown output is intended for consumption by LLMs.
+
+This behavior applies only to Markdown template files that extend an HTML
+layout. For example, if the file page.md extends layout.html, the build process
+generates page.html by extending layout.html, and also page.md by extending
+layout.md. The file layout.md must exist in the same directory as layout.html.
+
+The -llms flag requires an absolute URL as its argument. This URL is used to
+rewrite relative destination links in the generated Markdown files, converting
+them into absolute links. Destination links that consist only of a query string
+or a fragment are left unchanged. For example:
+
+	scriggo build -llms https://example.com src
+
+builds the template and also generates the Markdown files. In these files,
+relative destination links are rewritten as absolute ones; for example, the link
+api/authentication.html becomes https://example.com/api/authentication.html.
 
 The -o flag allows specifying an alternative output directory instead of the
 default 'public'.
