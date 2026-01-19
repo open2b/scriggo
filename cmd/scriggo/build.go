@@ -262,9 +262,6 @@ func checkOutDirectory(path string) error {
 	return fmt.Errorf("path %q exists and is not a directory", path)
 }
 
-// visitor implements astutil.Visitor to
-type visitor struct{}
-
 // htmlToMarkdownPath replaces the ".html" extension in a path with ".md".
 // It does nothing if the path does not end with ".html".
 func htmlToMarkdownPath(path string) string {
