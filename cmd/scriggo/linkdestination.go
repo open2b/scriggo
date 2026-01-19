@@ -169,7 +169,7 @@ func (r linkDestinationReplacer) appendReplacement(replacements *[]replacement, 
 	*replacements = append(*replacements, replacement{
 		start: start,
 		stop:  stop,
-		repl:  markdownEscape(u.String()),
+		repl:  markdownURLEscape(u.String()),
 	})
 
 }

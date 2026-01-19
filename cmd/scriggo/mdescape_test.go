@@ -8,37 +8,29 @@ import (
 	"testing"
 )
 
-var mdEscapeCases = []struct {
-	src       string
-	allowHTML bool
-	expected  string
+var mdURLEscapeCases = []struct {
+	src      string
+	expected string
 }{
-	{``, false, ``},
-	{`a`, false, `a`},
-	{`*`, false, `\*`},
-	{`*+`, false, `\*\+`},
-	{`\`, false, `\\`},
-	{`\\`, false, `\\\\`},
-	{"\\`*_{}[]()#+-.!|<&", false, "\\\\\\`\\*\\_\\{\\}\\[\\]\\(\\)\\#\\+\\-\\.\\!\\|\\<\\&"},
-	{`a+è[]b\*c`, false, `a\+è\[\]b\\\*c`},
-	{" ", false, "\u00a0"},
-	{"  ", false, "\u00a0\u00a0"},
-	{" a", false, "\u00a0a"},
-	{"  a", false, "\u00a0 a"},
-	{"a ", false, "a\u00a0"},
-	{"a  ", false, "a\u00a0\u00a0"},
-	{"\t", false, "\u00a0"},
-	{"\t\t", false, "\u00a0\u00a0"},
-	{"\ta", false, "\u00a0a"},
-	{"\t\ta", false, "\u00a0\ta"},
-	{"a\t", false, "a\u00a0"},
-	{"a\t\t", false, "a\u00a0\u00a0"},
-	{" \ta\t ", false, "\u00a0\ta\u00a0\u00a0"},
+	{``, ``},
+	{`a`, `a`},
+	{`*`, `*`},
+	{`*+`, `*+`},
+	{`\`, `\\`},
+	{`\\`, `\\\\`},
+	{`\a`, `\a`},
+	{"\\`", "\\\\`"},
+	{`abc\`, `abc\\`},
+	{`abc\\`, `abc\\\\`},
+	{`\*\_\{\}\[\]\(\)\#\+\-\.\!\|\<\&`, `\\*\\_\\{\\}\\[\\]\\(\\)\\#\\+\\-\\.\\!\\|\\<\\&`},
+	{`https://example.com/p?a=b#c`, `https://example.com/p?a=b#c`},
+	{`https://example.com/p?a=b#\`, `https://example.com/p?a=b#\\`},
+	{`https://example.com/p.html\?a=b#c`, `https://example.com/p.html\?a=b#c`},
 }
 
 func TestMarkdownEscape(t *testing.T) {
-	for _, cas := range mdEscapeCases {
-		out := markdownEscape(cas.src)
+	for _, cas := range mdURLEscapeCases {
+		out := markdownURLEscape(cas.src)
 		if cas.expected != out {
 			t.Fatalf("src: %q: expecting %q, got %q", cas.src, cas.expected, out)
 		}

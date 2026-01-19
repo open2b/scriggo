@@ -8,39 +8,25 @@ import (
 	"strings"
 )
 
-var slash = []byte(`\`)
-var nbsp = []byte("\u00a0")
-
-// markdownEscape escapes the string s, so it can be placed inside Markdown.
-func markdownEscape(s string) string {
+// markdownURLEscape escapes the string s, so it can be placed inside Markdown
+// destination link.
+func markdownURLEscape(s string) string {
 	var b strings.Builder
-	last := 0
-	var esc []byte
-	for i := 0; i < len(s); i++ {
-		if isMarkdownEscapable(s[i]) {
-			esc = slash
-		} else if s[i] == ' ' || s[i] == '\t' {
-			if 0 < i && i < len(s)-1 {
-				if c := s[i+1]; c != ' ' && c != '\t' {
-					continue
-				}
-			}
-			esc = nbsp
-		} else {
-			continue
+	for s != "" {
+		i := strings.IndexByte(s, '\\')
+		if i == -1 {
+			break
 		}
-		if last != i {
-			b.WriteString(s[last:i])
-			last = i
+		b.WriteString(s[:i+1])
+		if i == len(s)-1 || isMarkdownEscapable(s[i+1]) {
+			b.WriteByte('\\')
 		}
-		_, _ = b.Write(esc)
-		if s[i] == ' ' || s[i] == '\t' {
-			last++
-		}
+		s = s[i+1:]
 	}
-	if last != len(s) {
-		b.WriteString(s[last:])
+	if b.Len() == 0 {
+		return s
 	}
+	b.WriteString(s)
 	return b.String()
 }
 

@@ -33,42 +33,42 @@ func TestLinkDestinationReplacer(t *testing.T) {
 		{
 			name: "inlineRelative",
 			src:  "[API](api)",
-			want: "[API](" + markdownEscape("https://example.com/base/docs/api.md") + ")",
+			want: "[API](" + markdownURLEscape("https://example.com/base/docs/api.md") + ")",
 		},
 		{
 			name: "inlineHTML",
 			src:  "[API](api.html)",
-			want: "[API](" + markdownEscape("https://example.com/base/docs/api.md") + ")",
+			want: "[API](" + markdownURLEscape("https://example.com/base/docs/api.md") + ")",
 		},
 		{
 			name: "inlineMD",
 			src:  "[Read](readme.md)",
-			want: "[Read](" + markdownEscape("https://example.com/base/docs/readme.md") + ")",
+			want: "[Read](" + markdownURLEscape("https://example.com/base/docs/readme.md") + ")",
 		},
 		{
 			name: "inlineOtherExt",
 			src:  "[Pic](img/logo.png)",
-			want: "[Pic](" + markdownEscape("https://example.com/base/docs/img/logo.png") + ")",
+			want: "[Pic](" + markdownURLEscape("https://example.com/base/docs/img/logo.png") + ")",
 		},
 		{
 			name: "absolutePath",
 			src:  "[Abs](/guide)",
-			want: "[Abs](" + markdownEscape("https://example.com/base/guide.md") + ")",
+			want: "[Abs](" + markdownURLEscape("https://example.com/base/guide.md") + ")",
 		},
 		{
 			name: "trailingSlash",
 			src:  "[Dir](guide/)",
-			want: "[Dir](" + markdownEscape("https://example.com/base/docs/guide/") + ")",
+			want: "[Dir](" + markdownURLEscape("https://example.com/base/docs/guide/") + ")",
 		},
 		{
 			name: "queryFragment",
 			src:  "[Q](api?x=1#y)",
-			want: "[Q](" + markdownEscape("https://example.com/base/docs/api.md?x=1#y") + ")",
+			want: "[Q](" + markdownURLEscape("https://example.com/base/docs/api.md?x=1#y") + ")",
 		},
 		{
 			name: "schemeRelative",
 			src:  "[CDN](//cdn.example.com/lib.js)",
-			want: "[CDN](" + markdownEscape("https://cdn.example.com/lib.js") + ")",
+			want: "[CDN](" + markdownURLEscape("https://cdn.example.com/lib.js") + ")",
 		},
 		{
 			name: "absoluteURL",
@@ -88,7 +88,7 @@ func TestLinkDestinationReplacer(t *testing.T) {
 		{
 			name: "referenceDefinition",
 			src:  "[ref]: api \"Title\"\nSee [ref].",
-			want: "[ref]: " + markdownEscape("https://example.com/base/docs/api.md") + " \"Title\"\nSee [ref].",
+			want: "[ref]: " + markdownURLEscape("https://example.com/base/docs/api.md") + " \"Title\"\nSee [ref].",
 		},
 		{
 			name: "inlineCode",
@@ -108,27 +108,27 @@ func TestLinkDestinationReplacer(t *testing.T) {
 		{
 			name: "angleDestination",
 			src:  "[t](<api.html>)",
-			want: "[t](<" + markdownEscape("https://example.com/base/docs/api.md") + ">)",
+			want: "[t](<" + markdownURLEscape("https://example.com/base/docs/api.md") + ">)",
 		},
 		{
 			name: "escapedParens",
 			src:  "[t](a\\(b\\).html)",
-			want: "[t](" + markdownEscape("https://example.com/base/docs/a%28b%29.md") + ")",
+			want: "[t](" + markdownURLEscape("https://example.com/base/docs/a%28b%29.md") + ")",
 		},
 		{
 			name: "multipleLinks",
 			src:  "[a](a) [b](b.html)",
-			want: "[a](" + markdownEscape("https://example.com/base/docs/a.md") + ") [b](" + markdownEscape("https://example.com/base/docs/b.md") + ")",
+			want: "[a](" + markdownURLEscape("https://example.com/base/docs/a.md") + ") [b](" + markdownURLEscape("https://example.com/base/docs/b.md") + ")",
 		},
 		{
 			name: "dotPath",
 			src:  "[here](./guide)",
-			want: "[here](" + markdownEscape("https://example.com/base/docs/guide.md") + ")",
+			want: "[here](" + markdownURLEscape("https://example.com/base/docs/guide.md") + ")",
 		},
 		{
 			name: "dotDotPath",
 			src:  "[up](../guide)",
-			want: "[up](" + markdownEscape("https://example.com/base/guide.md") + ")",
+			want: "[up](" + markdownURLEscape("https://example.com/base/guide.md") + ")",
 		},
 	}
 
