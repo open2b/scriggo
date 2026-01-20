@@ -135,9 +135,21 @@ func build(dir, o string, llms string) error {
 			buildOptions.UnexpandedTransformer = nil
 			if llms != "" && ext == ".md" {
 				buildOptions.UnexpandedTransformer = func(tree *ast.Tree) error {
-					if len(tree.Nodes) > 0 {
-						if extends, ok := tree.Nodes[0].(*ast.Extends); ok && strings.HasSuffix(extends.Path, ".html") {
-							buildLLMsVersion = true
+					for _, node := range tree.Nodes {
+						switch n := node.(type) {
+						case *ast.Comment:
+						case *ast.Extends:
+							buildLLMsVersion = strings.HasSuffix(n.Path, ".html")
+							return nil
+						case *ast.Text:
+							if !containsOnlySpaces(n.Text) {
+								return nil
+							}
+						case *ast.Statements:
+							if n, ok := n.Nodes[0].(*ast.Extends); ok {
+								buildLLMsVersion = strings.HasSuffix(n.Path, ".html")
+							}
+							return nil
 						}
 					}
 					return nil
@@ -269,4 +281,15 @@ func htmlToMarkdownPath(path string) string {
 		path = p + ".md"
 	}
 	return path
+}
+
+// containsOnlySpaces reports whether b contains only white space characters
+// as intended by Go parser.
+func containsOnlySpaces(bytes []byte) bool {
+	for _, b := range bytes {
+		if b != ' ' && b != '\t' && b != '\n' && b != '\r' {
+			return false
+		}
+	}
+	return true
 }
