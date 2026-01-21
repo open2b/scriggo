@@ -76,10 +76,10 @@ layout. For example, if the file page.md extends layout.html, the build process
 generates page.html by extending layout.html, and also page.md by extending
 layout.md. The file layout.md must exist in the same directory as layout.html.
 
-The -llms flag requires an absolute URL as its argument. This URL is used to
-rewrite relative destination links in the generated Markdown files, converting
-them into absolute links. Destination links that consist only of a query string
-or a fragment are left unchanged. For example:
+The -llms flag requires a base URL as its argument. This URL is used to rewrite
+destination links in the generated Markdown by prefixing them with the provided
+base URL. Destination links that are absolute, or consist only of a query string
+or a fragment, are left unchanged. For example:
 
 	scriggo build -llms https://example.com src
 
