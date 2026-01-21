@@ -91,6 +91,21 @@ func TestLinkDestinationReplacer(t *testing.T) {
 			want: "[ref]: " + markdownURLEscape("https://example.com/base/docs/api.md") + " \"Title\"\nSee [ref].",
 		},
 		{
+			name: "htmlInlineBlock",
+			src:  "<p>[Test](api/authentication.html)</p>",
+			want: "<p>[Test](api/authentication.html)</p>",
+		},
+		{
+			name: "htmlInlineSpan",
+			src:  "Before <span>[Test](api)</span> [OK](api)",
+			want: "Before <span>[Test](api)</span> [OK](" + markdownURLEscape("https://example.com/base/docs/api.md") + ")",
+		},
+		{
+			name: "htmlBlockMultiline",
+			src:  "<div>\n[Test](api)\n</div>\n[OK](api)\n",
+			want: "<div>\n[Test](api)\n</div>\n[OK](" + markdownURLEscape("https://example.com/base/docs/api.md") + ")\n",
+		},
+		{
 			name: "inlineCode",
 			src:  "`[API](api)`",
 			want: "`[API](api)`",

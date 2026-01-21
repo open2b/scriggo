@@ -22,6 +22,35 @@ type replacement struct {
 	repl  string
 }
 
+type htmlState struct {
+	stack     []string
+	rawTag    string
+	rawCloser string
+}
+
+func (s *htmlState) inHTML() bool {
+	return s.rawTag != "" || s.rawCloser != "" || len(s.stack) > 0
+}
+
+func (s *htmlState) openTag(tag string) {
+	s.stack = append(s.stack, tag)
+	if isRawTextElement(tag) {
+		s.rawTag = tag
+	}
+}
+
+func (s *htmlState) closeTag(tag string) {
+	for i := len(s.stack) - 1; i >= 0; i-- {
+		if s.stack[i] == tag {
+			s.stack = s.stack[:i]
+			break
+		}
+	}
+	if s.rawTag == tag {
+		s.rawTag = ""
+	}
+}
+
 // linkDestinationReplacer replaces Markdown link destinations with absolute
 // URLs. For example, running:
 //
@@ -55,6 +84,7 @@ func (r linkDestinationReplacer) collectReplacements(src []byte) []replacement {
 	var inFence bool
 	var fenceChar byte
 	var fenceLen int
+	var html htmlState
 
 	for lineStart := 0; lineStart <= len(src); {
 		lineEnd := bytes.IndexByte(src[lineStart:], '\n')
@@ -73,26 +103,30 @@ func (r linkDestinationReplacer) collectReplacements(src []byte) []replacement {
 			continue
 		}
 
-		if ok, fc, fl := isFenceStart(line); ok {
-			inFence = true
-			fenceChar = fc
-			fenceLen = fl
-			lineStart = lineEnd + 1
-			continue
+		if !html.inHTML() {
+			if ok, fc, fl := isFenceStart(line); ok {
+				inFence = true
+				fenceChar = fc
+				fenceLen = fl
+				lineStart = lineEnd + 1
+				continue
+			}
+
+			if isIndentedCode(line) {
+				lineStart = lineEnd + 1
+				continue
+			}
 		}
 
-		if isIndentedCode(line) {
-			lineStart = lineEnd + 1
-			continue
+		if !html.inHTML() {
+			if start, stop, ok := parseReferenceDefinition(line); ok {
+				r.appendReplacement(&replacements, src, lineStart+start, lineStart+stop)
+				lineStart = lineEnd + 1
+				continue
+			}
 		}
 
-		if start, stop, ok := parseReferenceDefinition(line); ok {
-			r.appendReplacement(&replacements, src, lineStart+start, lineStart+stop)
-			lineStart = lineEnd + 1
-			continue
-		}
-
-		r.scanInlineLinks(line, lineStart, src, &replacements)
+		r.scanInlineLinks(line, lineStart, src, &replacements, &html)
 		lineStart = lineEnd + 1
 	}
 
@@ -174,8 +208,8 @@ func (r linkDestinationReplacer) appendReplacement(replacements *[]replacement, 
 
 }
 
-func (r linkDestinationReplacer) scanInlineLinks(line []byte, lineStart int, src []byte, replacements *[]replacement) {
-	stack := make([]int, 0, 4)
+func (r linkDestinationReplacer) scanInlineLinks(line []byte, lineStart int, src []byte, replacements *[]replacement, html *htmlState) {
+	linkStack := make([]int, 0, 4)
 	codeSpanLen := 0
 
 	for i := 0; i < len(line); {
@@ -194,6 +228,82 @@ func (r linkDestinationReplacer) scanInlineLinks(line []byte, lineStart int, src
 			continue
 		}
 
+		if html.rawCloser != "" {
+			end := bytes.Index(line[i:], []byte(html.rawCloser))
+			if end == -1 {
+				return
+			}
+			i += end + len(html.rawCloser)
+			html.rawCloser = ""
+			continue
+		}
+
+		if html.rawTag != "" {
+			if c == '<' {
+				tag, end, isClosing, _, ok := parseHTMLTag(line, i)
+				if ok && isClosing && tag == html.rawTag {
+					html.closeTag(tag)
+					i = end
+					continue
+				}
+			}
+			i++
+			continue
+		}
+
+		if len(linkStack) == 0 && c == '<' {
+			switch {
+			case i+3 < len(line) && line[i+1] == '!' && line[i+2] == '-' && line[i+3] == '-':
+				end := bytes.Index(line[i+4:], []byte("-->"))
+				if end == -1 {
+					html.rawCloser = "-->"
+					return
+				}
+				i += 4 + end + len("-->")
+				continue
+			case i+8 < len(line) && bytes.HasPrefix(line[i:], []byte("<![CDATA[")):
+				end := bytes.Index(line[i+9:], []byte("]]>"))
+				if end == -1 {
+					html.rawCloser = "]]>"
+					return
+				}
+				i += 9 + end + len("]]>")
+				continue
+			case i+1 < len(line) && line[i+1] == '?':
+				end := bytes.Index(line[i+2:], []byte("?>"))
+				if end == -1 {
+					html.rawCloser = "?>"
+					return
+				}
+				i += 2 + end + len("?>")
+				continue
+			case i+1 < len(line) && line[i+1] == '!':
+				end := bytes.IndexByte(line[i+2:], '>')
+				if end == -1 {
+					html.rawCloser = ">"
+					return
+				}
+				i += 2 + end + 1
+				continue
+			}
+
+			tag, end, isClosing, isSelfClosing, ok := parseHTMLTag(line, i)
+			if ok {
+				if isClosing {
+					html.closeTag(tag)
+				} else if !isSelfClosing {
+					html.openTag(tag)
+				}
+				i = end
+				continue
+			}
+		}
+
+		if html.inHTML() {
+			i++
+			continue
+		}
+
 		if c == '\\' && i+1 < len(line) && util.IsPunct(line[i+1]) {
 			i += 2
 			continue
@@ -204,19 +314,19 @@ func (r linkDestinationReplacer) scanInlineLinks(line []byte, lineStart int, src
 			continue
 		}
 		if c == '[' {
-			stack = append(stack, i)
+			linkStack = append(linkStack, i)
 			i++
 			continue
 		}
 		if c == ']' {
-			if len(stack) > 0 {
-				stack = stack[:len(stack)-1]
+			if len(linkStack) > 0 {
+				linkStack = linkStack[:len(linkStack)-1]
 				if i+1 < len(line) && line[i+1] == '(' {
 					start, stop, end, ok := parseInlineDestination(line, i+2)
 					if ok {
 						r.appendReplacement(replacements, src, lineStart+start, lineStart+stop)
 						i = end
-						stack = stack[:0]
+						linkStack = linkStack[:0]
 						continue
 					}
 				}
@@ -226,6 +336,88 @@ func (r linkDestinationReplacer) scanInlineLinks(line []byte, lineStart int, src
 		}
 		i++
 	}
+}
+
+func parseHTMLTag(line []byte, pos int) (tag string, end int, isClosing bool, isSelfClosing bool, ok bool) {
+	if pos >= len(line) || line[pos] != '<' || pos+1 >= len(line) {
+		return "", 0, false, false, false
+	}
+	i := pos + 1
+	if line[i] == '/' {
+		isClosing = true
+		i++
+		if i >= len(line) {
+			return "", 0, false, false, false
+		}
+	}
+	if !isASCIIAlpha(line[i]) {
+		return "", 0, false, false, false
+	}
+	start := i
+	for i < len(line) && isHTMLTagNameChar(line[i]) {
+		i++
+	}
+	tag = strings.ToLower(string(line[start:i]))
+	for i < len(line) {
+		c := line[i]
+		if c == '"' || c == '\'' {
+			quote := c
+			i++
+			for i < len(line) && line[i] != quote {
+				i++
+			}
+			if i >= len(line) {
+				return "", 0, false, false, false
+			}
+			i++
+			continue
+		}
+		if c == '>' {
+			break
+		}
+		i++
+	}
+	if i >= len(line) || line[i] != '>' {
+		return "", 0, false, false, false
+	}
+	if !isClosing {
+		if isVoidElement(tag) {
+			isSelfClosing = true
+		} else {
+			j := i - 1
+			for j > pos && util.IsSpace(line[j]) {
+				j--
+			}
+			if j > pos && line[j] == '/' {
+				isSelfClosing = true
+			}
+		}
+	}
+	return tag, i + 1, isClosing, isSelfClosing, true
+}
+
+func isASCIIAlpha(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
+
+func isHTMLTagNameChar(c byte) bool {
+	return isASCIIAlpha(c) || (c >= '0' && c <= '9') || c == '-'
+}
+
+func isVoidElement(tag string) bool {
+	switch tag {
+	case "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr":
+		return true
+	}
+	return false
+}
+
+func isRawTextElement(tag string) bool {
+	switch tag {
+	case "script", "style", "textarea":
+		return true
+	}
+	return false
 }
 
 func parseInlineDestination(line []byte, pos int) (start, stop, end int, ok bool) {
