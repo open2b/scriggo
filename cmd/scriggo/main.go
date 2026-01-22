@@ -174,7 +174,7 @@ var commands = map[string]func(){
 	"build": func() {
 		flag.Usage = commandsHelp["build"]
 		o := flag.String("o", "", "write the resulting files to the named directory instead of './public'.")
-		llms := flag.String("llms", "", "generate an additional Markdown file for LLMs alongside the HTML output.")
+		llms := flag.String("llms", "", "generate per-file HTML and Markdown outputs for LLMs.")
 		flag.Parse()
 		var dir string
 		switch n := len(flag.Args()); n {
