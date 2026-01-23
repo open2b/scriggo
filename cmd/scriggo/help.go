@@ -77,14 +77,14 @@ generates page.html by extending layout.html, and also page.md by extending
 layout.md. The file layout.md must exist in the same directory as layout.html.
 
 The -llms flag requires a base URL as its argument. This URL is used to rewrite
-destination links in the generated Markdown by prefixing them with the provided
-base URL. Destination links that are absolute, or consist only of a query string
+link destinations in the generated Markdown by prefixing them with the provided
+base URL. Link destinations that are absolute, or consist only of a query string
 or a fragment, are left unchanged. For example:
 
 	scriggo build -llms https://example.com src
 
 builds the template and also generates the Markdown files. In these files,
-relative destination links are rewritten as absolute ones; for example, the link
+relative link destinations are rewritten as absolute ones; for example, the URL
 api/authentication.html becomes https://example.com/api/authentication.html.
 
 The -o flag allows specifying an alternative output directory instead of the
