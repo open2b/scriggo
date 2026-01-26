@@ -101,7 +101,8 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 	var conv Converter
 	if options != nil {
 		co.Globals = options.Globals
-		co.TreeTransformer = options.TreeTransformer
+		co.UnexpandedTransformer = options.UnexpandedTransformer
+		co.ExpandedTransformer = options.ExpandedTransformer
 		co.AllowGoStmt = options.AllowGoStmt
 		co.NoParseShortShowStmt = options.NoParseShortShowStmt
 		co.Importer = options.Packages

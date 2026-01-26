@@ -804,7 +804,7 @@ func Test_treeTransformer(t *testing.T) {
 	stdout := &strings.Builder{}
 	fsys := fstest.Files{"index.html": `{% w := "hi, " %}{{ w }}world!`}
 	opts := &scriggo.BuildOptions{
-		TreeTransformer: func(tree *ast.Tree) error {
+		ExpandedTransformer: func(tree *ast.Tree) error {
 			assignment := tree.Nodes[0].(*ast.Assignment)
 			assignment.Rhs[0].(*ast.BasicLiteral).Value = `"hello, "`
 			text := tree.Nodes[2].(*ast.Text)
