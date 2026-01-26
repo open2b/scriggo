@@ -28,7 +28,7 @@ type FormatFS interface {
 // Any error related to the compilation itself is returned as a CompilerError.
 //
 // If noParseShow is true, short show statements are not parsed.
-// If a transformer is provided, invoke it with the tree before it is expanded.
+// If a transformer is provided, it is invoked with the tree before expansion.
 //
 // ParseTemplate expands the nodes Extends, Import and Render parsing the
 // relative trees.
