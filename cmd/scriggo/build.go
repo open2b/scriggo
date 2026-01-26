@@ -5,24 +5,38 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"log"
+	"net/url"
 	"os"
+	pathPkg "path"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/ast/astutil"
 	"github.com/open2b/scriggo/native"
 
 	"github.com/yuin/goldmark"
 )
 
 // build the template.
-func build(dir, o string) error {
+func build(dir, o string, llms string) error {
+
+	var linkReplacer linkDestinationReplacer
+	if llms != "" {
+		base, err := url.Parse(llms)
+		if err != nil {
+			return fmt.Errorf("invalid value for -llms flag: %s", err)
+		}
+		linkReplacer = linkDestinationReplacer{base: base}
+	}
 
 	start := time.Now()
 
@@ -73,6 +87,8 @@ func build(dir, o string) error {
 	dstBase := filepath.Base(dstDir)
 	publicBase := filepath.Base(publicDir)
 
+	var bufIn, bufOut bytes.Buffer
+
 	err = fs.WalkDir(srcFS, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -115,18 +131,92 @@ func build(dir, o string) error {
 			}
 			outputSources[fpath] = path
 			buildOptions.Globals["filepath"] = fpath
+			var buildLLMsVersion bool // true if the -llms flag is set and a Markdown template extends an HTML template
+			buildOptions.UnexpandedTransformer = nil
+			if llms != "" && ext == ".md" {
+				buildOptions.UnexpandedTransformer = func(tree *ast.Tree) error {
+					for _, node := range tree.Nodes {
+						switch n := node.(type) {
+						case *ast.Comment:
+						case *ast.Extends:
+							buildLLMsVersion = strings.HasSuffix(n.Path, ".html")
+							return nil
+						case *ast.Text:
+							if !containsOnlySpaces(n.Text) {
+								return nil
+							}
+						case *ast.Statements:
+							if n, ok := n.Nodes[0].(*ast.Extends); ok {
+								buildLLMsVersion = strings.HasSuffix(n.Path, ".html")
+							}
+							return nil
+						}
+					}
+					return nil
+				}
+			}
 			template, err := scriggo.BuildTemplate(srcFS, path, buildOptions)
 			if err != nil {
 				return err
 			}
-			path := filepath.Join(dstDir, fpath) + ".html"
-			fi, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0600)
+			dstPath := filepath.Join(dstDir, fpath) + ".html"
+			fi, err := os.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE, 0600)
 			if err != nil {
 				return err
 			}
 			err = template.Run(fi, nil, nil)
-			if errCode := fi.Close(); errCode != nil && err == nil {
-				err = errCode
+			errCode := fi.Close()
+			if err != nil {
+				return err
+			}
+			if errCode != nil {
+				return errCode
+			}
+			// Build the LLMs version if needed.
+			if buildLLMsVersion {
+				bufIn.Reset()
+				bufOut.Reset()
+				// Use a transformer to expand, import, and render Markdown files instead of HTML.
+				buildOptions.UnexpandedTransformer = func(tree *ast.Tree) error {
+					astutil.Inspect(tree, func(node ast.Node) bool {
+						switch n := node.(type) {
+						case *ast.Extends:
+							n.Path = htmlToMarkdownPath(n.Path)
+						case *ast.Import:
+							n.Path = htmlToMarkdownPath(n.Path)
+						case *ast.Render:
+							n.Path = htmlToMarkdownPath(n.Path)
+						}
+						return true
+					})
+					return nil
+				}
+				template, err := scriggo.BuildTemplate(srcFS, path, buildOptions)
+				if err != nil {
+					return err
+				}
+				err = template.Run(&bufIn, nil, nil)
+				if err != nil {
+					return err
+				}
+				linkReplacer.dir = pathPkg.Dir(path)
+				err = linkReplacer.replace(&bufOut, bufIn.Bytes())
+				if err != nil {
+					return err
+				}
+				dstPath := filepath.Join(dstDir, fpath) + ".md"
+				fi, err := os.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE, 0600)
+				if err != nil {
+					return err
+				}
+				_, err = bufOut.WriteTo(fi)
+				errClose := fi.Close()
+				if err != nil {
+					return err
+				}
+				if errClose != nil {
+					return err
+				}
 			}
 		default:
 			src, err := srcFS.Open(path)
@@ -182,4 +272,24 @@ func checkOutDirectory(path string) error {
 		return fmt.Errorf("output directory %q already exists", path)
 	}
 	return fmt.Errorf("path %q exists and is not a directory", path)
+}
+
+// htmlToMarkdownPath replaces the ".html" extension in a path with ".md".
+// It does nothing if the path does not end with ".html".
+func htmlToMarkdownPath(path string) string {
+	if p := strings.TrimSuffix(path, ".html"); len(p) < len(path) {
+		path = p + ".md"
+	}
+	return path
+}
+
+// containsOnlySpaces reports whether b contains only white space characters
+// as intended by Go parser.
+func containsOnlySpaces(bytes []byte) bool {
+	for _, b := range bytes {
+		if b != ' ' && b != '\t' && b != '\n' && b != '\r' {
+			return false
+		}
+	}
+	return true
 }

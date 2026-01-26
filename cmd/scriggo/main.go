@@ -174,6 +174,7 @@ var commands = map[string]func(){
 	"build": func() {
 		flag.Usage = commandsHelp["build"]
 		o := flag.String("o", "", "write the resulting files to the named directory instead of './public'.")
+		llms := flag.String("llms", "", "generate per-file HTML and Markdown outputs for LLMs.")
 		flag.Parse()
 		var dir string
 		switch n := len(flag.Args()); n {
@@ -184,7 +185,7 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := build(dir, *o)
+		err := build(dir, *o, *llms)
 		if err != nil {
 			exitError("%s", err)
 		}

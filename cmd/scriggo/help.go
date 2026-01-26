@@ -44,7 +44,7 @@ Additional help topics:
 `
 
 const helpBuild = `
-usage: scriggo build [-o output] [dir]
+usage: scriggo build [-llms url] [-o output] [dir]
 
 Build processes the template rooted at the current directory and writes the
 generated files to the 'public' directory by default. If the 'public' directory
@@ -54,8 +54,8 @@ directory.
 
 Directories whose names start with an underscore (_), and files or directories
 whose names start with a dot (.), are skipped. Only files with extension '.md'
-and '.html' are built, non-template files, such as CSS and JavaScript files are
-copied as-is. 
+and '.html' are built, non-template files, such as CSS and JavaScript files, are
+copied as-is.
 
 For example:
 
@@ -67,12 +67,34 @@ processing Markdown and HTML files and generating their final output in the
 without modification, resulting in a complete static site ready for deployment.
 If 'dist' already exists, the command returns an error.
 
+The -llms flag generates two outputs for each template file: an HTML version and
+a Markdown version. Both share the same path but use different file extensions.
+The Markdown output is intended for consumption by LLMs.
+
+This behavior applies only to Markdown template files that extend an HTML
+layout. For example, if the file page.md extends layout.html, the build process
+generates page.html by extending layout.html, and also page.md by extending
+layout.md. The file layout.md must exist in the same directory as layout.html.
+
+The -llms flag requires a base URL as its argument. This URL is used to rewrite
+link destinations in the generated Markdown by prefixing them with the provided
+base URL. Link destinations that are absolute, or consist only of a query string
+or a fragment, are left unchanged. For example:
+
+	scriggo build -llms https://example.com src
+
+builds the template and also generates the Markdown files. In these files,
+relative link destinations are rewritten as absolute ones; for example, the URL
+api/authentication.html becomes https://example.com/api/authentication.html.
+
 The -o flag allows specifying an alternative output directory instead of the
 default 'public'.
 
 Examples:
 
 	scriggo build src
+
+	scriggo build -llms https://docs.example.com/ src
 
 	scriggo build -o ../public
 
