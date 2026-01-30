@@ -281,6 +281,11 @@ var commands = map[string]func(){
 		metrics := flag.Bool("metrics", false, "print metrics about file executions.")
 		disableLiveReload := flag.Bool("disable-livereload", false, "disable LiveReload.")
 		httpValue := flag.String("http", "", "set the listen address of the HTTP server.")
+		var consts []string
+		flag.Func("const", "build with global constants with the given names and values.", func(s string) error {
+			consts = append(consts, s)
+			return nil
+		})
 		flag.Parse()
 		asm := -2 // -2: no assembler
 		httpFlagSet := false
@@ -295,7 +300,7 @@ var commands = map[string]func(){
 				httpFlagSet = true
 			}
 		})
-		err := serve(asm, *metrics, *disableLiveReload, *httpValue, httpFlagSet)
+		err := serve(asm, *metrics, *disableLiveReload, *httpValue, httpFlagSet, consts)
 		if err != nil {
 			exitError("%s", err)
 		}

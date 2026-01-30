@@ -38,7 +38,7 @@ const (
 //	asm > 0: at most asm runes; leading and trailing white space are removed
 //	asm == 0: no text
 //	asm == -1: all text
-func serve(asm int, metrics bool, disableLiveReload bool, httpValue string, httpFlagSet bool) error {
+func serve(asm int, metrics bool, disableLiveReload bool, httpValue string, httpFlagSet bool, consts []string) error {
 
 	fsys, err := newTemplateFS(".")
 	if err != nil {
@@ -64,6 +64,15 @@ func serve(asm int, metrics bool, disableLiveReload bool, httpValue string, http
 	if metrics {
 		srv.metrics.active = true
 		srv.metrics.header = true
+	}
+	if len(consts) > 0 {
+		srv.flagConsts = make(native.Declarations, len(consts))
+		for _, consts := range consts {
+			err := parseConstants(consts, srv.flagConsts)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	go func() {
 		for {
@@ -136,6 +145,7 @@ type server struct {
 	mdConverter scriggo.Converter
 	runOptions  *scriggo.RunOptions
 	asm         int
+	flagConsts  native.Declarations
 
 	sync.Mutex
 	templates             map[string]*scriggo.Template
@@ -302,11 +312,15 @@ func (srv *server) serveTemplate(w http.ResponseWriter, r *http.Request) {
 		opts := scriggo.BuildOptions{
 			AllowGoStmt:       true,
 			MarkdownConverter: srv.mdConverter,
-			Globals:           make(native.Declarations, len(globals)+1),
+			Globals:           make(native.Declarations, len(globals)+len(srv.flagConsts)+1),
 		}
 		for n, v := range globals {
 			opts.Globals[n] = v
 		}
+		for n, v := range srv.flagConsts {
+			opts.Globals[n] = v
+		}
+
 		opts.Globals["filepath"] = strings.TrimSuffix(name, path.Ext(name))
 		template, err = scriggo.BuildTemplate(fs, name, &opts)
 		if err != nil {
