@@ -44,7 +44,7 @@ Additional help topics:
 `
 
 const helpBuild = `
-usage: scriggo build [-llms url] [-o output] [dir]
+usage: scriggo build [-llms url] [-const name=value] [-o output] [dir]
 
 Build processes the template rooted at the current directory and writes the
 generated files to the 'public' directory by default. If the 'public' directory
@@ -87,6 +87,11 @@ builds the template and also generates the Markdown files. In these files,
 relative link destinations are rewritten as absolute ones; for example, the URL
 api/authentication.html becomes https://example.com/api/authentication.html.
 
+The -const name=value flag builds the template with a global constant with the
+given name and value. name should be a Go identifier and value should be a
+string literal, a number literal, true or false. There can be multiple
+name=value pairs.
+
 The -o flag allows specifying an alternative output directory instead of the
 default 'public'.
 
@@ -95,6 +100,8 @@ Examples:
 	scriggo build src
 
 	scriggo build -llms https://docs.example.com/ src
+
+	scriggo build -const 'version=1.12 title="The ancient art of tea"'
 
 	scriggo build -o ../public
 
@@ -257,7 +264,7 @@ Examples:
 `
 
 const helpServe = `
-usage: scriggo serve [-S n] [--metrics] [--disable-livereload] [-http host[:port]]
+usage: scriggo serve [-S n] [--metrics] [--disable-livereload] [-const name=value] [-http host[:port]]
 
 Serve runs a web server and serves the template rooted at the current
 directory. It is useful to learn Scriggo templates.
@@ -299,11 +306,18 @@ The -http flag configures the address the server listens on:
 
 	-http host[:port]   listen address (default "localhost:8080")
 
+The -const name=value flag serves the template with a global constant with the
+given name and value. name should be a Go identifier and value should be a
+string literal, a number literal, true or false. There can be multiple
+name=value pairs.
+
 Examples:
 
 	scriggo serve -http example.com:80
 
 	scriggo serve -http example.com
+
+	scriggo serve -const 'version=1.12 title="The ancient art of tea"' -http example.com
 
 	scriggo serve -http :80
 `
