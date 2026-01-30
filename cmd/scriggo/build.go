@@ -27,7 +27,7 @@ import (
 )
 
 // build the template.
-func build(dir, o string, llms string) error {
+func build(dir, o string, llms string, consts []string) error {
 
 	var linkReplacer linkDestinationReplacer
 	if llms != "" {
@@ -72,13 +72,20 @@ func build(dir, o string, llms string) error {
 	md := goldmark.New(goldmarkOptions...)
 
 	buildOptions := &scriggo.BuildOptions{
-		Globals: make(native.Declarations, len(globals)+1),
+		Globals: make(native.Declarations, len(globals)+len(consts)+1),
 		MarkdownConverter: func(src []byte, out io.Writer) error {
 			return md.Convert(src, out)
 		},
 	}
 	for n, v := range globals {
 		buildOptions.Globals[n] = v
+	}
+	// Handle "-const" option.
+	for _, consts := range consts {
+		err = parseConstants(consts, buildOptions.Globals)
+		if err != nil {
+			return err
+		}
 	}
 
 	srcFS := os.DirFS(srcDir)
