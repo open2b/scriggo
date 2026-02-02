@@ -313,13 +313,12 @@ name=value pairs.
 
 Examples:
 
-	scriggo serve -http example.com:80
+    scriggo serve
 
-	scriggo serve -http example.com
+	scriggo serve -http example.com:80
 
 	scriggo serve -const 'version=1.12 title="The ancient art of tea"' -http example.com
 
-	scriggo serve -http :80
 `
 
 const helpScriggofile = `
