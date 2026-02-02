@@ -175,6 +175,11 @@ var commands = map[string]func(){
 		flag.Usage = commandsHelp["build"]
 		o := flag.String("o", "", "write the resulting files to the named directory instead of './public'.")
 		llms := flag.String("llms", "", "generate per-file HTML and Markdown outputs for LLMs.")
+		var consts []string
+		flag.Func("const", "build with global constants with the given names and values.", func(s string) error {
+			consts = append(consts, s)
+			return nil
+		})
 		flag.Parse()
 		var dir string
 		switch n := len(flag.Args()); n {
@@ -185,7 +190,7 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := build(dir, *o, *llms)
+		err := build(dir, *o, *llms, consts)
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -276,6 +281,11 @@ var commands = map[string]func(){
 		metrics := flag.Bool("metrics", false, "print metrics about file executions.")
 		disableLiveReload := flag.Bool("disable-livereload", false, "disable LiveReload.")
 		httpValue := flag.String("http", "", "set the listen address of the HTTP server.")
+		var consts []string
+		flag.Func("const", "serve with global constants with the given names and values.", func(s string) error {
+			consts = append(consts, s)
+			return nil
+		})
 		flag.Parse()
 		asm := -2 // -2: no assembler
 		httpFlagSet := false
@@ -290,7 +300,7 @@ var commands = map[string]func(){
 				httpFlagSet = true
 			}
 		})
-		err := serve(asm, *metrics, *disableLiveReload, *httpValue, httpFlagSet)
+		err := serve(asm, *metrics, *disableLiveReload, *httpValue, httpFlagSet, consts)
 		if err != nil {
 			exitError("%s", err)
 		}
