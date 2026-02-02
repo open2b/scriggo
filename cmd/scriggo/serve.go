@@ -67,8 +67,8 @@ func serve(asm int, metrics bool, disableLiveReload bool, httpValue string, http
 	}
 	if len(consts) > 0 {
 		srv.flagConsts = make(native.Declarations, len(consts))
-		for _, consts := range consts {
-			err := parseConstants(consts, srv.flagConsts)
+		for _, c := range consts {
+			err := parseConstants(c, srv.flagConsts)
 			if err != nil {
 				return err
 			}

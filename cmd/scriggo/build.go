@@ -81,8 +81,8 @@ func build(dir, o string, llms string, consts []string) error {
 		buildOptions.Globals[n] = v
 	}
 	// Handle "-const" option.
-	for _, consts := range consts {
-		err = parseConstants(consts, buildOptions.Globals)
+	for _, c := range consts {
+		err = parseConstants(c, buildOptions.Globals)
 		if err != nil {
 			return err
 		}
