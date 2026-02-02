@@ -66,9 +66,9 @@ func serve(asm int, metrics bool, disableLiveReload bool, httpValue string, http
 		srv.metrics.header = true
 	}
 	if len(consts) > 0 {
-		srv.flagConsts = make(native.Declarations, len(consts))
+		srv.consts = make(native.Declarations, len(consts))
 		for _, c := range consts {
-			err := parseConstants(c, srv.flagConsts)
+			err := parseConstants(c, srv.consts)
 			if err != nil {
 				return err
 			}
@@ -145,7 +145,7 @@ type server struct {
 	mdConverter scriggo.Converter
 	runOptions  *scriggo.RunOptions
 	asm         int
-	flagConsts  native.Declarations
+	consts      native.Declarations
 
 	sync.Mutex
 	templates             map[string]*scriggo.Template
@@ -312,12 +312,12 @@ func (srv *server) serveTemplate(w http.ResponseWriter, r *http.Request) {
 		opts := scriggo.BuildOptions{
 			AllowGoStmt:       true,
 			MarkdownConverter: srv.mdConverter,
-			Globals:           make(native.Declarations, len(globals)+len(srv.flagConsts)+1),
+			Globals:           make(native.Declarations, len(globals)+len(srv.consts)+1),
 		}
 		for n, v := range globals {
 			opts.Globals[n] = v
 		}
-		for n, v := range srv.flagConsts {
+		for n, v := range srv.consts {
 			opts.Globals[n] = v
 		}
 
