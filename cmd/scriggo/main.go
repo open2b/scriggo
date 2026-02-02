@@ -282,7 +282,7 @@ var commands = map[string]func(){
 		disableLiveReload := flag.Bool("disable-livereload", false, "disable LiveReload.")
 		httpValue := flag.String("http", "", "set the listen address of the HTTP server.")
 		var consts []string
-		flag.Func("const", "build with global constants with the given names and values.", func(s string) error {
+		flag.Func("const", "serve with global constants with the given names and values.", func(s string) error {
 			consts = append(consts, s)
 			return nil
 		})
