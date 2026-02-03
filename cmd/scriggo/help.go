@@ -264,7 +264,7 @@ Examples:
 `
 
 const helpServe = `
-usage: scriggo serve [-S n] [--metrics] [--disable-livereload] [-const name=value] [-http host[:port]]
+usage: scriggo serve [-S n] [--metrics] [--disable-livereload] [-const name=value] [-http [host][:port]]
 
 Serve runs a web server and serves the template rooted at the current
 directory. It is useful to learn Scriggo templates.
@@ -302,9 +302,10 @@ The --metrics flags prints metrics about execution time.
 The --disable-livereload flag disables LiveReload, preventing automatic page
 reloads in the browser.
 
-The -http flag configures the address the server listens on:
+The -http flag configures the address the server listens on, and at least one of
+the host and port must be provided when using this flag:
 
-	-http host[:port]   listen address (default "localhost:8080")
+	-http [host][:port]   listen address (default "localhost:8080")
 
 The -const name=value flag serves the template with a global constant with the
 given name and value. name should be a Go identifier and value should be a
