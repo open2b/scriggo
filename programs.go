@@ -95,7 +95,7 @@ func Build(fsys fs.FS, options *BuildOptions) (*Program, error) {
 	code, err := compiler.BuildProgram(fsys, co)
 	if err != nil {
 		if e, ok := err.(compiler.Error); ok {
-			err = &BuildError{err: e}
+			err = &BuildError{Err: e}
 		}
 		return nil, err
 	}
