@@ -389,6 +389,18 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 
 		case ast.Expression:
+			// In templates, a macro call used as statement (for example
+			// `{% Content() %}` in an extending layout) must render directly to
+			// the current output format instead of discarding its result.
+			// Non-macro expressions keep the previous behavior.
+			if call, ok := node.(*ast.Call); ok {
+				if fn := em.ti(call.Func); fn != nil && fn.IsMacroDeclaration() {
+					em.fb.enterStack()
+					em.emitCallNode(call, false, false, em.fb.fn.Format)
+					em.fb.exitStack()
+					continue
+				}
+			}
 			em.fb.enterStack()
 			em.emitExprR(node, reflect.Type(nil), 0)
 			em.fb.exitStack()

@@ -2250,6 +2250,21 @@ func TestMultiFileTemplate(t *testing.T) {
 			expectedOut: "foo",
 		},
 
+		"Using - show in Content block with extends and markdown": {
+			sources: fstest.Files{
+				"layout.html": `<html><body>{% Content() %}</body></html>`,
+				"macro.html":  `{% macro M(s markdown) %}{% if s %}{{ s }}{% end %}{% end %}`,
+				"index.html": `
+					{% extends "layout.html" %}
+					{% import "macro.html" %}
+					{% Content %}{% show M(itea); using markdown %}
+					# title
+					hello
+					{% end using %}`,
+			},
+			expectedOut: "<html><body>--- start Markdown ---\n\n\t\t\t\t\t# title\n\t\t\t\t\thello\n\t\t\t\t\t--- end Markdown ---\n</body></html>",
+		},
+
 		"Using - show - Two using statement": {
 			sources: fstest.Files{
 				"index.txt": `{% show itea; using %}foo{% end using %}{% show itea; using %}bar{% end using %}`,
