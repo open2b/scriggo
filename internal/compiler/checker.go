@@ -250,7 +250,7 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, decl *ast.Ident
 				s += "\n\tprevious declaration at " + pos.String()
 			}
 		}
-		panic(tc.errorf(decl, s))
+		panic(tc.errorf(decl, "%s", s))
 	}
 }
 
@@ -267,7 +267,7 @@ func (tc *typechecker) declarePackageName(name string, ti *typeInfo, impor *ast.
 			panic(internalError("unexpected failing LookupImport"))
 		}
 		s += fmt.Sprintf("\n\t%s:%s: previous declaration", tc.path, i.Pos())
-		panic(tc.errorf(impor, s))
+		panic(tc.errorf(impor, "%s", s))
 	}
 }
 
