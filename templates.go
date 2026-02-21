@@ -174,6 +174,11 @@ func (t *Template) Disassemble(n int) []byte {
 	return assemblies["main"]
 }
 
+// Format returns the output format of the template when executed.
+func (t *Template) Format() Format {
+	return Format(t.fn.Format)
+}
+
 // UsedVars returns the names of the global variables used in the template.
 // A variable used in dead code may not be returned as used.
 func (t *Template) UsedVars() []string {
