@@ -23,6 +23,12 @@ type TypeStruct struct{}
 
 func (t TypeStruct) Method() {}
 
+type VariadicMethodType struct{}
+
+func (v *VariadicMethodType) Len(_ string, n ...int) int {
+	return len(n)
+}
+
 // TestIssue403 executes a test the issue
 // https://github.com/open2b/scriggo/issues/403. This issue cannot be tested
 // with usual tests as it would require an execution environment that would be
@@ -131,7 +137,7 @@ func TestIssue403(t *testing.T) {
 			},
 		}
 		main := `
-	
+
 		package main
 
 		import "pkg"
@@ -139,6 +145,53 @@ func TestIssue403(t *testing.T) {
 		func main() {
 			a := [3]int{}
 			pkg.F(a)
+		}
+		`
+		fsys := fstest.Files{"main.go": main}
+		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = program.Run(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("Variadic method call on predefined variable", func(t *testing.T) {
+		packages := native.CombinedImporter{
+			native.Packages{
+				"pkg": native.Package{
+					Name: "pkg",
+					Declarations: native.Declarations{
+						"Value": &VariadicMethodType{},
+					},
+				},
+			},
+		}
+		main := `
+
+		package main
+
+		import "pkg"
+
+		func triple() (string, int, int) {
+			return "x", 1, 2
+		}
+
+		func main() {
+			if got := pkg.Value.Len("a"); got != 0 {
+				panic("unexpected variadic args count for zero variadic arguments")
+			}
+			if got := pkg.Value.Len("b", 7); got != 1 {
+				panic("unexpected variadic args count for one variadic argument")
+			}
+			values := []int{1, 2, 3}
+			if got := pkg.Value.Len("c", values...); got != 3 {
+				panic("unexpected variadic args count for variadic slice argument")
+			}
+			if got := pkg.Value.Len(triple()); got != 2 {
+				panic("unexpected variadic args count for special variadic call")
+			}
 		}
 		`
 		fsys := fstest.Files{"main.go": main}
