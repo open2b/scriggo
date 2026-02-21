@@ -601,9 +601,10 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 	// Calls of predefined functions stored in builtin variables are handled as
 	// common "indirect" calls.
 	if funTi.IsNative() && !funTi.Addressable() {
+		args := call.Args
 		if funTi.MethodType == methodCallConcrete {
 			rcv := call.Func.(*ast.Selector).Expr // TODO(Gianluca): is this correct?
-			call.Args = append([]ast.Expression{rcv}, call.Args...)
+			args = append([]ast.Expression{rcv}, args...)
 		}
 		stackShift := em.fb.currentStackShift()
 		opts := callOptions{
@@ -611,13 +612,15 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 			receiverAsArg: funTi.MethodType == methodCallConcrete,
 			callHasDots:   call.IsVariadic,
 		}
-		regs, types := em.prepareCallParameters(funTi.Type, call.Args, opts)
+		regs, types := em.prepareCallParameters(funTi.Type, args, opts)
 		index, _ := em.fnStore.predefFunc(call.Func, true)
 		if goStmt {
 			em.fb.emitGo()
 		}
 		numVar := runtime.NoVariadicArgs
 		if funTi.Type.IsVariadic() && !call.IsVariadic {
+			// Compute variadic arity from user call arguments:
+			// in concrete method calls, args also includes the receiver argument.
 			numArgs := len(call.Args)
 			if len(call.Args) == 1 {
 				if callArg, ok := call.Args[0].(*ast.Call); ok {
