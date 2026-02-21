@@ -128,7 +128,7 @@ func build(dir, o string, llms string, consts []string) error {
 			}
 			return os.MkdirAll(filepath.Join(dstDir, path), 0700)
 		} else {
-			// Skip files that start with'.'.
+			// Skip files that start with '.'.
 			if p := filepath.Base(path); p[0] == '.' {
 				return nil
 			}
