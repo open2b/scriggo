@@ -190,6 +190,20 @@ func TestFormatFS(t *testing.T) {
 	}
 }
 
+func TestTemplateMainFormatWithExtends(t *testing.T) {
+	fsys := fstest.Files{
+		"index.md":    `{% extends "layout.html" %}`,
+		"layout.html": `<h1>Title</h1>`,
+	}
+	template, err := BuildTemplate(fsys, "index.md", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if template.fn.Format != ast.FormatHTML {
+		t.Fatalf("expected main format %s, got %s", ast.FormatHTML, template.fn.Format)
+	}
+}
+
 // TestUnexpandedTransformer ensures the transformer runs before expansion.
 func TestUnexpandedTransformer(t *testing.T) {
 	fsys := fstest.Files{
