@@ -1739,7 +1739,7 @@ func equals(n1, n2 ast.Node, p int) error {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		if nn1.Type != nn2.Type {
-			return fmt.Errorf("unexpected literal type %q, expecting %q", nn1.Type, nn2.Type)
+			return fmt.Errorf("unexpected literal type %d, expecting %d", nn1.Type, nn2.Type)
 		}
 		if nn1.Value != nn2.Value {
 			return fmt.Errorf("unexpected %q, expecting %q", nn1.Value, nn2.Value)

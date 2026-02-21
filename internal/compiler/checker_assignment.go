@@ -520,7 +520,7 @@ func (tc *typechecker) mustBeAssignableTo(rh *typeInfo, rhExpr ast.Expression, t
 			panic(tc.errorf(rhExpr, "cannot assign %s to %s (type %s) in multiple assignment", rh.Type, unbalancedLh, typ))
 		}
 		if strings.HasPrefix(err.Error(), "constant ") {
-			panic(tc.errorf(rhExpr, err.Error()))
+			panic(tc.errorf(rhExpr, "%s", err))
 		}
 		if nilErr, ok := err.(nilConversionError); ok {
 			panic(tc.errorf(rhExpr, "cannot use nil as type %s in assignment", nilErr.typ))
