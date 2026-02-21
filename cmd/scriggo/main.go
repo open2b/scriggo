@@ -698,8 +698,8 @@ func stdLibPaths() []string {
 	paths := make([]string, 0, len(stdlibPaths))
 	for _, path := range stdlibPaths {
 		switch path {
-		case "structs", "unique":
-			if version != "go1.23" {
+		case "crypto/hpke":
+			if version != "go1.26" {
 				continue
 			}
 		}
@@ -734,13 +734,18 @@ var stdlibPaths = []string{
 	"crypto/ecdsa",
 	"crypto/ed25519",
 	"crypto/elliptic",
+	"crypto/hkdf",
 	"crypto/hmac",
+	"crypto/hpke", // Go version 1.26
 	"crypto/md5",
+	"crypto/mlkem",
+	"crypto/pbkdf2",
 	"crypto/rand",
 	"crypto/rc4",
 	"crypto/rsa",
 	"crypto/sha1",
 	"crypto/sha256",
+	"crypto/sha3",
 	"crypto/sha512",
 	"crypto/subtle",
 	"crypto/tls",
@@ -850,7 +855,7 @@ var stdlibPaths = []string{
 	"sort",
 	"strconv",
 	"strings",
-	"structs", // Go version 1.23
+	"structs",
 	"sync",
 	"sync/atomic",
 	"text/scanner",
@@ -862,5 +867,6 @@ var stdlibPaths = []string{
 	"unicode",
 	"unicode/utf16",
 	"unicode/utf8",
-	"unique", // Go version 1.23
+	"unique",
+	"weak",
 }
