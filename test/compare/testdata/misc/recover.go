@@ -30,8 +30,7 @@ func main() {
 	test17()
 	test18()
 	test19()
-	// TODO: see the issue https://github.com/open2b/scriggo/issues/952.
-	// test20()
+	test20()
 
 }
 
@@ -40,7 +39,11 @@ func expectRecover(got, expected interface{}) {
 		log.Printf("expected recover %#v, got nil", expected)
 		os.Exit(-1)
 	}
-	if !reflect.DeepEqual(got, expected) {
+	if _, ok := expected.(*runtime.PanicNilError); ok {
+		if _, ok := got.(*runtime.PanicNilError); !ok {
+			log.Printf("expected recover *runtime.PanicNilError, got %T %#v", got, got)
+		}
+	} else if !reflect.DeepEqual(got, expected) {
 		log.Printf("expected recover %#v, got %T %#v", expected, got, got)
 		os.Exit(-1)
 	}
@@ -279,11 +282,8 @@ func test19() {
 
 func test20() {
 	defer func() {
-		got := recover()
-		if got != nil {
-			log.Printf("expected recover nil, got %#v", got)
-			os.Exit(-1)
-		}
+		v := recover()
+		expectRecover(v, new(runtime.PanicNilError))
 	}()
 	panic(nil)
 }

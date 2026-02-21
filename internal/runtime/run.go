@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"unicode"
@@ -1190,7 +1191,7 @@ func (vm *VM) run() (Addr, bool) {
 			if rv.IsValid() {
 				panic(rv.Interface())
 			} else {
-				panic(nil)
+				panic(new(runtime.PanicNilError))
 			}
 
 		// Print
