@@ -3256,6 +3256,20 @@ func TestMultiFileTemplate(t *testing.T) {
 			expectedOut: "--- start Markdown ---\n**bold**--- end Markdown ---\n",
 		},
 
+		"Show markdown macro in an HTML context": {
+			sources: fstest.Files{
+				"index.html": `{% macro M markdown %}# Hi{% end %}{{ M() }}`,
+			},
+			expectedOut: "--- start Markdown ---\n# Hi--- end Markdown ---\n",
+		},
+
+		"Show markdown macro in an HTML context - Indirect": {
+			sources: fstest.Files{
+				"index.html": `{% macro M markdown %}# Hi{% end %}{% _ = &M %}{{ M() }}`,
+			},
+			expectedOut: "--- start Markdown ---\n# Hi--- end Markdown ---\n",
+		},
+
 		"Recursive macro call (1)": {
 			sources: fstest.Files{
 				"index.html": `{% macro m(i int) %}{{ i }}{% if i > 0 %}{{ m(i - 1) }}{% end if %}{% end macro %}{{ m(5) }}`,
