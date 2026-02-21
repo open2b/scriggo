@@ -296,7 +296,7 @@ func (srv *server) serveTemplate(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-	} else if ext != ".html" && ext != ".md" {
+	} else if ext != ".html" {
 		srv.static.ServeHTTP(w, r)
 		return
 	}
@@ -366,32 +366,33 @@ func (srv *server) serveTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 	runTime := time.Since(start)
 
-	s := b.Bytes()
-	i := indexEndBody(s)
-	if i == -1 {
-		i = len(s)
-	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if srv.liveReloads == nil {
-		_, _ = w.Write(s)
+
+	if template.Format() == scriggo.FormatMarkdown {
+		md := goldmark.New(goldmarkOptions...)
+		var body bytes.Buffer
+		err = md.Convert(b.Bytes(), &body)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+		}
+		var urlPath string
+		if srv.liveReloads != nil {
+			urlPath = r.URL.Path
+		}
+		writeWrappedBody(w, urlPath, name, &body)
 	} else {
-		_, _ = w.Write(s[:i])
-		_, _ = io.WriteString(w, `<script>
-	// Scriggo 	LiveReload.
-	(function () {
-		if (typeof EventSource !== 'function') return;
-		const es = new EventSource('`)
-		jsStringEscape(w, r.URL.Path)
-		_, _ = io.WriteString(w, `');
-		es.onmessage = function(e) {
-			if (e.data === 'reload') {
-				es.close();
-				location.reload();
+		if srv.liveReloads == nil {
+			_, _ = b.WriteTo(w)
+		} else {
+			s := b.Bytes()
+			i := indexEndBody(s)
+			if i == -1 {
+				i = len(s)
 			}
-		};
-	})();
-</script>`)
-		_, _ = w.Write(s[i:])
+			_, _ = w.Write(s[:i])
+			_, _ = writeLiveReloadScript(w, r.URL.Path)
+			_, _ = w.Write(s[i:])
+		}
 	}
 
 	if srv.metrics.active {
@@ -512,4 +513,82 @@ func isBodyTag(s []byte) bool {
 		break
 	}
 	return false
+}
+
+// writeWrappedBody writes a complete HTML page to w. It inserts body between
+// the <body> tags. If urlPath is non-empty, it includes a live reload script
+// using urlPath. The title parameter specifies the page title.
+func writeWrappedBody(w io.Writer, urlPath, title string, body *bytes.Buffer) {
+	_, _ = io.WriteString(w, `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>`)
+	_, _ = io.WriteString(w, title)
+	_, _ = io.WriteString(w, `</title>
+  <style>
+    body {
+      margin: 0 auto;
+      max-width: 70ch;
+      padding: 0 16px;
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+    }
+    body > :first-child {
+        margin-top: 16px;
+    }
+    h1,h2,h3 { line-height: 1.25; margin-top: 1.4em; }
+    pre {
+      background: #f3f4f6;
+      padding: 1rem;
+      overflow: auto;
+      border-radius: 8px;
+    }
+    code {
+      background: #f3f4f6;
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+`)
+	_, _ = body.WriteTo(w)
+	if urlPath != "" {
+		_, _ = writeLiveReloadScript(w, urlPath)
+	}
+	_, _ = io.WriteString(w, `
+</body>
+</html>`)
+}
+
+// writeLiveReloadScript writes a live reload script for urlPath to w.
+// It returns the number of bytes written and any error.
+func writeLiveReloadScript(w io.Writer, urlPath string) (int, error) {
+	n, err := io.WriteString(w, `<script>
+	// Scriggo 	LiveReload.
+	(function () {
+		if (typeof EventSource !== 'function') return;
+		const es = new EventSource('`)
+
+	jsStringEscape(w, urlPath)
+	_, _ = io.WriteString(w, `');
+		es.onmessage = function(e) {
+			if (e.data === 'reload') {
+				es.close();
+				location.reload();
+			}
+		};
+	})();
+</script>`)
+	return n, err
 }
