@@ -122,11 +122,16 @@ func build(dir, o string, llms string, consts []string) error {
 			if path == dstBase {
 				return fs.SkipDir
 			}
-			// Skip directories starting with an underscore.
-			if strings.HasPrefix(filepath.Base(path), "_") {
+			// Skip directories that start with '_' or '.'.
+			if p := filepath.Base(path); p[0] == '_' || p[0] == '.' {
 				return fs.SkipDir
 			}
 			return os.MkdirAll(filepath.Join(dstDir, path), 0700)
+		} else {
+			// Skip files that start with '.'.
+			if p := filepath.Base(path); p[0] == '.' {
+				return nil
+			}
 		}
 		ext := filepath.Ext(path)
 		switch ext {
