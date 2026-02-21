@@ -269,20 +269,27 @@ usage: scriggo serve [-S n] [--metrics] [--disable-livereload] [-const name=valu
 Serve runs a web server and serves the template rooted at the current
 directory. It is useful to learn Scriggo templates.
 
-It renders HTML and Markdown files based on file extension.
+Path resolution rules:
 
-For example:
+    /path/name.html
+        renders 'path/name.html' as an HTML template.
+
+    /path/name.md
+        serves the 'path/name.md' file as-is (without rendering it to HTML).
+
+    /path/name
+        renders 'path/name.html' if it exists; otherwise, if 'path/name.md'
+        exists, renders it as Markdown and wraps it in a full HTML page.
+
+    /path/ and /path
+        render 'path/index' using the previous rule.
+
+Example:
 
     http://localhost:8080/article
 
 it renders the file 'article.html' as HTML if exists, otherwise renders the
-file 'article.md' as Markdown.
-
-Serving a URL terminating with a slash:
-
-    http://localhost:8080/blog/
-
-it renders 'blog/index.html' or 'blog/index.md'.
+file 'article.md' as Markdown wrapped in HTML.
 
 Markdown is converted to HTML with the Goldmark parser with the options
 html.WithUnsafe, parser.WithAutoHeadingID and extension.GFM.
