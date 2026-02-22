@@ -1196,6 +1196,16 @@ var treeTests = []struct {
 		ast.NewShow(p(1, 12, 11, 16), []ast.Expression{ast.NewIdentifier(p(1, 17, 16, 16), "a")}, ast.ContextJS),
 		ast.NewText(p(1, 21, 20, 28), []byte("</script>"), ast.Cut{}),
 	}, ast.FormatHTML)},
+	{"<script>// it's bad\n{{a}}</script>", ast.NewTree("", []ast.Node{
+		ast.NewText(p(1, 1, 0, 19), []byte("<script>// it's bad\n"), ast.Cut{}),
+		ast.NewShow(p(2, 1, 20, 24), []ast.Expression{ast.NewIdentifier(p(2, 3, 22, 22), "a")}, ast.ContextJS),
+		ast.NewText(p(2, 6, 25, 33), []byte("</script>"), ast.Cut{}),
+	}, ast.FormatHTML)},
+	{"<script>/* it's bad */{{a}}</script>", ast.NewTree("", []ast.Node{
+		ast.NewText(p(1, 1, 0, 21), []byte("<script>/* it's bad */"), ast.Cut{}),
+		ast.NewShow(p(1, 23, 22, 26), []ast.Expression{ast.NewIdentifier(p(1, 25, 24, 24), "a")}, ast.ContextJS),
+		ast.NewText(p(1, 28, 27, 35), []byte("</script>"), ast.Cut{}),
+	}, ast.FormatHTML)},
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{
 		ast.NewForIn(p(1, 4, 3, 26),
 			ast.NewIdentifier(p(1, 8, 7, 7), "v"),
