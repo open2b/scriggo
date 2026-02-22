@@ -7,6 +7,7 @@ package misc
 import (
 	"bytes"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -279,6 +280,87 @@ func TestJSContext(t *testing.T) {
 		if len(res) < 17 || res[8:len(res)-9] != expr.res {
 			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[8:len(res)-9], expr.res)
 		}
+	}
+}
+
+func TestJSContextWithComments(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+	}{
+		{
+			name: "single line comment",
+			src: `<script>
+// it's bad
+{% x := "hello hey" %}
+if ({{ x }}) { }   // AAA
+if ('{{ x }}') { } // CCC
+if ("{{ x }}") { } // DDD
+</script>`,
+		},
+		{
+			name: "single line comment with double quote",
+			src: `<script>
+// a double quote "
+{% x := "hello hey" %}
+if ({{ x }}) { }   // AAA
+if ('{{ x }}') { } // CCC
+if ("{{ x }}") { } // DDD
+</script>`,
+		},
+		{
+			name: "block comment",
+			src: `<script>
+/* it's bad */
+{% x := "hello hey" %}
+if ({{ x }}) { }   // AAA
+if ('{{ x }}') { } // CCC
+if ("{{ x }}") { } // DDD
+</script>`,
+		},
+		{
+			name: "block comment with double quote",
+			src: `<script>
+/* a double quote " */
+{% x := "hello hey" %}
+if ({{ x }}) { }   // AAA
+if ('{{ x }}') { } // CCC
+if ("{{ x }}") { } // DDD
+</script>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fsys := fstest.Files{"index.html": tt.src}
+			template, err := scriggo.BuildTemplate(fsys, "index.html", nil)
+			if err != nil {
+				t.Fatalf("unexpected build error: %s", err)
+			}
+
+			var b bytes.Buffer
+			err = template.Run(&b, nil, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+
+			got := b.String()
+			if !strings.Contains(got, `if ("hello hey") { }   // AAA`) {
+				t.Fatalf("missing JS context rendering, output: %q", got)
+			}
+			if !strings.Contains(got, `if ('hello hey') { } // CCC`) {
+				t.Fatalf("missing JS string context rendering, output: %q", got)
+			}
+			if !strings.Contains(got, `if ("hello hey") { } // DDD`) {
+				t.Fatalf("missing quoted JS string context rendering, output: %q", got)
+			}
+			if strings.Contains(got, `if (hello hey) { }   // AAA`) {
+				t.Fatalf("unexpected unquoted JS output: %q", got)
+			}
+			if strings.Contains(got, `if ('"hello hey"') { } // CCC`) {
+				t.Fatalf("unexpected double-quoted JS string output: %q", got)
+			}
+		})
 	}
 }
 

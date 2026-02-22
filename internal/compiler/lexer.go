@@ -181,6 +181,14 @@ var jsonLDMimeType = []byte("application/ld+json")
 var cssMimeType = []byte("text/css")
 var moduleType = []byte("module")
 
+type jsCommentState uint8
+
+const (
+	jsCommentNone jsCommentState = iota
+	jsCommentLine
+	jsCommentBlock
+)
+
 // scan scans the text by placing the tokens on the tokens channel. If an
 // error occurs, it puts the error in err, closes the channel and returns.
 func (l *lexer) scan() {
@@ -206,6 +214,7 @@ func (l *lexer) scan() {
 
 		var quote = byte(0)
 		var emittedURL bool
+		var jsComment jsCommentState
 
 		fileContext := l.ctx
 
@@ -492,8 +501,30 @@ func (l *lexer) scan() {
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
 					l.ctx = fileContext
+					jsComment = jsCommentNone
 					p += 8
 					l.column += 8
+				} else if jsComment == jsCommentLine {
+					if c == '\n' || c == '\r' {
+						jsComment = jsCommentNone
+					}
+				} else if jsComment == jsCommentBlock {
+					if c == '*' && p+1 < len(l.src) && l.src[p+1] == '/' {
+						jsComment = jsCommentNone
+						p++
+						l.column++
+					}
+				} else if c == '/' && p+1 < len(l.src) {
+					switch l.src[p+1] {
+					case '/':
+						jsComment = jsCommentLine
+						p++
+						l.column++
+					case '*':
+						jsComment = jsCommentBlock
+						p++
+						l.column++
+					}
 				} else if c == '"' || c == '\'' {
 					l.ctx = ast.ContextJSString
 					quote = c
