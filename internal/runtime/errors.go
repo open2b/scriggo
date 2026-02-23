@@ -173,7 +173,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		}
 	case OpDelete:
 		if err, ok := msg.(runtime.Error); ok {
-			if s := err.Error(); strings.HasPrefix(s, "runtime error: hash of unhashable type ") {
+			if s := err.Error(); strings.HasPrefix(s, "hash of unhashable type: ") {
 				return vm.newPanic(runtimeError(s))
 			}
 		}
