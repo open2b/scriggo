@@ -6,6 +6,7 @@ package scriggo
 
 import (
 	"fmt"
+	"io/fs"
 	"reflect"
 	"strings"
 	"testing"
@@ -201,6 +202,64 @@ func TestTemplateMainFormatWithExtends(t *testing.T) {
 	}
 	if template.fn.Format != ast.FormatHTML {
 		t.Fatalf("expected main format %s, got %s", ast.FormatHTML, template.fn.Format)
+	}
+}
+
+func TestTemplateFormat(t *testing.T) {
+	tests := map[string]struct {
+		fsys     fs.FS
+		name     string
+		expected Format
+	}{
+		"Text": {
+			fsys:     fstest.Files{"index.txt": `hello`},
+			name:     "index.txt",
+			expected: FormatText,
+		},
+		"HTML": {
+			fsys:     fstest.Files{"index.html": `<h1>hello</h1>`},
+			name:     "index.html",
+			expected: FormatHTML,
+		},
+		"Markdown": {
+			fsys:     fstest.Files{"index.md": `# hello`},
+			name:     "index.md",
+			expected: FormatMarkdown,
+		},
+		"MarkdownExtendsHTML": {
+			fsys: fstest.Files{
+				"index.md":    `{% extends "layout.html" %}`,
+				"layout.html": `<h1>hello</h1>`,
+			},
+			name:     "index.md",
+			expected: FormatHTML,
+		},
+		"MultipleExtendsUseFinalFormat": {
+			fsys: fstest.Files{
+				"index.md":    `{% extends "level1.html" %}`,
+				"level1.html": `{% extends "level2.html" %}`,
+				"level2.html": `<h1>hello</h1>`,
+			},
+			name:     "index.md",
+			expected: FormatHTML,
+		},
+		"FormatFS": {
+			fsys:     testFormatFS{Files: fstest.Files{"index": `hello`}, format: FormatJSON},
+			name:     "index",
+			expected: FormatJSON,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			template, err := BuildTemplate(tc.fsys, tc.name, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := template.Format(); got != tc.expected {
+				t.Fatalf("expected %s, got %s", tc.expected, got)
+			}
+		})
 	}
 }
 
