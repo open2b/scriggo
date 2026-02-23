@@ -131,7 +131,7 @@ func TestIssue403(t *testing.T) {
 			},
 		}
 		main := `
-
+	
 		package main
 
 		import "pkg"
