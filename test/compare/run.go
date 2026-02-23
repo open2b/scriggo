@@ -322,7 +322,7 @@ func mustBeOK(exitCode int, stdout, stderr []byte) error {
 		return err
 	}
 	if len(stderr) > 0 {
-		return errors.New("unexpected standard output: " + string(stderr))
+		return fmt.Errorf("unexpected standard output: %s", stderr)
 	}
 	return nil
 }
@@ -394,13 +394,13 @@ func goldenCompare(testPath string, got []byte) error {
 			if len(expectedLines) > len(gotLines) {
 				err += "expected lines (not returned by the test): \n"
 				for i := len(gotLines); i < len(expectedLines); i++ {
-					err += fmt.Sprintf("> " + expectedLines[i] + "\n")
+					err += fmt.Sprintf("> %s\n", expectedLines[i])
 				}
 			}
 			if len(expectedLines) < len(gotLines) {
 				err += "additional lines returned by the test (not expected): \n"
 				for i := len(expectedLines); i < len(gotLines); i++ {
-					err += fmt.Sprintf("> " + gotLines[i] + "\n")
+					err += fmt.Sprintf("> %s\n", gotLines[i])
 				}
 			}
 			return errors.New(err)
@@ -501,7 +501,7 @@ func readMode(src []byte, ext string) (string, []string, error) {
 // runGc runs a Go program using gc and returns its output.
 func runGc(path string) (int, []byte, []byte, error) {
 	if ext := filepath.Ext(path); ext != ".go" {
-		return 0, nil, nil, errors.New("unsupported ext " + ext)
+		return 0, nil, nil, fmt.Errorf("unsupported ext %s", ext)
 	}
 	tmpDir, err := os.MkdirTemp("", "scriggo-gc")
 	if err != nil {
@@ -767,7 +767,7 @@ func unwrapStdout(exitCode int, stdout, stderr []byte) ([]byte, error) {
 		return nil, fmt.Errorf("exit code is %d, should be zero. stderr: %s", exitCode, stderr)
 	}
 	if len(stderr) > 0 {
-		return nil, errors.New("unexpected standard error: " + string(stderr))
+		return nil, fmt.Errorf("unexpected standard error: %s", stderr)
 	}
 	return stdout, nil
 }
