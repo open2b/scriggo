@@ -4,7 +4,6 @@ package main
 
 import (
 	"fmt"
-	"runtime"
 )
 
 func main() {
@@ -25,8 +24,12 @@ func main() {
 	defer fmt.Printf("%v\n", dst)
 	defer copy(dst, src)
 	defer fmt.Printf("%v\n", dst)
-	go copy(dst, "123")
-	runtime.Gosched()
+	copyDone := make(chan struct{})
+	go func() {
+		copy(dst, "123")
+		close(copyDone)
+	}()
+	<-copyDone
 
 	// Builtin 'delete'.
 
@@ -35,8 +38,12 @@ func main() {
 	defer delete(m, "a")
 	n := map[int]int{1: 2, 2: 3}
 	defer fmt.Println(n[2])
-	go delete(n, 2)
-	runtime.Gosched()
+	deleteDone := make(chan struct{})
+	go func() {
+		delete(n, 2)
+		close(deleteDone)
+	}()
+	<-deleteDone
 
 	// Builtin 'print'.
 
