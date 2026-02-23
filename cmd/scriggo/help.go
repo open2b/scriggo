@@ -53,9 +53,9 @@ specified, the template rooted at that directory is built instead of the current
 directory.
 
 Directories whose names start with an underscore (_), and files or directories
-whose names start with a dot (.), are skipped. Only files with extension '.md'
-and '.html' are built, non-template files, such as CSS and JavaScript files, are
-copied as-is.
+whose names start with a dot (.), are skipped but can still be referenced in
+template files. Only files with extension '.md' and '.html' are built,
+non-template files, such as CSS and JavaScript files, are copied as-is.
 
 For example:
 

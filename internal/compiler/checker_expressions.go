@@ -267,7 +267,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 		c, err := parseBasicLiteral(expr.Type, expr.Value)
 		if err != nil {
-			panic(tc.errorf(expr, err.Error()))
+			panic(tc.errorf(expr, "%s", err))
 		}
 		return &typeInfo{
 			Type:       typ,
@@ -2744,7 +2744,7 @@ func (tc *typechecker) makeStructOf(fields []reflect.StructField, astFields []*a
 					var j int
 					for _, field := range astFields {
 						if i == j {
-							panic(tc.errorf(field.Type, reflectEmbeddedErr[9:]))
+							panic(tc.errorf(field.Type, "%s", reflectEmbeddedErr[9:]))
 						}
 						if field.Idents == nil {
 							j++

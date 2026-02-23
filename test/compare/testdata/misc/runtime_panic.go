@@ -311,7 +311,7 @@ func test18() {
 }
 
 func test19() {
-	defer recoverRuntimePanic("runtime error: hash of unhashable type []int")
+	defer recoverRuntimePanic("hash of unhashable type: []int")
 	m := map[interface{}]int{}
 	delete(m, []int{})
 }
