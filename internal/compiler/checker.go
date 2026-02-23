@@ -84,6 +84,7 @@ func typecheck(tree *ast.Tree, importer native.Importer, opts checkerOptions) (m
 		compilation.extendedTrees[extends.Tree.Path] = true
 		tree.Nodes = append([]ast.Node{dummyImport}, extends.Tree.Nodes...)
 		tree.Path = extends.Tree.Path
+		tree.Format = extends.Tree.Format
 		tc.path = extends.Tree.Path
 	}
 
