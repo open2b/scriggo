@@ -100,10 +100,14 @@ func build(dir, o string, llms string, consts []string) error {
 		if err != nil {
 			return err
 		}
-		if path[0] == '.' {
+		if path == "." {
 			return nil
 		}
 		if d.IsDir() {
+			// Skip directories that start with '_' or '.'.
+			if p := filepath.Base(path); p[0] == '_' || p[0] == '.' {
+				return fs.SkipDir
+			}
 			// If it is a directory with the same base name as the public directory name,
 			// skip it if it is effectively the public directory. It is considered the public
 			// directory if the corresponding destination temporary directory also exists.
@@ -122,11 +126,12 @@ func build(dir, o string, llms string, consts []string) error {
 			if path == dstBase {
 				return fs.SkipDir
 			}
-			// Skip directories starting with an underscore.
-			if strings.HasPrefix(filepath.Base(path), "_") {
-				return fs.SkipDir
-			}
 			return os.MkdirAll(filepath.Join(dstDir, path), 0700)
+		} else {
+			// Skip files that start with '.'.
+			if p := filepath.Base(path); p[0] == '.' {
+				return nil
+			}
 		}
 		ext := filepath.Ext(path)
 		switch ext {
