@@ -100,7 +100,7 @@ func build(dir, o string, llms string, consts []string) error {
 		if err != nil {
 			return err
 		}
-		if path[0] == '.' {
+		if path == "." {
 			return nil
 		}
 		if d.IsDir() {
