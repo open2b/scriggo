@@ -1663,13 +1663,7 @@ func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp
 	if typ != nil {
 		typEndPos = typ.Pos().End
 	}
-	endPos := exprPosEnd
-	if identPosEnd > endPos {
-		endPos = identPosEnd
-	}
-	if typEndPos > endPos {
-		endPos = typEndPos
-	}
+	endPos := max(typEndPos, max(identPosEnd, exprPosEnd))
 	pos.End = endPos
 	if decType == tokenVar {
 		node := ast.NewVar(pos, idents, typ, exprs)
