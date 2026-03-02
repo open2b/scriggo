@@ -321,8 +321,8 @@ func mustBeOK(exitCode int, stdout, stderr []byte) error {
 	if err != nil {
 		return err
 	}
-	if len(stderr) > 0 {
-		return fmt.Errorf("unexpected standard error: %s", stderr)
+	if len(stdout) > 0 {
+		return fmt.Errorf("unexpected standard output: %s", stdout)
 	}
 	return nil
 }
