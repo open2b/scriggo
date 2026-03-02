@@ -711,11 +711,10 @@ func test(src []byte, mode, filePath string, opts []string, keepTestingOnFail bo
 		if exitCode == 0 {
 			return errors.New("expected panic, got exit code == 0 (success)")
 		}
-		panicBody := bytes.Index(stderr, []byte("\n\ngoroutine "))
-		if panicBody == -1 {
+		panicHead, _, ok := bytes.Cut(stderr, []byte("\n\ngoroutine "))
+		if !ok {
 			return fmt.Errorf("expected panic on stderr, got %q", stderr)
 		}
-		panicHead := stderr[:panicBody]
 		return goldenCompare(filePath, panicHead)
 	case "run":
 		switch ext {
