@@ -93,7 +93,7 @@ func (x structType) FieldByIndex(index []int) reflect.StructField {
 	for i, fi := range index {
 		if i > 0 {
 			t = field.Type
-			if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
+			if t.Kind() == reflect.Pointer && t.Elem().Kind() == reflect.Struct {
 				t = t.Elem()
 			}
 		}

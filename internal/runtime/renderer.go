@@ -545,7 +545,7 @@ func showInJS(env *env, out io.Writer, value any) error {
 			_, err = w.WriteString("]")
 		}
 		return err
-	case reflect.Ptr, reflect.UnsafePointer:
+	case reflect.Pointer, reflect.UnsafePointer:
 		if v.IsNil() {
 			s = "null"
 			break
@@ -748,7 +748,7 @@ func showInJSON(env *env, out io.Writer, value any) error {
 			_, err = w.WriteString("]")
 		}
 		return err
-	case reflect.Ptr, reflect.UnsafePointer:
+	case reflect.Pointer, reflect.UnsafePointer:
 		if v.IsNil() {
 			s = "null"
 			break
@@ -1002,7 +1002,7 @@ func isEmptyValue(v reflect.Value) (empty bool) {
 		empty = v.Float() == 0
 	case reflect.String, reflect.Map, reflect.Slice, reflect.Array:
 		empty = v.Len() == 0
-	case reflect.Interface, reflect.Ptr, reflect.UnsafePointer:
+	case reflect.Interface, reflect.Pointer, reflect.UnsafePointer:
 		empty = v.IsNil()
 	}
 	return

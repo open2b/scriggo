@@ -322,7 +322,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			if t.Nil() {
 				panic(tc.errorf(expr, "invalid indirect of nil"))
 			}
-			if k != reflect.Ptr {
+			if k != reflect.Pointer {
 				if typeExpected {
 					panic(tc.errorf(expr, "%s is not a type", expr))
 				}
@@ -625,7 +625,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				ti.Properties = propertyAddressable
 			}
 			return ti
-		case reflect.Ptr:
+		case reflect.Pointer:
 			elemType := t.Type.Elem()
 			if elemType.Kind() != reflect.Array {
 				panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t))
@@ -681,7 +681,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				panic(tc.errorf(expr, "invalid operation %s (slice of unaddressable value)", expr))
 			}
 		default:
-			if kind == reflect.Ptr {
+			if kind == reflect.Pointer {
 				realType = t.Type.Elem()
 				realKind = realType.Kind()
 			}
@@ -715,7 +715,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		// Transform the tree: if a is a pointer to an array, a[low : high] is
 		// shorthand for (*a)[low : high]; also, if a is a pointer to an array,
 		// a[low : high : max] is shorthand for (*a)[low : high : max].
-		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
+		if t.Type.Kind() == reflect.Pointer && t.Type.Elem().Kind() == reflect.Array {
 			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorPointer, expr.Expr)
 			tc.compilation.typeInfos[unOp] = &typeInfo{
 				Type: t.Type.Elem(),
@@ -725,7 +725,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		switch kind {
 		case reflect.String, reflect.Slice:
 			return &typeInfo{Type: t.Type}
-		case reflect.Array, reflect.Ptr:
+		case reflect.Array, reflect.Pointer:
 			return &typeInfo{Type: tc.types.SliceOf(realType.Elem())}
 		}
 
@@ -783,7 +783,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 // returns -1.
 func (tc *typechecker) checkIndex(expr ast.Expression, t *typeInfo, isSlice bool) constant {
 	typ := t.Type
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 	index := tc.checkExpr(expr)
@@ -1221,7 +1221,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 				ti.Constant = newIntConst(int64(typ.Len()))
 			}
 		case reflect.Chan, reflect.Slice:
-		case reflect.Ptr:
+		case reflect.Pointer:
 			if typ.Elem().Kind() != reflect.Array {
 				panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", arg, t.ShortString()))
 			}
@@ -1411,7 +1411,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 			if t.IsConstant() {
 				ti.Constant = newIntConst(int64(len(t.Constant.String())))
 			}
-		case reflect.Ptr:
+		case reflect.Pointer:
 			if typ.Elem().Kind() != reflect.Array {
 				panic(tc.errorf(expr, "invalid argument %s (type %s) for len", arg, t.ShortString()))
 			}
@@ -1949,7 +1949,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			var elemTi *typeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
-				if ti.Type.Elem().Kind() == reflect.Ptr {
+				if ti.Type.Elem().Kind() == reflect.Pointer {
 					// The slice (or array) as element *T, so the value '{..}' must be
 					// replaced with '&T{..}'.
 					kv.Value = ast.NewUnaryOperator(cl.Pos(), ast.OperatorAddress, cl)
@@ -1987,7 +1987,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			var keyTi *typeInfo
 			if compLit, ok := kv.Key.(*ast.CompositeLiteral); ok {
-				if keyType.Kind() == reflect.Ptr {
+				if keyType.Kind() == reflect.Pointer {
 					// The map as the key type *T, so the value '{..}' must be
 					// replaced with '&T{..}'.
 					kv.Key = ast.NewUnaryOperator(compLit.Pos(), ast.OperatorAddress, compLit)
@@ -2020,7 +2020,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			var valueTi *typeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
-				if elemType.Kind() == reflect.Ptr {
+				if elemType.Kind() == reflect.Pointer {
 					// The map as the element type *T, so the value '{..}' must
 					// be replaced with '&T{..}'.
 					kv.Value = ast.NewUnaryOperator(cl.Pos(), ast.OperatorAddress, cl)
@@ -2373,7 +2373,7 @@ func (tc *typechecker) checkImplicitField(field *ast.Field) reflect.StructField 
 			panic(tc.errorf(field.Type, "embedded type cannot be a pointer to interface"))
 		}
 	}
-	if k == reflect.Ptr || k == reflect.UnsafePointer {
+	if k == reflect.Pointer || k == reflect.UnsafePointer {
 		panic(tc.errorf(field.Type, "embedded type cannot be a pointer"))
 	}
 	// "The unqualified type name acts as the field name".
@@ -2464,7 +2464,7 @@ func (tc *typechecker) checkMethodExpression(t *typeInfo, expr *ast.Selector) *t
 	if !ok {
 		// Return a different error message if T is a defined non-pointer type
 		// and *T has the method.
-		if t.Type.Name() != "" && t.Type.Kind() != reflect.Ptr && t.Type.Kind() != reflect.Interface {
+		if t.Type.Name() != "" && t.Type.Kind() != reflect.Pointer && t.Type.Kind() != reflect.Interface {
 			if _, ok := tc.types.PointerTo(t.Type).MethodByName(name); ok {
 				panic(tc.errorf(expr, "invalid method expression %s (needs pointer receiver: (*%s).%s)",
 					expr, expr.Expr, expr.Ident))
@@ -2513,7 +2513,7 @@ func (tc *typechecker) checkMethodValue(t *typeInfo, expr *ast.Selector) (*typeI
 
 	method, ok := t.Type.MethodByName(name)
 	if !ok {
-		if kind == reflect.Interface || kind == reflect.Ptr || !t.Addressable() {
+		if kind == reflect.Interface || kind == reflect.Pointer || !t.Addressable() {
 			return nil, false
 		}
 		// Transform t.Mp into (&t).Mp.
@@ -2584,7 +2584,7 @@ func (tc *typechecker) checkFieldSelector(t *typeInfo, expr *ast.Selector) *type
 	name := expr.Ident
 
 	typ := t.Type
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = t.Type.Elem()
 	}
 	if typ.Kind() != reflect.Struct {
@@ -2604,7 +2604,7 @@ func (tc *typechecker) checkFieldSelector(t *typeInfo, expr *ast.Selector) *type
 	if t.Type.Kind() == reflect.Struct && t.Addressable() {
 		// Struct fields are addressable only if the struct is addressable.
 		ti.Properties = propertyAddressable
-	} else if t.Type.Kind() == reflect.Ptr {
+	} else if t.Type.Kind() == reflect.Pointer {
 		// Pointer to struct fields are always addressable.
 		ti.Properties = propertyAddressable
 	}
@@ -2640,7 +2640,7 @@ func (tc *typechecker) findStructField(s reflect.Type, expr *ast.Selector) (typ 
 			continue
 		}
 		t := f.Type
-		if t.Kind() == reflect.Ptr {
+		if t.Kind() == reflect.Pointer {
 			t = t.Elem()
 		}
 		if t.Kind() != reflect.Struct {

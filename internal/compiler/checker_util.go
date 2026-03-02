@@ -165,7 +165,7 @@ func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Typ
 	case ti.Nil():
 		// predeclared nil.
 		switch k2 {
-		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
+		case reflect.Pointer, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
 			return nil, nil
 		}
 		return nil, nilConversionError{t2}

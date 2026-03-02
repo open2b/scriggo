@@ -186,7 +186,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		typ = tc.checkType(node.Type)
 		switch typ.Type.Kind() {
 		case reflect.Array, reflect.Chan, reflect.Func,
-			reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice,
+			reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice,
 			reflect.Struct, reflect.UnsafePointer:
 			panic(tc.errorf(node.Lhs[0], "invalid constant type %s", typ))
 		}

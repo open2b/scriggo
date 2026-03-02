@@ -476,7 +476,7 @@ func (vm *VM) equals(x, y reflect.Value) bool {
 func (vm *VM) fieldByIndex(s reflect.Value, i uint8) reflect.Value {
 	v := s
 	for _, x := range vm.fn.FieldIndexes[i] {
-		if v.Kind() == reflect.Ptr {
+		if v.Kind() == reflect.Pointer {
 			if v.IsNil() {
 				panic(errNilPointer)
 			}
@@ -994,7 +994,7 @@ var kindToType = [...]registerType{
 	reflect.Func:          generalRegister,
 	reflect.Interface:     generalRegister,
 	reflect.Map:           generalRegister,
-	reflect.Ptr:           generalRegister,
+	reflect.Pointer:       generalRegister,
 	reflect.Slice:         generalRegister,
 	reflect.String:        stringRegister,
 	reflect.Struct:        generalRegister,

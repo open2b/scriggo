@@ -899,7 +899,7 @@ func UnmarshalJSON(data string, v any) error {
 	}
 	rv := reflect.ValueOf(v)
 	rt := rv.Type()
-	if rv.Kind() != reflect.Ptr {
+	if rv.Kind() != reflect.Pointer {
 		return fmt.Errorf("unmarshalJSON: cannot unmarshal into non-pointer value of type %s", rt)
 	}
 	if rv.IsZero() {
@@ -936,7 +936,7 @@ func UnmarshalYAML(data string, v any) (err error) {
 	}
 	rv := reflect.ValueOf(v)
 	rt := rv.Type()
-	if rv.Kind() != reflect.Ptr {
+	if rv.Kind() != reflect.Pointer {
 		return fmt.Errorf("unmarshalYAML: cannot unmarshal into non-pointer value of type %s", rt)
 	}
 	if rv.IsZero() {

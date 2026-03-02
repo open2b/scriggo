@@ -555,7 +555,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			typ := em.typ(expr)
 			reg := em.emitExpr(expr, typ)
 			var field reflect.StructField
-			if typ.Kind() == reflect.Ptr {
+			if typ.Kind() == reflect.Pointer {
 				field, _ = typ.Elem().FieldByName(v.Ident)
 			} else {
 				field, _ = typ.FieldByName(v.Ident)

@@ -133,7 +133,7 @@ func ConvertibleTo(x, y reflect.Type) bool {
 	}
 
 	// x is a slice, y is a pointer to array type, and the slice and array have the same element types.
-	if xk == reflect.Slice && yk == reflect.Ptr {
+	if xk == reflect.Slice && yk == reflect.Pointer {
 		if e := y.Elem(); e.Kind() == reflect.Array && e.Elem() == x.Elem() {
 			return true
 		}
@@ -150,7 +150,7 @@ func ConvertibleTo(x, y reflect.Type) bool {
 	}
 
 	// x and y are not defined pointer types, and have identical underlying types, ignoring struct tags.
-	if xk == reflect.Ptr && yk == reflect.Ptr &&
+	if xk == reflect.Pointer && yk == reflect.Pointer &&
 		x.Name() == "" && y.Name() == "" && identical(x.Elem(), y.Elem(), true, true) {
 		return true
 	}
@@ -202,7 +202,7 @@ func identical(x, y reflect.Type, underlying, ignoreTags bool) bool {
 	switch k {
 	case reflect.Array:
 		return x.Len() == y.Len() && identical(x.Elem(), y.Elem(), false, ignoreTags)
-	case reflect.Slice, reflect.Ptr:
+	case reflect.Slice, reflect.Pointer:
 		return identical(x.Elem(), y.Elem(), false, ignoreTags)
 	case reflect.Struct:
 		n := x.NumField()
