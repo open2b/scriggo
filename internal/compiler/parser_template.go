@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/open2b/scriggo/ast"
@@ -130,10 +131,8 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 	}
 
 	// Check if there is a cycle.
-	for _, p := range pp.paths {
-		if p == name {
-			return nil, &CycleError{path: name}
-		}
+	if slices.Contains(pp.paths, name) {
+		return nil, &CycleError{path: name}
 	}
 
 	// Check if it has already been parsed.

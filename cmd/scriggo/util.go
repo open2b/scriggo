@@ -11,6 +11,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -96,12 +97,7 @@ var predeclaredIdentifier = []string{
 // isPredeclaredIdentifier reports whether name is a Go predeclared
 // identifier.
 func isPredeclaredIdentifier(name string) bool {
-	for _, pred := range predeclaredIdentifier {
-		if name == pred {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(predeclaredIdentifier, name)
 }
 
 func txtToHelp(s string) {
@@ -117,12 +113,7 @@ var goKeywords = []string{
 
 // isGoKeyword reports whether a string is a Go keyword.
 func isGoKeyword(s string) bool {
-	for _, k := range goKeywords {
-		if s == k {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(goKeywords, s)
 }
 
 type packageNameCache struct {
@@ -228,12 +219,7 @@ func hasStdlibPrefix(path string) bool {
 		"time", "unicode", "unsafe",
 	}
 	first := strings.Split(path, "/")[0]
-	for _, pref := range stdlibPrefixes {
-		if pref == first {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(stdlibPrefixes, first)
 }
 
 // nextGoVersion returns the successive go version of v.

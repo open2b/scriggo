@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -92,13 +93,7 @@ func Disassemble(main *runtime.Function, globals []Global, n int) map[string][]b
 					importsByPkg[fn.Pkg] = map[string]struct{}{sf.Pkg: {}}
 				}
 			}
-			added := false
-			for _, f := range allFunctions {
-				if f == sf {
-					added = true
-					break
-				}
-			}
+			added := slices.Contains(allFunctions, sf)
 			if !added {
 				allFunctions = append(allFunctions, sf)
 			}
