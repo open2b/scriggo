@@ -49,30 +49,30 @@ func Test_renderPackages(t *testing.T) {
 				decs["Appendln"] = fmt.Appendln
 				decs["Errorf"] = fmt.Errorf
 				decs["FormatString"] = fmt.FormatString
-				decs["Formatter"] = reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
+				decs["Formatter"] = reflect.TypeFor[fmt.Formatter]()
 				decs["Fprint"] = fmt.Fprint
 				decs["Fprintf"] = fmt.Fprintf
 				decs["Fprintln"] = fmt.Fprintln
 				decs["Fscan"] = fmt.Fscan
 				decs["Fscanf"] = fmt.Fscanf
 				decs["Fscanln"] = fmt.Fscanln
-				decs["GoStringer"] = reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()
+				decs["GoStringer"] = reflect.TypeFor[fmt.GoStringer]()
 				decs["Print"] = fmt.Print
 				decs["Printf"] = fmt.Printf
 				decs["Println"] = fmt.Println
 				decs["Scan"] = fmt.Scan
-				decs["ScanState"] = reflect.TypeOf((*fmt.ScanState)(nil)).Elem()
+				decs["ScanState"] = reflect.TypeFor[fmt.ScanState]()
 				decs["Scanf"] = fmt.Scanf
 				decs["Scanln"] = fmt.Scanln
-				decs["Scanner"] = reflect.TypeOf((*fmt.Scanner)(nil)).Elem()
+				decs["Scanner"] = reflect.TypeFor[fmt.Scanner]()
 				decs["Sprint"] = fmt.Sprint
 				decs["Sprintf"] = fmt.Sprintf
 				decs["Sprintln"] = fmt.Sprintln
 				decs["Sscan"] = fmt.Sscan
 				decs["Sscanf"] = fmt.Sscanf
 				decs["Sscanln"] = fmt.Sscanln
-				decs["State"] = reflect.TypeOf((*fmt.State)(nil)).Elem()
-				decs["Stringer"] = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+				decs["State"] = reflect.TypeFor[fmt.State]()
+				decs["Stringer"] = reflect.TypeFor[fmt.Stringer]()
 				packages["custom/fmt/path"] = native.Package{
 					Name: "fmt",
 					Declarations: decs,
@@ -105,16 +105,16 @@ func Test_renderPackages(t *testing.T) {
 				decs["ErrWriteAfterClose"] = &tar.ErrWriteAfterClose
 				decs["ErrWriteTooLong"] = &tar.ErrWriteTooLong
 				decs["FileInfoHeader"] = tar.FileInfoHeader
-				decs["FileInfoNames"] = reflect.TypeOf((*tar.FileInfoNames)(nil)).Elem()
-				decs["Format"] = reflect.TypeOf((*tar.Format)(nil)).Elem()
+				decs["FileInfoNames"] = reflect.TypeFor[tar.FileInfoNames]()
+				decs["Format"] = reflect.TypeFor[tar.Format]()
 				decs["FormatGNU"] = tar.FormatGNU
 				decs["FormatPAX"] = tar.FormatPAX
 				decs["FormatUSTAR"] = tar.FormatUSTAR
 				decs["FormatUnknown"] = tar.FormatUnknown
-				decs["Header"] = reflect.TypeOf((*tar.Header)(nil)).Elem()
+				decs["Header"] = reflect.TypeFor[tar.Header]()
 				decs["NewReader"] = tar.NewReader
 				decs["NewWriter"] = tar.NewWriter
-				decs["Reader"] = reflect.TypeOf((*tar.Reader)(nil)).Elem()
+				decs["Reader"] = reflect.TypeFor[tar.Reader]()
 				decs["TypeBlock"] = native.UntypedNumericConst("52")
 				decs["TypeChar"] = native.UntypedNumericConst("51")
 				decs["TypeCont"] = native.UntypedNumericConst("55")
@@ -129,7 +129,7 @@ func Test_renderPackages(t *testing.T) {
 				decs["TypeSymlink"] = native.UntypedNumericConst("50")
 				decs["TypeXGlobalHeader"] = native.UntypedNumericConst("103")
 				decs["TypeXHeader"] = native.UntypedNumericConst("120")
-				decs["Writer"] = reflect.TypeOf((*tar.Writer)(nil)).Elem()
+				decs["Writer"] = reflect.TypeFor[tar.Writer]()
 				packages["archive/tar"] = native.Package{
 					Name: "tar",
 					Declarations: decs,
@@ -161,30 +161,30 @@ func Test_renderPackages(t *testing.T) {
 				decs["Appendln"] = fmt.Appendln
 				decs["Errorf"] = fmt.Errorf
 				decs["FormatString"] = fmt.FormatString
-				decs["Formatter"] = reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
+				decs["Formatter"] = reflect.TypeFor[fmt.Formatter]()
 				decs["Fprint"] = fmt.Fprint
 				decs["Fprintf"] = fmt.Fprintf
 				decs["Fprintln"] = fmt.Fprintln
 				decs["Fscan"] = fmt.Fscan
 				decs["Fscanf"] = fmt.Fscanf
 				decs["Fscanln"] = fmt.Fscanln
-				decs["GoStringer"] = reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()
+				decs["GoStringer"] = reflect.TypeFor[fmt.GoStringer]()
 				decs["Print"] = fmt.Print
 				decs["Printf"] = fmt.Printf
 				decs["Println"] = fmt.Println
 				decs["Scan"] = fmt.Scan
-				decs["ScanState"] = reflect.TypeOf((*fmt.ScanState)(nil)).Elem()
+				decs["ScanState"] = reflect.TypeFor[fmt.ScanState]()
 				decs["Scanf"] = fmt.Scanf
 				decs["Scanln"] = fmt.Scanln
-				decs["Scanner"] = reflect.TypeOf((*fmt.Scanner)(nil)).Elem()
+				decs["Scanner"] = reflect.TypeFor[fmt.Scanner]()
 				decs["Sprint"] = fmt.Sprint
 				decs["Sprintf"] = fmt.Sprintf
 				decs["Sprintln"] = fmt.Sprintln
 				decs["Sscan"] = fmt.Sscan
 				decs["Sscanf"] = fmt.Sscanf
 				decs["Sscanln"] = fmt.Sscanln
-				decs["State"] = reflect.TypeOf((*fmt.State)(nil)).Elem()
-				decs["Stringer"] = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+				decs["State"] = reflect.TypeFor[fmt.State]()
+				decs["Stringer"] = reflect.TypeFor[fmt.Stringer]()
 				packages["fmt"] = native.Package{
 					Name: "fmt",
 					Declarations: decs,
@@ -275,30 +275,30 @@ func Test_parseGoPackage(t *testing.T) {
 				"Appendln":     "fmt.Appendln",
 				"Errorf":       "fmt.Errorf",
 				"FormatString": "fmt.FormatString",
-				"Formatter":    "reflect.TypeOf((*fmt.Formatter)(nil)).Elem()",
+				"Formatter":    "reflect.TypeFor[fmt.Formatter]()",
 				"Fprint":       "fmt.Fprint",
 				"Fprintf":      "fmt.Fprintf",
 				"Fprintln":     "fmt.Fprintln",
 				"Fscan":        "fmt.Fscan",
 				"Fscanf":       "fmt.Fscanf",
 				"Fscanln":      "fmt.Fscanln",
-				"GoStringer":   "reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()",
+				"GoStringer":   "reflect.TypeFor[fmt.GoStringer]()",
 				"Print":        "fmt.Print",
 				"Printf":       "fmt.Printf",
 				"Println":      "fmt.Println",
 				"Scan":         "fmt.Scan",
-				"ScanState":    "reflect.TypeOf((*fmt.ScanState)(nil)).Elem()",
+				"ScanState":    "reflect.TypeFor[fmt.ScanState]()",
 				"Scanf":        "fmt.Scanf",
 				"Scanln":       "fmt.Scanln",
-				"Scanner":      "reflect.TypeOf((*fmt.Scanner)(nil)).Elem()",
+				"Scanner":      "reflect.TypeFor[fmt.Scanner]()",
 				"Sprint":       "fmt.Sprint",
 				"Sprintf":      "fmt.Sprintf",
 				"Sprintln":     "fmt.Sprintln",
 				"Sscan":        "fmt.Sscan",
 				"Sscanf":       "fmt.Sscanf",
 				"Sscanln":      "fmt.Sscanln",
-				"State":        "reflect.TypeOf((*fmt.State)(nil)).Elem()",
-				"Stringer":     "reflect.TypeOf((*fmt.Stringer)(nil)).Elem()",
+				"State":        "reflect.TypeFor[fmt.State]()",
+				"Stringer":     "reflect.TypeFor[fmt.Stringer]()",
 			},
 		},
 		"archive/tar": {
@@ -310,16 +310,16 @@ func Test_parseGoPackage(t *testing.T) {
 				"ErrWriteAfterClose": "&tar.ErrWriteAfterClose",
 				"ErrWriteTooLong":    "&tar.ErrWriteTooLong",
 				"FileInfoHeader":     "tar.FileInfoHeader",
-				"FileInfoNames":      "reflect.TypeOf((*tar.FileInfoNames)(nil)).Elem()",
-				"Format":             "reflect.TypeOf((*tar.Format)(nil)).Elem()",
+				"FileInfoNames":      "reflect.TypeFor[tar.FileInfoNames]()",
+				"Format":             "reflect.TypeFor[tar.Format]()",
 				"FormatGNU":          "tar.FormatGNU",
 				"FormatPAX":          "tar.FormatPAX",
 				"FormatUSTAR":        "tar.FormatUSTAR",
 				"FormatUnknown":      "tar.FormatUnknown",
-				"Header":             "reflect.TypeOf((*tar.Header)(nil)).Elem()",
+				"Header":             "reflect.TypeFor[tar.Header]()",
 				"NewReader":          "tar.NewReader",
 				"NewWriter":          "tar.NewWriter",
-				"Reader":             "reflect.TypeOf((*tar.Reader)(nil)).Elem()",
+				"Reader":             "reflect.TypeFor[tar.Reader]()",
 				"TypeBlock":          "native.UntypedNumericConst(\"52\")",
 				"TypeChar":           "native.UntypedNumericConst(\"51\")",
 				"TypeCont":           "native.UntypedNumericConst(\"55\")",
@@ -334,7 +334,7 @@ func Test_parseGoPackage(t *testing.T) {
 				"TypeSymlink":        "native.UntypedNumericConst(\"50\")",
 				"TypeXGlobalHeader":  "native.UntypedNumericConst(\"103\")",
 				"TypeXHeader":        "native.UntypedNumericConst(\"120\")",
-				"Writer":             "reflect.TypeOf((*tar.Writer)(nil)).Elem()",
+				"Writer":             "reflect.TypeFor[tar.Writer]()",
 			},
 		},
 	}

@@ -394,7 +394,7 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 				decl[v.Name()] = fmt.Sprintf("&%s.%s", pkgBase, v.Name())
 			}
 		case *types.TypeName:
-			decl[v.Name()] = fmt.Sprintf("reflect.TypeOf((*%s.%s)(nil)).Elem()", pkgBase, v.Name())
+			decl[v.Name()] = fmt.Sprintf("reflect.TypeFor[%s.%s]()", pkgBase, v.Name())
 			refToReflect = true
 		}
 	}
