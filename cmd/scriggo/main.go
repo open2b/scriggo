@@ -254,10 +254,7 @@ var commands = map[string]func(){
 		asm := -2 // -2: no assembler
 		flag.Visit(func(f *flag.Flag) {
 			if f.Name == "S" {
-				asm = *s
-				if asm < -1 {
-					asm = -1
-				}
+				asm = max(*s, -1)
 			}
 		})
 		var name string
@@ -292,10 +289,7 @@ var commands = map[string]func(){
 		flag.Visit(func(f *flag.Flag) {
 			switch f.Name {
 			case "S":
-				asm = *s
-				if asm < -1 {
-					asm = -1
-				}
+				asm = max(*s, -1)
 			case "http":
 				httpFlagSet = true
 			}

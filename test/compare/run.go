@@ -379,11 +379,8 @@ func goldenCompare(testPath string, got []byte) error {
 	{
 		expectedLines := strings.Split(string(expected), "\n")
 		gotLines := strings.Split(string(got), "\n")
-		numLines := len(expectedLines)
 		// Find the minimum number of lines.
-		if len(gotLines) < numLines {
-			numLines = len(gotLines)
-		}
+		numLines := min(len(gotLines), len(expectedLines))
 		for i := 0; i < numLines; i++ {
 			if expectedLines[i] != gotLines[i] {
 				return fmt.Errorf("difference at line %d\nexpecting:  %q\ngot:        %q.\n\nFull output: \n------------------------\n%s", i+1, expectedLines[i], gotLines[i], got)
