@@ -16,6 +16,7 @@ package compiler
 import (
 	"fmt"
 	"io/fs"
+	"maps"
 	"reflect"
 	"unicode"
 	"unicode/utf8"
@@ -135,9 +136,7 @@ func BuildProgram(fsys fs.FS, opts Options) (*Code, error) {
 	}
 	typeInfos := map[ast.Node]*typeInfo{}
 	for _, pkgInfos := range tci {
-		for node, ti := range pkgInfos.TypeInfos {
-			typeInfos[node] = ti
-		}
+		maps.Copy(typeInfos, pkgInfos.TypeInfos)
 	}
 
 	// Emit the code.
@@ -186,9 +185,7 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 	}
 	typeInfos := map[ast.Node]*typeInfo{}
 	for _, pkgInfos := range tci {
-		for node, ti := range pkgInfos.TypeInfos {
-			typeInfos[node] = ti
-		}
+		maps.Copy(typeInfos, pkgInfos.TypeInfos)
 	}
 
 	// Emit the code.

@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"path"
 	"reflect"
@@ -3313,9 +3314,7 @@ func TestMultiFileTemplate(t *testing.T) {
 				}
 			}
 			globals := multiFileTemplateTestGlobals()
-			for k, v := range cas.main.Declarations {
-				globals[k] = v
-			}
+			maps.Copy(globals, cas.main.Declarations)
 			opts := &scriggo.BuildOptions{
 				Globals:              globals,
 				Packages:             cas.importer,
