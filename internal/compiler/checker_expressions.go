@@ -2085,15 +2085,15 @@ func (tc *typechecker) checkKeyedStructLiteral(typ reflect.Type, node *ast.Compo
 			panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", kv.Key, typ))
 		}
 		if len(field.Index) > 1 {
-			var name string
+			var name strings.Builder
 			for i := 0; i < len(field.Index); i++ {
 				f := typ.FieldByIndex(field.Index[0 : i+1])
 				if i > 0 {
-					name += "."
+					name.WriteString(".")
 				}
-				name += decodeFieldName(f.Name)
+				name.WriteString(decodeFieldName(f.Name))
 			}
-			panic(tc.errorf(ident, "cannot use promoted field %s in struct literal of type %s", name, node.Type))
+			panic(tc.errorf(ident, "cannot use promoted field %s in struct literal of type %s", name.String(), node.Type))
 		}
 
 		valueTi := tc.checkExpr(kv.Value)

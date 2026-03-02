@@ -796,16 +796,16 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr
 		}
 		return str
 	}
-	var sout string
+	var sout strings.Builder
 	if nout := typ.NumOut(); nout > 0 {
-		sout += " ("
+		sout.WriteString(" (")
 		for i := range nout {
 			if i > 0 {
-				sout += ", "
+				sout.WriteString(", ")
 			}
-			sout += print(typ.Out(i))
+			sout.WriteString(print(typ.Out(i)))
 		}
-		sout += ")"
+		sout.WriteString(")")
 	}
 	s := "func("
 	if macro {
@@ -831,7 +831,7 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr
 			}
 		}
 	}
-	s += ")" + sout
+	s += ")" + sout.String()
 	return s
 }
 

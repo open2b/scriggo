@@ -368,42 +368,42 @@ func NewAssignment(pos *Position, lhs []Expression, typ AssignmentType, rhs []Ex
 
 // String returns the string representation of n.
 func (n *Assignment) String() string {
-	var s string
+	var s strings.Builder
 	for i, v := range n.Lhs {
 		if i > 0 {
-			s += ", "
+			s.WriteString(", ")
 		}
-		s += v.String()
+		s.WriteString(v.String())
 	}
 	switch n.Type {
 	case AssignmentSimple:
-		s += " = "
+		s.WriteString(" = ")
 	case AssignmentDeclaration:
-		s += " := "
+		s.WriteString(" := ")
 	case AssignmentAddition:
-		s += " += "
+		s.WriteString(" += ")
 	case AssignmentSubtraction:
-		s += " -= "
+		s.WriteString(" -= ")
 	case AssignmentMultiplication:
-		s += " *= "
+		s.WriteString(" *= ")
 	case AssignmentDivision:
-		s += " /= "
+		s.WriteString(" /= ")
 	case AssignmentModulo:
-		s += " %= "
+		s.WriteString(" %= ")
 	case AssignmentIncrement:
-		s += "++"
+		s.WriteString("++")
 	case AssignmentDecrement:
-		s += "--"
+		s.WriteString("--")
 	}
 	if n.Rhs != nil {
 		for i, value := range n.Rhs {
 			if i > 0 {
-				s += ", "
+				s.WriteString(", ")
 			}
-			s += value.String()
+			s.WriteString(value.String())
 		}
 	}
-	return s
+	return s.String()
 }
 
 // BasicLiteral represents integer, floating-point, imaginary, rune and
@@ -742,19 +742,19 @@ func NewField(idents []*Identifier, typ Expression, tag string) *Field {
 
 // String returns the string representation of n.
 func (n *Field) String() string {
-	s := ""
+	var s strings.Builder
 	for i, ident := range n.Idents {
-		s += ident.String()
+		s.WriteString(ident.String())
 		if i != len(n.Idents)-1 {
-			s += ","
+			s.WriteString(",")
 		}
-		s += " "
+		s.WriteString(" ")
 	}
-	s += n.Type.String()
+	s.WriteString(n.Type.String())
 	if n.Tag != "" {
-		s += " `" + n.Tag + "`"
+		s.WriteString(" `" + n.Tag + "`")
 	}
-	return s
+	return s.String()
 }
 
 // For node represents a "for" statement.
@@ -1347,15 +1347,16 @@ func NewStructType(pos *Position, fields []*Field) *StructType {
 
 // String returns the string representation of n.
 func (n *StructType) String() string {
-	s := "struct { "
+	var s strings.Builder
+	s.WriteString("struct { ")
 	for i, fd := range n.Fields {
-		s += fd.String()
+		s.WriteString(fd.String())
 		if i != len(n.Fields)-1 {
-			s += "; "
+			s.WriteString("; ")
 		}
 	}
-	s += " }"
-	return s
+	s.WriteString(" }")
+	return s.String()
 }
 
 // Switch node represents a "switch" statement.
@@ -1549,24 +1550,25 @@ func NewVar(pos *Position, lhs []*Identifier, typ Expression, rhs []Expression) 
 
 // String returns the string representation of n.
 func (n *Var) String() string {
-	s := "var "
+	var s strings.Builder
+	s.WriteString("var ")
 	for i, ident := range n.Lhs {
 		if i > 0 {
-			s += " "
+			s.WriteString(" ")
 		}
-		s += ident.Name
+		s.WriteString(ident.Name)
 	}
 	if n.Type != nil {
-		s += " " + n.Type.String()
+		s.WriteString(" " + n.Type.String())
 	}
 	if len(n.Rhs) > 0 {
-		s += " = "
+		s.WriteString(" = ")
 		for i, value := range n.Rhs {
 			if i > 0 {
-				s += " "
+				s.WriteString(" ")
 			}
-			s += value.String()
+			s.WriteString(value.String())
 		}
 	}
-	return s
+	return s.String()
 }
