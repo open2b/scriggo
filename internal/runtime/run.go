@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"unicode"
@@ -1190,7 +1191,7 @@ func (vm *VM) run() (Addr, bool) {
 			if rv.IsValid() {
 				panic(rv.Interface())
 			} else {
-				panic(nil)
+				panic(new(runtime.PanicNilError))
 			}
 
 		// Print
@@ -1585,7 +1586,7 @@ func (vm *VM) run() (Addr, bool) {
 						if b == ReturnString {
 							out := vm.renderer.Out().(*strings.Builder)
 							vm.setString(1, out.String())
-						} else if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
+						} else if vm.fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
 							out := vm.renderer.Out().(*bytes.Buffer)
 							err := vm.env.conv(out.Bytes(), call.renderer.out)
 							if err != nil {

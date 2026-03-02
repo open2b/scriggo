@@ -260,3 +260,13 @@ type TruePtr struct {
 func (t *TruePtr) IsTrue() bool {
 	return t.T
 }
+
+type T900 struct{}
+
+func (c T900) M(args ...string) {
+	fmt.Printf("%#v (len %d)\n", args, len(args))
+}
+
+func (c T900) Len(_ string, n ...int) int {
+	return len(n)
+}
