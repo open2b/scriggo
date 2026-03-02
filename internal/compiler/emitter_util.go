@@ -366,7 +366,7 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 		reflect.Chan,
 		reflect.Func,
 		reflect.Map,
-		reflect.Ptr:
+		reflect.Pointer:
 		c := em.fb.makeGeneralValue(v)
 		em.changeRegister(true, c, reg, typ, dstType)
 	case reflect.UnsafePointer:

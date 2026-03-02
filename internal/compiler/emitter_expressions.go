@@ -571,7 +571,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 				switch elemKind {
 				case reflect.Interface, reflect.Func:
 					isZero = ti.value == nil
-				case reflect.Ptr, reflect.Slice, reflect.Map, reflect.Chan:
+				case reflect.Pointer, reflect.Slice, reflect.Map, reflect.Chan:
 					isZero = reflect.ValueOf(ti.value).IsNil()
 				default:
 					isZero = ti.IsConstant() && ti.Constant.zero()
@@ -788,7 +788,7 @@ func (em *emitter) emitSelector(v *ast.Selector, reg int8, dstType reflect.Type)
 	typ := em.typ(expr)
 	exprReg := em.emitExpr(expr, typ)
 	var field reflect.StructField
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		field, _ = typ.Elem().FieldByName(v.Ident)
 	} else {
 		field, _ = typ.FieldByName(v.Ident)
@@ -927,7 +927,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 				panic(internalError("unexpected"))
 			}
 			em.fb.enterStack()
-			r := em.fb.newRegister(reflect.Ptr)
+			r := em.fb.newRegister(reflect.Pointer)
 			em.fb.emitGetVarAddr(index, r)
 			em.changeRegister(false, r, reg, em.types.PointerTo(operandType), regType)
 			em.fb.exitStack()
@@ -980,7 +980,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 			operandExprType := em.typ(expr)
 			exprReg := em.emitExpr(expr, operandExprType)
 			var field reflect.StructField
-			if operandExprType.Kind() == reflect.Ptr {
+			if operandExprType.Kind() == reflect.Pointer {
 				field, _ = operandExprType.Elem().FieldByName(operand.Ident)
 			} else {
 				field, _ = operandExprType.FieldByName(operand.Ident)
@@ -992,14 +992,14 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 				return
 			}
 			em.fb.enterStack()
-			dest := em.fb.newRegister(reflect.Ptr)
+			dest := em.fb.newRegister(reflect.Pointer)
 			em.fb.emitAddr(exprReg, index, dest, pos)
 			em.changeRegister(false, dest, reg, em.types.PointerTo(field.Type), regType)
 			em.fb.exitStack()
 
 		// &T{..}
 		case *ast.CompositeLiteral:
-			z := em.fb.newRegister(reflect.Ptr)
+			z := em.fb.newRegister(reflect.Pointer)
 			em.fb.emitNew(operandType, z)
 			em.emitExprR(operand, operandType, -z)
 			em.changeRegister(false, z, reg, exprType, regType)

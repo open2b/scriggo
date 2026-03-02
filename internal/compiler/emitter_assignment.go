@@ -286,7 +286,7 @@ func (a address) targetType() reflect.Type {
 		assignNonLocalStructSelector:
 		index := a.em.fb.fn.FieldIndexes[a.op2]
 		typ := a.addressedType
-		if typ.Kind() == reflect.Ptr {
+		if typ.Kind() == reflect.Pointer {
 			typ = typ.Elem()
 		}
 		return typ.FieldByIndex(index).Type

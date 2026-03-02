@@ -66,7 +66,7 @@ func Compare(aVal, bVal reflect.Value) int {
 		default:
 			return -1
 		}
-	case reflect.Ptr, reflect.UnsafePointer:
+	case reflect.Pointer, reflect.UnsafePointer:
 		a, b := aVal.Pointer(), bVal.Pointer()
 		switch {
 		case a < b:

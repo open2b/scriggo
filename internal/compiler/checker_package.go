@@ -75,7 +75,7 @@ func toTypeCheckerScope(pkg native.ImportablePackage, mod checkingMod, global bo
 		default:
 			rv := reflect.ValueOf(v)
 			switch rv.Kind() {
-			case reflect.Ptr:
+			case reflect.Pointer:
 				// Import a variable.
 				ti.Type = rv.Type().Elem()
 				elem := rv.Elem()

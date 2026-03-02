@@ -142,7 +142,7 @@ func (vm *VM) run() (Addr, bool) {
 			case reflect.Slice, reflect.Array:
 				i := int(vm.int(b))
 				vm.setGeneral(c, v.Index(i).Addr())
-			case reflect.Struct, reflect.Ptr:
+			case reflect.Struct, reflect.Pointer:
 				vm.setGeneral(c, vm.fieldByIndex(v, uint8(b)).Addr())
 			}
 
@@ -1432,7 +1432,7 @@ func (vm *VM) run() (Addr, bool) {
 						}
 					}
 				default:
-					if kind == reflect.Ptr {
+					if kind == reflect.Pointer {
 						v = v.Elem()
 					}
 					length := v.Len()
@@ -1985,7 +1985,7 @@ func (vm *VM) run() (Addr, bool) {
 				switch rv.Kind() {
 				case reflect.Slice, reflect.Map:
 					zero = rv.Len() == 0
-				case reflect.Ptr:
+				case reflect.Pointer:
 					if rv.Elem().Kind() != reflect.Struct {
 						break
 					}

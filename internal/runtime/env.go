@@ -101,7 +101,7 @@ func (env *env) doPrint(arg any) {
 		print(r.Complex())
 	case reflect.Chan, reflect.Map, reflect.UnsafePointer:
 		print(hex(r.Pointer()))
-	case reflect.Interface, reflect.Ptr:
+	case reflect.Interface, reflect.Pointer:
 		print(arg)
 	case reflect.Slice:
 		print("[", r.Len(), "/", r.Cap(), "]", hex(r.Pointer()))

@@ -3449,7 +3449,7 @@ func printFunc(w io.Writer) scriggo.PrintFunc {
 	return func(v any) {
 		r := reflect.ValueOf(v)
 		switch r.Kind() {
-		case reflect.Invalid, reflect.Array, reflect.Func, reflect.Interface, reflect.Ptr, reflect.Struct:
+		case reflect.Invalid, reflect.Array, reflect.Func, reflect.Interface, reflect.Pointer, reflect.Struct:
 			_, _ = fmt.Fprintf(w, "%#x", reflect.ValueOf(&v).Elem().InterfaceData()[1])
 		case reflect.Bool:
 			_, _ = fmt.Fprintf(w, "%t", r.Bool())

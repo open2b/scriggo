@@ -307,7 +307,7 @@ nodesLoop:
 			case reflect.String:
 				typ1 = intType
 				typ2 = runeType
-			case reflect.Ptr:
+			case reflect.Pointer:
 				if typ.Elem().Kind() != reflect.Array {
 					panic(tc.errorf(expr, "cannot range over %s (type %s)", expr, ti))
 				}
@@ -1511,7 +1511,7 @@ func checkShowJS(t reflect.Type, types []reflect.Type) error {
 		if err != nil {
 			return fmt.Errorf("cannot show map with %s element as JavaScript", t.Elem())
 		}
-	case reflect.Ptr, reflect.UnsafePointer:
+	case reflect.Pointer, reflect.UnsafePointer:
 		return checkShowJS(t.Elem(), append(types, t))
 	case reflect.Slice:
 		if err := checkShowJS(t.Elem(), append(types, t)); err != nil {
@@ -1569,7 +1569,7 @@ func checkShowJSON(t reflect.Type, types []reflect.Type) error {
 		if err != nil {
 			return fmt.Errorf("cannot show map with %s element as JSON", t.Elem())
 		}
-	case reflect.Ptr, reflect.UnsafePointer:
+	case reflect.Pointer, reflect.UnsafePointer:
 		return checkShowJSON(t.Elem(), append(types, t))
 	case reflect.Slice:
 		if err := checkShowJSON(t.Elem(), append(types, t)); err != nil {
