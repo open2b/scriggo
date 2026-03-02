@@ -322,7 +322,7 @@ func mustBeOK(exitCode int, stdout, stderr []byte) error {
 		return err
 	}
 	if len(stderr) > 0 {
-		return fmt.Errorf("unexpected standard output: %s", stderr)
+		return fmt.Errorf("unexpected standard error: %s", stderr)
 	}
 	return nil
 }
