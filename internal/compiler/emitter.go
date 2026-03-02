@@ -6,6 +6,7 @@ package compiler
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/open2b/scriggo/ast"
@@ -137,13 +138,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingFile bool, path string
 			pkgInits := em.emitImport(node, false)
 			// Do not add duplicated init functions.
 			for _, pkgInit := range pkgInits {
-				add := true
-				for _, ini := range inits {
-					if ini == pkgInit {
-						add = false
-						break
-					}
-				}
+				add := !slices.Contains(inits, pkgInit)
 				if add {
 					inits = append(inits, pkgInits...)
 				}

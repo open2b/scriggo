@@ -7,6 +7,7 @@ package compiler
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strconv"
 	"time"
 
@@ -1477,10 +1478,8 @@ func checkShow(t reflect.Type, ctx ast.Context) error {
 // checkShowJS reports whether a type can be shown as JavaScript. It returns
 // an error if the type cannot be shown.
 func checkShowJS(t reflect.Type, types []reflect.Type) error {
-	for _, typ := range types {
-		if t == typ {
-			return nil
-		}
+	if slices.Contains(types, t) {
+		return nil
 	}
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
@@ -1536,10 +1535,8 @@ func checkShowJS(t reflect.Type, types []reflect.Type) error {
 // checkShowJSON reports whether a type can be shown as JSON. It returns an
 // error if the type cannot be shown.
 func checkShowJSON(t reflect.Type, types []reflect.Type) error {
-	for _, typ := range types {
-		if t == typ {
-			return nil
-		}
+	if slices.Contains(types, t) {
+		return nil
 	}
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||

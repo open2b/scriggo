@@ -9,6 +9,7 @@ import (
 	"errors"
 	"reflect"
 	"runtime"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"unicode"
@@ -734,11 +735,8 @@ func (vm *VM) run() (Addr, bool) {
 				x := vm.general(a)
 				if s, ok := x.Interface().([]int); ok {
 					y := int(vm.intk(c, op < 0))
-					for _, e := range s {
-						if e == y {
-							cond = true
-							break
-						}
+					if slices.Contains(s, y) {
+						cond = true
 					}
 				} else {
 					n := x.Len()
@@ -817,11 +815,8 @@ func (vm *VM) run() (Addr, bool) {
 				x := vm.general(a)
 				y := vm.floatk(c, op < 0)
 				if s, ok := x.Interface().([]float64); ok {
-					for _, e := range s {
-						if e == y {
-							cond = true
-							break
-						}
+					if slices.Contains(s, y) {
+						cond = true
 					}
 				} else {
 					n := x.Len()

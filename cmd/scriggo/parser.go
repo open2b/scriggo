@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -226,13 +227,7 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 	}
 
 	if len(sf.goos) > 0 {
-		found := false
-		for _, os := range sf.goos {
-			if os == goos {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(sf.goos, goos)
 		if !found {
 			return nil, fmt.Errorf("GOOS %s not supported in Scriggofile", goos)
 		}

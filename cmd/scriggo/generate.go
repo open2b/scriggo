@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"os"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -266,20 +267,10 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 
 	allowed := func(n string) bool {
 		if len(including) > 0 {
-			for _, inc := range including {
-				if inc == n {
-					return true
-				}
-			}
-			return false
+			return slices.Contains(including, n)
 		}
 		if len(excluding) > 0 {
-			for _, exc := range excluding {
-				if exc == n {
-					return false
-				}
-			}
-			return true
+			return !slices.Contains(excluding, n)
 		}
 		return true
 	}

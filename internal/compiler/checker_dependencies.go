@@ -6,6 +6,7 @@ package compiler
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/open2b/scriggo/ast"
 )
@@ -56,10 +57,8 @@ func (d *deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node, scopes depS
 // expression.
 func (d *deps) hasIteaInItsExpression(varLh *ast.Identifier) bool {
 	for _, v := range d.itea {
-		for _, ident := range v {
-			if ident == varLh {
-				return true
-			}
+		if slices.Contains(v, varLh) {
+			return true
 		}
 	}
 	return false
@@ -343,11 +342,8 @@ func (d *deps) nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		if d.analyzingVarExprWithItea != nil && n.Name == "itea" {
 			var thisName string
 			for k, v := range d.itea {
-				for _, ident := range v {
-					if ident == d.analyzingVarExprWithItea {
-						thisName = k
-						break
-					}
+				if slices.Contains(v, d.analyzingVarExprWithItea) {
+					thisName = k
 				}
 			}
 			if thisName == "" {
