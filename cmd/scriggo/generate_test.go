@@ -252,7 +252,7 @@ func _cleanOutput(s string) string {
 	re := regexp.MustCompile(`(?s)import \(.*?\)`)
 	s = re.ReplaceAllString(s, "")
 	lines := []string{}
-	for _, l := range strings.Split(s, "\n") {
+	for l := range strings.SplitSeq(s, "\n") {
 		l := strings.TrimSpace(l)
 		if l != "" && !strings.HasPrefix(l, "//") && !strings.HasPrefix(l, "import ") {
 			l := strings.Join(strings.Fields(l), " ")
