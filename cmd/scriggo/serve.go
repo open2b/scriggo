@@ -351,7 +351,7 @@ func (srv *server) serveTemplate(w http.ResponseWriter, r *http.Request) {
 		start = time.Now()
 	}
 	b := bytes.Buffer{}
-	vars := map[string]interface{}{"form": builtin.NewFormData(r, 10)}
+	vars := map[string]any{"form": builtin.NewFormData(r, 10)}
 	err = template.Run(&b, vars, srv.runOptions)
 	if err != nil {
 		switch err {
@@ -423,14 +423,14 @@ func (srv *server) serveTemplate(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (srv *server) log(a ...interface{}) {
+func (srv *server) log(a ...any) {
 	println()
 	fmt.Fprint(os.Stderr, a...)
 	println()
 	srv.metrics.header = true
 }
 
-func (srv *server) logf(format string, a ...interface{}) {
+func (srv *server) logf(format string, a ...any) {
 	println()
 	fmt.Fprintf(os.Stderr, format, a...)
 	println()

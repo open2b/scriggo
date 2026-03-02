@@ -319,7 +319,7 @@ var tests = []struct {
 	{func() string { s := []rune{'b', 'a', 'c'}; Sort(s, nil); return spf("%v", s) }(), "[97 98 99]"},
 	{func() string { s := []bool{true, false, true}; Sort(s, nil); return spf("%v", s) }(), "[false true true]"},
 	{func() string { s := []native.HTML{`<b>`, `<a>`, `<c>`}; Sort(s, nil); return spf("%v", s) }(), "[<a> <b> <c>]"},
-	{func() string { s := []interface{}{5, 8, 2}; Sort(s, nil); return spf("%v", s) }(), "[2 5 8]"},
+	{func() string { s := []any{5, 8, 2}; Sort(s, nil); return spf("%v", s) }(), "[2 5 8]"},
 
 	// split
 	{sp(Split("a b c", " ")), "[a b c]"},
@@ -377,18 +377,18 @@ var tests = []struct {
 	{UnixTime(1616964058, 136918407).UTC().Format(time.RFC3339Nano), "2021-03-28T20:40:58.136918407Z"},
 
 	// unmarshalJSON
-	{spf("%#v", (func() interface{} { var v map[string]interface{}; _ = UnmarshalJSON("null", &v); return v })()), "map[string]interface {}(nil)"},
-	{spf("%#v", (func() interface{} { var v map[string]interface{}; _ = UnmarshalJSON(`{"a":"b"}`, &v); return v })()), `map[string]interface {}{"a":"b"}`},
-	{spf("%#v", (func() interface{} { var v []int; _ = UnmarshalJSON("[1,2,3]", &v); return v })()), "[]int{1, 2, 3}"},
+	{spf("%#v", (func() any { var v map[string]any; _ = UnmarshalJSON("null", &v); return v })()), "map[string]interface {}(nil)"},
+	{spf("%#v", (func() any { var v map[string]any; _ = UnmarshalJSON(`{"a":"b"}`, &v); return v })()), `map[string]interface {}{"a":"b"}`},
+	{spf("%#v", (func() any { var v []int; _ = UnmarshalJSON("[1,2,3]", &v); return v })()), "[]int{1, 2, 3}"},
 	{spf("%v", UnmarshalJSON("", nil)), "unmarshalJSON: cannot unmarshal into nil"},
 	{spf("%v", UnmarshalJSON("", (*int)(nil))), "unmarshalJSON: cannot unmarshal into a nil pointer of type *int"},
 	{spf("%v", UnmarshalJSON("", []int{})), "unmarshalJSON: cannot unmarshal into non-pointer value of type []int"},
 	{spf("%v", UnmarshalJSON("5", &[]int{})), "unmarshalJSON: cannot unmarshal number into value of type []int"},
 
 	// unmarshalYAML
-	{spf("%#v", (func() interface{} { var v map[string]interface{}; _ = UnmarshalYAML("", &v); return v })()), "map[string]interface {}(nil)"},
-	{spf("%#v", (func() interface{} { var v map[string]interface{}; _ = UnmarshalYAML(`{"a":"b"}`, &v); return v })()), `map[string]interface {}{"a":"b"}`},
-	{spf("%#v", (func() interface{} { var v []int; _ = UnmarshalYAML("- 1\n- 2\n- 3\n", &v); return v })()), "[]int{1, 2, 3}"},
+	{spf("%#v", (func() any { var v map[string]any; _ = UnmarshalYAML("", &v); return v })()), "map[string]interface {}(nil)"},
+	{spf("%#v", (func() any { var v map[string]any; _ = UnmarshalYAML(`{"a":"b"}`, &v); return v })()), `map[string]interface {}{"a":"b"}`},
+	{spf("%#v", (func() any { var v []int; _ = UnmarshalYAML("- 1\n- 2\n- 3\n", &v); return v })()), "[]int{1, 2, 3}"},
 	{spf("%v", UnmarshalYAML("", nil)), "unmarshalYAML: cannot unmarshal into nil"},
 	{spf("%v", UnmarshalYAML("", (*int)(nil))), "unmarshalYAML: cannot unmarshal into a nil pointer of type *int"},
 	{spf("%v", UnmarshalYAML("", []int{})), "unmarshalYAML: cannot unmarshal into non-pointer value of type []int"},

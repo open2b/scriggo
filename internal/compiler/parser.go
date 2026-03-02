@@ -44,7 +44,7 @@ func (e *SyntaxError) Position() ast.Position {
 
 // syntaxError returns a SyntaxError error with position pos and message
 // formatted according the given format.
-func syntaxError(pos *ast.Position, format string, a ...interface{}) *SyntaxError {
+func syntaxError(pos *ast.Position, format string, a ...any) *SyntaxError {
 	return &SyntaxError{"", *pos, fmt.Sprintf(format, a...)}
 }
 

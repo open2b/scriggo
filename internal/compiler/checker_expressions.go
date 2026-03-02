@@ -1977,7 +1977,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 
 	case reflect.Map:
 
-		hasKey := map[interface{}]struct{}{}
+		hasKey := map[any]struct{}{}
 		for i := range node.KeyValues {
 			kv := &node.KeyValues[i]
 			keyType := ti.Type.Key()

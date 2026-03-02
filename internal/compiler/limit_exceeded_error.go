@@ -24,7 +24,7 @@ type LimitExceededError struct {
 
 // newLimitExceededError returns a new LimitError that occurred in the file path
 // inside a function declared at the given pos.
-func newLimitExceededError(pos *runtime.Position, path, format string, a ...interface{}) *LimitExceededError {
+func newLimitExceededError(pos *runtime.Position, path, format string, a ...any) *LimitExceededError {
 	astPos := &ast.Position{
 		Line:   pos.Line,
 		Column: pos.Column,

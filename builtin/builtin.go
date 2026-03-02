@@ -408,7 +408,7 @@ func LastIndex(s, substr string) int {
 // MarshalJSON returns the JSON encoding of v.
 //
 // See https://pkg.go.dev/encoding/json#Marshal for details.
-func MarshalJSON(v interface{}) (native.JSON, error) {
+func MarshalJSON(v any) (native.JSON, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return "", replacePrefix(err, "json", "marshalJSON")
@@ -421,7 +421,7 @@ func MarshalJSON(v interface{}) (native.JSON, error) {
 // followed by one or more copies of indent according to the indentation
 // nesting. prefix and indent can only contain whitespace: ' ', '\t', '\n' and
 // '\r'.
-func MarshalJSONIndent(v interface{}, prefix, indent string) (native.JSON, error) {
+func MarshalJSONIndent(v any, prefix, indent string) (native.JSON, error) {
 	if !onlyJSONWhitespace(prefix) {
 		return "", errors.New("marshalJSONIndent: prefix does not contain only whitespace")
 	}
@@ -438,7 +438,7 @@ func MarshalJSONIndent(v interface{}, prefix, indent string) (native.JSON, error
 // MarshalYAML returns the YAML encoding of v.
 //
 // See https://pkg.go.dev/gopkg.in/yaml.v3#Marshal for details.
-func MarshalYAML(v interface{}) (_ string, err error) {
+func MarshalYAML(v any) (_ string, err error) {
 	defer func() {
 		msg := recover()
 		if msg != nil {
@@ -640,7 +640,7 @@ func ReplaceAll(s, old, new string) string {
 
 // Reverse reverses the order of the elements of slice.
 // If slice is not a slice, it panics.
-func Reverse(slice interface{}) {
+func Reverse(slice any) {
 	if slice == nil {
 		return
 	}
@@ -687,7 +687,7 @@ func Sha256(s string) string {
 // on their type.
 //
 // The natural order can differ between different versions of Scriggo.
-func Sort(slice interface{}, less func(i, j int) bool) {
+func Sort(slice any, less func(i, j int) bool) {
 	if slice == nil {
 		return
 	}
@@ -793,12 +793,12 @@ func SplitN(s, sep string, n int) []string {
 
 // Sprint formats using the default formats for its operands and returns the resulting string.
 // Spaces are added between operands when neither is a string.
-func Sprint(a ...interface{}) string {
+func Sprint(a ...any) string {
 	return fmt.Sprint(a...)
 }
 
 // Sprintf formats according to a format specifier and returns the resulting string.
-func Sprintf(format string, a ...interface{}) string {
+func Sprintf(format string, a ...any) string {
 	return fmt.Sprintf(format, a...)
 }
 
@@ -893,7 +893,7 @@ func UnixTime(sec int64, nsec int64) Time {
 // replaces the value pointed to by v, if no errors occur.
 //
 // See https://pkg.go.dev/encoding/json#Unmarshal for details.
-func UnmarshalJSON(data string, v interface{}) error {
+func UnmarshalJSON(data string, v any) error {
 	if v == nil {
 		return errors.New("unmarshalJSON: cannot unmarshal into nil")
 	}
@@ -930,7 +930,7 @@ func UnmarshalJSON(data string, v interface{}) error {
 // replaces the value pointed to by v, if no errors occur.
 //
 // See https://pkg.go.dev/gopkg.in/yaml.v3#Unmarshal for details.
-func UnmarshalYAML(data string, v interface{}) (err error) {
+func UnmarshalYAML(data string, v any) (err error) {
 	if v == nil {
 		return errors.New("unmarshalYAML: cannot unmarshal into nil")
 	}

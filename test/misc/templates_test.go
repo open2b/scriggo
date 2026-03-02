@@ -30,10 +30,10 @@ func globals() native.Declarations {
 			}
 			return x
 		},
-		"sprint": func(a ...interface{}) string {
+		"sprint": func(a ...any) string {
 			return fmt.Sprint(a...)
 		},
-		"sprintf": func(format string, a ...interface{}) string {
+		"sprintf": func(format string, a ...any) string {
 			return fmt.Sprintf(format, a...)
 		},
 		"title": func(env native.Env, s string) string {
@@ -551,7 +551,7 @@ func TestRenderStatements(t *testing.T) {
 }
 
 var rendererGlobalsToScope = []struct {
-	globals interface{}
+	globals any
 	res     Vars
 }{
 	{
@@ -563,11 +563,11 @@ var rendererGlobalsToScope = []struct {
 		Vars{"a": 1, "b": "s"},
 	},
 	{
-		reflect.ValueOf(map[string]interface{}{"a": 1, "b": "s"}),
+		reflect.ValueOf(map[string]any{"a": 1, "b": "s"}),
 		Vars{"a": 1, "b": "s"},
 	},
 	{
-		map[string]interface{}{"a": 1, "b": "s"},
+		map[string]any{"a": 1, "b": "s"},
 		Vars{"a": 1, "b": "s"},
 	},
 	{
@@ -579,7 +579,7 @@ var rendererGlobalsToScope = []struct {
 		Vars{"a": 1, "b": 2},
 	},
 	{
-		reflect.ValueOf(map[string]interface{}{"a": 1, "b": "s"}),
+		reflect.ValueOf(map[string]any{"a": 1, "b": "s"}),
 		Vars{"a": 1, "b": "s"},
 	},
 	{
@@ -609,7 +609,7 @@ var rendererGlobalsToScope = []struct {
 }
 
 // refToCopy returns a reference to a copy of v (not to v itself).
-func refToCopy(v interface{}) reflect.Value {
+func refToCopy(v any) reflect.Value {
 	rv := reflect.New(reflect.TypeOf(v))
 	rv.Elem().Set(reflect.ValueOf(v))
 	return rv
@@ -859,7 +859,7 @@ func TestOutError(t *testing.T) {
 	}
 	out := testErrorWriter{errors.New("out error")}
 	panicked := true
-	var rec interface{}
+	var rec any
 	func() {
 		defer func() {
 			rec = recover()
@@ -888,7 +888,7 @@ func TestRecoveredOutError(t *testing.T) {
 	}
 	out := testErrorWriter{errors.New("out error")}
 	panicked := true
-	var rec interface{}
+	var rec any
 	func() {
 		defer func() {
 			rec = recover()

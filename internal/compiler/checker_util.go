@@ -240,30 +240,30 @@ func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Typ
 // deferGoBuiltin returns a type info suitable to be embedded into the 'defer'
 // and 'go' statements with a builtin call as argument.
 func deferGoBuiltin(name string) *typeInfo {
-	var fun interface{}
+	var fun any
 	switch name {
 	case "close":
-		fun = func(ch interface{}) {
+		fun = func(ch any) {
 			reflect.ValueOf(ch).Close()
 		}
 	case "copy":
-		fun = func(dst, src interface{}) {
+		fun = func(dst, src any) {
 			reflect.Copy(reflect.ValueOf(dst), reflect.ValueOf(src))
 		}
 	case "delete":
-		fun = func(m interface{}, key interface{}) {
+		fun = func(m any, key any) {
 			reflect.ValueOf(m).SetMapIndex(reflect.ValueOf(key), reflect.Value{})
 		}
 	case "panic":
-		fun = func(env native.Env, v interface{}) {
+		fun = func(env native.Env, v any) {
 			panic(v)
 		}
 	case "print":
-		fun = func(env native.Env, args ...interface{}) {
+		fun = func(env native.Env, args ...any) {
 			env.Print(args...)
 		}
 	case "println":
-		fun = func(env native.Env, args ...interface{}) {
+		fun = func(env native.Env, args ...any) {
 			env.Println(args...)
 		}
 	case "recover":
@@ -477,7 +477,7 @@ func (tc *typechecker) nilOf(t reflect.Type) *typeInfo {
 
 // typedValue returns a constant type info value represented with a given
 // type.
-func (tc *typechecker) typedValue(ti *typeInfo, t reflect.Type) interface{} {
+func (tc *typechecker) typedValue(ti *typeInfo, t reflect.Type) any {
 	k := t.Kind()
 	if k == reflect.Interface {
 		t = ti.Type

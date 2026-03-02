@@ -57,7 +57,7 @@ type BuildOptions struct {
 
 // PrintFunc represents a function that prints the arguments of the print and
 // println builtins.
-type PrintFunc func(interface{})
+type PrintFunc func(any)
 
 // RunOptions are the run options.
 type RunOptions struct {

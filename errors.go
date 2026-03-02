@@ -93,7 +93,7 @@ func (p *PanicError) Error() string {
 }
 
 // Message returns the panic message.
-func (p *PanicError) Message() interface{} {
+func (p *PanicError) Message() any {
 	return p.p.Message()
 }
 

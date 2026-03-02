@@ -129,4 +129,4 @@ func (i *filesFileInfo) Size() int64        { return int64(len(i.data)) }
 func (i *filesFileInfo) Mode() os.FileMode  { return i.mode }
 func (i *filesFileInfo) ModTime() time.Time { return time.Time{} }
 func (i *filesFileInfo) IsDir() bool        { return i.mode&fs.ModeDir == fs.ModeDir }
-func (i *filesFileInfo) Sys() interface{}   { return nil }
+func (i *filesFileInfo) Sys() any           { return nil }

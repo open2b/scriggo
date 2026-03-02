@@ -50,7 +50,7 @@ func newRenderer(out io.Writer) *renderer {
 }
 
 // Show shows v in the given context.
-func (r *renderer) Show(env *env, v interface{}, context Context) error {
+func (r *renderer) Show(env *env, v any, context Context) error {
 
 	ctx, inURL, _ := decodeRenderContext(context)
 
@@ -147,7 +147,7 @@ func (r *renderer) Text(txt []byte, inURL, isSet bool) error {
 }
 
 // showInURL shows v in a URL in the given context.
-func (r *renderer) showInURL(env *env, v interface{}, ctx ast.Context) error {
+func (r *renderer) showInURL(env *env, v any, ctx ast.Context) error {
 
 	var b strings.Builder
 	err := showInHTML(env, &b, v)
@@ -208,7 +208,7 @@ func newStringWriter(wr io.Writer) strWriter {
 	return strWriterWrapper{wr}
 }
 
-func toString(env *env, i interface{}) (string, error) {
+func toString(env *env, i any) (string, error) {
 	v := valueOf(env, i)
 	switch v.Kind() {
 	case reflect.Invalid:
@@ -266,7 +266,7 @@ func toString(env *env, i interface{}) (string, error) {
 }
 
 // showInText shows value in the Text context.
-func showInText(env *env, out io.Writer, value interface{}) error {
+func showInText(env *env, out io.Writer, value any) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -288,7 +288,7 @@ func showInText(env *env, out io.Writer, value interface{}) error {
 }
 
 // showInHTML shows value in HTML context.
-func showInHTML(env *env, out io.Writer, value interface{}) error {
+func showInHTML(env *env, out io.Writer, value any) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
 	case native.HTML:
@@ -322,7 +322,7 @@ func showInHTML(env *env, out io.Writer, value interface{}) error {
 }
 
 // showInTag show value in Tag context.
-func showInTag(env *env, out io.Writer, value interface{}) error {
+func showInTag(env *env, out io.Writer, value any) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -364,7 +364,7 @@ func showInTag(env *env, out io.Writer, value interface{}) error {
 
 // showInAttribute shows value in the attribute context quoted or unquoted
 // depending on quoted value.
-func showInAttribute(env *env, out io.Writer, value interface{}, quoted bool) error {
+func showInAttribute(env *env, out io.Writer, value any, quoted bool) error {
 	var s string
 	var escapeEntities bool
 	switch v := value.(type) {
@@ -395,7 +395,7 @@ func showInAttribute(env *env, out io.Writer, value interface{}, quoted bool) er
 }
 
 // showInCSS shows value in CSS context.
-func showInCSS(env *env, out io.Writer, value interface{}) error {
+func showInCSS(env *env, out io.Writer, value any) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
 	case native.CSS:
@@ -438,7 +438,7 @@ func showInCSS(env *env, out io.Writer, value interface{}) error {
 }
 
 // showInCSSString shows value in CSSString context.
-func showInCSSString(env *env, out io.Writer, value interface{}) error {
+func showInCSSString(env *env, out io.Writer, value any) error {
 	var s string
 	switch value := value.(type) {
 	case fmt.Stringer:
@@ -463,7 +463,7 @@ func showInCSSString(env *env, out io.Writer, value interface{}) error {
 }
 
 // showInJS shows value in JavaScript context.
-func showInJS(env *env, out io.Writer, value interface{}) error {
+func showInJS(env *env, out io.Writer, value any) error {
 
 	w := newStringWriter(out)
 
@@ -603,7 +603,7 @@ func showInJS(env *env, out io.Writer, value interface{}) error {
 		}
 		type keyPair struct {
 			key string
-			val interface{}
+			val any
 		}
 		keyPairs := make([]keyPair, v.Len())
 		iter := v.MapRange()
@@ -660,7 +660,7 @@ func showInJS(env *env, out io.Writer, value interface{}) error {
 }
 
 // showInJSON shows value in JSON context.
-func showInJSON(env *env, out io.Writer, value interface{}) error {
+func showInJSON(env *env, out io.Writer, value any) error {
 
 	w := newStringWriter(out)
 
@@ -806,7 +806,7 @@ func showInJSON(env *env, out io.Writer, value interface{}) error {
 		}
 		type keyPair struct {
 			key string
-			val interface{}
+			val any
 		}
 		keyPairs := make([]keyPair, v.Len())
 		iter := v.MapRange()
@@ -862,7 +862,7 @@ func showInJSON(env *env, out io.Writer, value interface{}) error {
 }
 
 // showInJSString shows value in JSString context.
-func showInJSString(env *env, out io.Writer, value interface{}) error {
+func showInJSString(env *env, out io.Writer, value any) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -882,12 +882,12 @@ func showInJSString(env *env, out io.Writer, value interface{}) error {
 }
 
 // showInJSONString shows value in JSONString context.
-func showInJSONString(env *env, out io.Writer, value interface{}) error {
+func showInJSONString(env *env, out io.Writer, value any) error {
 	return showInJSString(env, out, value)
 }
 
 // showInMarkdown shows value in the Markdown context.
-func showInMarkdown(env *env, out io.Writer, value interface{}) error {
+func showInMarkdown(env *env, out io.Writer, value any) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
 	case native.Markdown:
@@ -921,7 +921,7 @@ func showInMarkdown(env *env, out io.Writer, value interface{}) error {
 }
 
 // showInMarkdownCodeBlock shows value in the Markdown code block context.
-func showInMarkdownCodeBlock(env *env, out io.Writer, value interface{}, spaces bool) error {
+func showInMarkdownCodeBlock(env *env, out io.Writer, value any, spaces bool) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -1010,7 +1010,7 @@ func isEmptyValue(v reflect.Value) (empty bool) {
 
 // valueOf returns the reflect value of i. If i is a proxy, it returns the
 // underlying value.
-func valueOf(env *env, i interface{}) reflect.Value {
+func valueOf(env *env, i any) reflect.Value {
 	if i == nil {
 		return reflect.Value{}
 	}

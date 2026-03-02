@@ -100,7 +100,7 @@ func stderr(lines ...string) {
 
 // exitError prints an error message on stderr with a bold red color and exits
 // with status code 1.
-func exitError(format string, a ...interface{}) {
+func exitError(format string, a ...any) {
 	msg := fmt.Errorf(format, a...)
 	stderr(msg.Error())
 	exit(1)

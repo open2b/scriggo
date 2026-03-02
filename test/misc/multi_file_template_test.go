@@ -28,12 +28,12 @@ func TestMultiFileTemplate(t *testing.T) {
 
 	templateMultiFileCases := map[string]struct {
 		sources          fstest.Files
-		expectedBuildErr string                 // default to empty string (no build error). Mutually exclusive with expectedOut.
-		expectedOut      string                 // default to "". Mutually exclusive with expectedBuildErr.
-		main             native.Package         // default to nil
-		vars             map[string]interface{} // default to nil
-		entryPoint       string                 // default to "index.html"
-		importer         native.Importer        // default to nil
+		expectedBuildErr string          // default to empty string (no build error). Mutually exclusive with expectedOut.
+		expectedOut      string          // default to "". Mutually exclusive with expectedBuildErr.
+		main             native.Package  // default to nil
+		vars             map[string]any  // default to nil
+		entryPoint       string          // default to "index.html"
+		importer         native.Importer // default to nil
 		noParseShow      bool
 	}{
 
@@ -193,7 +193,7 @@ func TestMultiFileTemplate(t *testing.T) {
 					"initMainVar": (*int)(nil),
 				},
 			},
-			vars: map[string]interface{}{
+			vars: map[string]any{
 				"initMainVar": 42,
 			},
 			expectedOut: `42`,
@@ -224,7 +224,7 @@ func TestMultiFileTemplate(t *testing.T) {
 					"lowercase": (*func(string) string)(nil),
 				},
 			},
-			vars: map[string]interface{}{
+			vars: map[string]any{
 				"lowercase": func(s string) string {
 					return strings.ToLower(s)
 				},
@@ -243,7 +243,7 @@ func TestMultiFileTemplate(t *testing.T) {
 					"b": (*string)(nil),
 				},
 			},
-			vars: map[string]interface{}{
+			vars: map[string]any{
 				"a": "AAA",
 				"b": "BBB",
 			},
@@ -3428,10 +3428,10 @@ func multiFileTemplateTestGlobals() native.Declarations {
 			}
 			return x
 		},
-		"sprint": func(a ...interface{}) string {
+		"sprint": func(a ...any) string {
 			return fmt.Sprint(a...)
 		},
-		"sprintf": func(format string, a ...interface{}) string {
+		"sprintf": func(format string, a ...any) string {
 			return fmt.Sprintf(format, a...)
 		},
 		"title": func(env native.Env, s string) string {
@@ -3446,7 +3446,7 @@ func multiFileTemplateTestGlobals() native.Declarations {
 // the same format used by the builtin print to print to the standard error.
 // The returned function can be used for the PrintFunc option.
 func printFunc(w io.Writer) scriggo.PrintFunc {
-	return func(v interface{}) {
+	return func(v any) {
 		r := reflect.ValueOf(v)
 		switch r.Kind() {
 		case reflect.Invalid, reflect.Array, reflect.Func, reflect.Interface, reflect.Ptr, reflect.Struct:

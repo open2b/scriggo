@@ -138,7 +138,7 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 // If a call to out.Write returns an error, a panic occurs. If the executed
 // code does not recover the panic, Run returns the error returned by
 // out.Write.
-func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunOptions) error {
+func (t *Template) Run(out io.Writer, vars map[string]any, options *RunOptions) error {
 	if out == nil {
 		return errors.New("invalid nil out")
 	}
@@ -190,11 +190,11 @@ func (t *Template) UsedVars() []string {
 	return vars
 }
 
-var emptyInit = map[string]interface{}{}
+var emptyInit = map[string]any{}
 
 // initGlobalVariables initializes the global variables and returns their
 // values. It panics if init is not valid.
-func initGlobalVariables(variables []compiler.Global, init map[string]interface{}) []reflect.Value {
+func initGlobalVariables(variables []compiler.Global, init map[string]any) []reflect.Value {
 	n := len(variables)
 	if n == 0 {
 		return nil

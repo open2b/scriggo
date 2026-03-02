@@ -39,7 +39,7 @@ var float32Type = reflect.TypeOf(float32(0.0))
 var complex128Type = reflect.TypeOf(0i)
 var complex64Type = reflect.TypeOf(complex64(0))
 var stringType = reflect.TypeOf("")
-var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
+var emptyInterfaceType = reflect.TypeOf(&[]any{any(nil)}[0]).Elem()
 
 type label runtime.Addr
 
@@ -158,7 +158,7 @@ func newMacro(pkg, name string, typ reflect.Type, format ast.Format, file string
 
 // newNativeFunction returns a new native function with a given package, name
 // and implementation. fn must be a function type.
-func newNativeFunction(pkg, name string, fn interface{}) *runtime.NativeFunction {
+func newNativeFunction(pkg, name string, fn any) *runtime.NativeFunction {
 	return runtime.NewNativeFunction(pkg, name, fn)
 }
 
@@ -616,7 +616,7 @@ func (fb *functionBuilder) complexOperationIndex(op ast.OperatorType, unary bool
 	if index, ok := fb.complexBinaryOpIndexes[op]; ok {
 		return index
 	}
-	var f interface{}
+	var f any
 	var n string
 	switch op {
 	case ast.OperatorAddition:
@@ -639,7 +639,7 @@ func (fb *functionBuilder) complexOperationIndex(op ast.OperatorType, unary bool
 	return index
 }
 
-func negComplex(c interface{}) interface{} {
+func negComplex(c any) any {
 	switch c := c.(type) {
 	case complex64:
 		return -c
@@ -652,7 +652,7 @@ func negComplex(c interface{}) interface{} {
 	return v2.Interface()
 }
 
-func addComplex(c1, c2 interface{}) interface{} {
+func addComplex(c1, c2 any) any {
 	switch c1 := c1.(type) {
 	case complex64:
 		return c1 + c2.(complex64)
@@ -666,7 +666,7 @@ func addComplex(c1, c2 interface{}) interface{} {
 	return v3.Interface()
 }
 
-func subComplex(c1, c2 interface{}) interface{} {
+func subComplex(c1, c2 any) any {
 	switch c1 := c1.(type) {
 	case complex64:
 		return c1 - c2.(complex64)
@@ -680,7 +680,7 @@ func subComplex(c1, c2 interface{}) interface{} {
 	return v3.Interface()
 }
 
-func mulComplex(c1, c2 interface{}) interface{} {
+func mulComplex(c1, c2 any) any {
 	switch c1 := c1.(type) {
 	case complex64:
 		return c1 * c2.(complex64)
@@ -694,7 +694,7 @@ func mulComplex(c1, c2 interface{}) interface{} {
 	return v3.Interface()
 }
 
-func divComplex(c1, c2 interface{}) interface{} {
+func divComplex(c1, c2 any) any {
 	switch c1 := c1.(type) {
 	case complex64:
 		return c1 / c2.(complex64)

@@ -1295,7 +1295,7 @@ func (vm *VM) run() (Addr, bool) {
 						break
 					}
 				}
-			case []interface{}:
+			case []any:
 				for i, v := range s {
 					if b != 0 {
 						vm.setInt(b, int64(i))
@@ -1363,7 +1363,7 @@ func (vm *VM) run() (Addr, bool) {
 						break
 					}
 				}
-			case map[string]interface{}:
+			case map[string]any:
 				for i, v := range s {
 					if b != 0 {
 						vm.setString(b, i)
@@ -1688,7 +1688,7 @@ func (vm *VM) run() (Addr, bool) {
 				m[k] = v
 			case map[string]struct{}:
 				m[vm.string(c)] = struct{}{}
-			case map[string]interface{}:
+			case map[string]any:
 				k := vm.string(c)
 				rv := vm.generalk(a, op < 0)
 				if rv.IsValid() {
@@ -1734,7 +1734,7 @@ func (vm *VM) run() (Addr, bool) {
 				s[i] = vm.floatk(a, op < 0)
 			case []string:
 				s[i] = vm.stringk(a, op < 0)
-			case []interface{}:
+			case []any:
 				rv := vm.generalk(a, op < 0)
 				if rv.IsValid() {
 					s[i] = rv.Interface()
@@ -1800,7 +1800,7 @@ func (vm *VM) run() (Addr, bool) {
 			if st != nil {
 				rv = st.Wrap(rv)
 			}
-			var v interface{}
+			var v any
 			if rv.IsValid() {
 				v = rv.Interface()
 			}

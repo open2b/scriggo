@@ -16,7 +16,7 @@ import (
 	"github.com/open2b/scriggo/native"
 )
 
-type Vars map[string]interface{}
+type Vars map[string]any
 
 var htmlContextTests = []struct {
 	src  string
@@ -104,7 +104,7 @@ var quotedAttrContextTests = []struct {
 	{`-0.1000000`, "-0.1", nil},
 	{`true`, "true", nil},
 	{`false`, "false", nil},
-	{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}},
+	{`s["a"]`, "", Vars{"s": map[any]any{}}},
 }
 
 func TestQuotedAttrContext(t *testing.T) {
@@ -138,7 +138,7 @@ var unquotedAttrContextTests = []struct {
 }{
 	{`a`, "&#32;a&#32;", Vars{"a": " a "}},
 	{`a`, "&#09;&#10;&#13;&#12;&#32;a&#61;&#96;", Vars{"a": "\t\n\r\x0C a=`"}},
-	{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}},
+	{`s["a"]`, "", Vars{"s": map[any]any{}}},
 	{`a`, "&lt;a&gt;", Vars{"a": "<a>"}},
 	{`a`, "&lt;a&gt;", Vars{"a": native.HTML("<a>")}},
 	{`a`, "&lt;a&gt;&#33;", Vars{"a": native.HTML("<a>&#33;")}},
@@ -219,10 +219,10 @@ var scriptContextTests = []struct {
 		A int
 		B *struct{ C string }
 	}{A: 5, B: &struct{ C string }{C: "C"}}}},
-	{`s["a"]`, "null", Vars{"s": map[interface{}]interface{}{}}},
-	{`a`, `{"A":5,"B":2,"C":7,"D":3}`, Vars{"a": map[string]interface{}{"A": 5, "B": 2, "C": 7, "D": 3}}},
-	{`a`, `{"":"c","\"\u0027":5}`, Vars{"a": map[string]interface{}{"\"'": 5, "": "c"}}},
-	{`a`, `{"a\u0027b":3}`, Vars{"a": map[string]interface{}{"a'b": 3}}},
+	{`s["a"]`, "null", Vars{"s": map[any]any{}}},
+	{`a`, `{"A":5,"B":2,"C":7,"D":3}`, Vars{"a": map[string]any{"A": 5, "B": 2, "C": 7, "D": 3}}},
+	{`a`, `{"":"c","\"\u0027":5}`, Vars{"a": map[string]any{"\"'": 5, "": "c"}}},
+	{`a`, `{"a\u0027b":3}`, Vars{"a": map[string]any{"a'b": 3}}},
 }
 
 func TestScriptContext(t *testing.T) {

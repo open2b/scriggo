@@ -481,7 +481,7 @@ nodesLoop:
 			}
 			// Check the cases.
 			terminating := len(node.Cases) > 0
-			positionOf := map[interface{}]*ast.Position{}
+			positionOf := map[any]*ast.Position{}
 			var positionOfDefault *ast.Position
 			for _, cas := range node.Cases {
 				if cas.Expressions == nil {

@@ -9,7 +9,7 @@ package testpkg
 
 // Interface type declarations.
 
-type EmptyInterface interface{}
+type EmptyInterface any
 
 type Interface1 interface {
 	Method()
