@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"os"
 	"path"
@@ -314,12 +315,8 @@ func (srv *server) serveTemplate(w http.ResponseWriter, r *http.Request) {
 			MarkdownConverter: srv.mdConverter,
 			Globals:           make(native.Declarations, len(globals)+len(srv.consts)+1),
 		}
-		for n, v := range globals {
-			opts.Globals[n] = v
-		}
-		for n, v := range srv.consts {
-			opts.Globals[n] = v
-		}
+		maps.Copy(opts.Globals, globals)
+		maps.Copy(opts.Globals, srv.consts)
 
 		opts.Globals["filepath"] = strings.TrimSuffix(name, path.Ext(name))
 		template, err = scriggo.BuildTemplate(fs, name, &opts)

@@ -11,6 +11,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"maps"
 	"net/url"
 	"os"
 	pathPkg "path"
@@ -77,9 +78,7 @@ func build(dir, o string, llms string, consts []string) error {
 			return md.Convert(src, out)
 		},
 	}
-	for n, v := range globals {
-		buildOptions.Globals[n] = v
-	}
+	maps.Copy(buildOptions.Globals, globals)
 	// Handle "-const" option.
 	for _, c := range consts {
 		err = parseConstants(c, buildOptions.Globals)

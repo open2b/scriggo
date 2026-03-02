@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"testing"
 
@@ -143,9 +144,7 @@ func TestEnvStringer(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.WithValue(context.Background(), envTestCtxString("forty-two"), 42)
 			fsys := fstest.Files{}
-			for p, src := range cas.sources {
-				fsys[p] = src
-			}
+			maps.Copy(fsys, cas.sources)
 			opts := &scriggo.BuildOptions{
 				Globals: cas.globals,
 			}
