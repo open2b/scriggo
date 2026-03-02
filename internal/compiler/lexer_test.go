@@ -1051,7 +1051,7 @@ func TestNumbers(t *testing.T) {
 		if tok.typ != test.typ {
 			t.Fatalf("unexpected token %s, expecting %s", tok.typ, test.typ)
 		}
-		for _, expected := range strings.Fields(test.tokens) {
+		for expected := range strings.FieldsSeq(test.tokens) {
 			if tok.typ == tokenEOF {
 				t.Fatalf("unexpected EOF, expecting token %q", expected)
 			}

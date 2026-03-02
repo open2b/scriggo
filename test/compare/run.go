@@ -455,7 +455,7 @@ func readMode(src []byte, ext string) (string, []string, error) {
 	}
 	switch ext {
 	case ".go":
-		for _, l := range strings.Split(string(src), "\n") {
+		for l := range strings.SplitSeq(string(src), "\n") {
 			l = strings.TrimSpace(l)
 			if l == "" {
 				continue
@@ -475,7 +475,7 @@ func readMode(src []byte, ext string) (string, []string, error) {
 			return s[0], s[1:], nil
 		}
 	default:
-		for _, l := range strings.Split(string(src), "\n") {
+		for l := range strings.SplitSeq(string(src), "\n") {
 			l = strings.TrimSpace(l)
 			if l == "" {
 				continue
