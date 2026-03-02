@@ -33,13 +33,13 @@ const (
 	maxGeneralValuesCount = 256
 )
 
-var intType = reflect.TypeOf(0)
-var float64Type = reflect.TypeOf(0.0)
-var float32Type = reflect.TypeOf(float32(0.0))
-var complex128Type = reflect.TypeOf(0i)
-var complex64Type = reflect.TypeOf(complex64(0))
-var stringType = reflect.TypeOf("")
-var emptyInterfaceType = reflect.TypeOf(&[]any{any(nil)}[0]).Elem()
+var intType = reflect.TypeFor[int]()
+var float64Type = reflect.TypeFor[float64]()
+var float32Type = reflect.TypeFor[float32]()
+var complex128Type = reflect.TypeFor[complex128]()
+var complex64Type = reflect.TypeFor[complex64]()
+var stringType = reflect.TypeFor[string]()
+var emptyInterfaceType = reflect.TypeFor[any]()
 
 type label runtime.Addr
 

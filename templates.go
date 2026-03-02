@@ -67,11 +67,11 @@ func (fsys formatFS) Format(name string) (ast.Format, error) {
 
 // formatTypes contains the format types added to the universe block.
 var formatTypes = map[ast.Format]reflect.Type{
-	ast.FormatHTML:     reflect.TypeOf((*native.HTML)(nil)).Elem(),
-	ast.FormatCSS:      reflect.TypeOf((*native.CSS)(nil)).Elem(),
-	ast.FormatJS:       reflect.TypeOf((*native.JS)(nil)).Elem(),
-	ast.FormatJSON:     reflect.TypeOf((*native.JSON)(nil)).Elem(),
-	ast.FormatMarkdown: reflect.TypeOf((*native.Markdown)(nil)).Elem(),
+	ast.FormatHTML:     reflect.TypeFor[native.HTML](),
+	ast.FormatCSS:      reflect.TypeFor[native.CSS](),
+	ast.FormatJS:       reflect.TypeFor[native.JS](),
+	ast.FormatJSON:     reflect.TypeFor[native.JSON](),
+	ast.FormatMarkdown: reflect.TypeFor[native.Markdown](),
 }
 
 // BuildTemplate builds the named template file rooted at the given file

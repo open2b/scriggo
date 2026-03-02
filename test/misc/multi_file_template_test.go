@@ -606,7 +606,7 @@ func TestMultiFileTemplate(t *testing.T) {
 					"bytes": native.Package{
 						Name: "bytes",
 						Declarations: native.Declarations{
-							"Buffer": reflect.TypeOf(bytes.Buffer{}),
+							"Buffer": reflect.TypeFor[bytes.Buffer](),
 						},
 					},
 				},
@@ -801,9 +801,9 @@ func TestMultiFileTemplate(t *testing.T) {
 			main: native.Package{
 				Name: "main",
 				Declarations: native.Declarations{
-					"True":          reflect.TypeOf((*testTrue)(nil)).Elem(),
-					"TrueIf42":      reflect.TypeOf((*testTrueIf42)(nil)).Elem(),
-					"NotImplIsTrue": reflect.TypeOf((*testNotImplementIsTrue)(nil)).Elem(),
+					"True":          reflect.TypeFor[testTrue](),
+					"TrueIf42":      reflect.TypeFor[testTrueIf42](),
+					"NotImplIsTrue": reflect.TypeFor[testNotImplementIsTrue](),
 				},
 			},
 			expectedOut: "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK",
@@ -1674,7 +1674,7 @@ func TestMultiFileTemplate(t *testing.T) {
 			main: native.Package{
 				Name: "main",
 				Declarations: native.Declarations{
-					"T": reflect.TypeOf(struct{ A string }{}),
+					"T": reflect.TypeFor[struct{ A string }](),
 				},
 			},
 			expectedOut: "hello",

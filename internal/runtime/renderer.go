@@ -21,7 +21,7 @@ import (
 	"github.com/open2b/scriggo/native"
 )
 
-var byteSliceType = reflect.TypeOf([]byte(nil))
+var byteSliceType = reflect.TypeFor[[]byte]()
 
 // renderer is used by te Show and Text instructions to render template files.
 type renderer struct {
