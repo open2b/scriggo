@@ -151,7 +151,7 @@ func (ti *typeInfo) TypeName() string {
 	return ti.Type.Name()
 }
 
-var runeType = reflect.TypeOf(rune(0))
+var runeType = reflect.TypeFor[rune]()
 
 // String returns a string representation.
 func (ti *typeInfo) String() string {

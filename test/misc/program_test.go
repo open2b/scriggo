@@ -63,7 +63,7 @@ func TestIssue403(t *testing.T) {
 				"pkg": native.Package{
 					Name: "pkg",
 					Declarations: native.Declarations{
-						"Type": reflect.TypeOf(new(TypeStruct)).Elem(),
+						"Type": reflect.TypeFor[TypeStruct](),
 					},
 				},
 			},
@@ -597,7 +597,7 @@ func TestIssue967(t *testing.T) {
 					Name: "interop",
 					Declarations: native.Declarations{
 						"GetHolder": func() ICopier { return &ValueHold{} },
-						"Container": reflect.TypeOf(Container{}),
+						"Container": reflect.TypeFor[Container](),
 					},
 				},
 			},

@@ -695,7 +695,7 @@ func Sort(slice any, less func(i, j int) bool) {
 		panic("sort: cannot sort non-slice value of type " + t.String())
 	}
 	if less != nil {
-		if t := reflect.TypeOf(less); t.Kind() != reflect.Func {
+		if t := reflect.TypeFor[func(i int, j int) bool](); t.Kind() != reflect.Func {
 			panic("sort: cannot sort using a non-function value of type " + t.String())
 		}
 		sort.Slice(slice, less)

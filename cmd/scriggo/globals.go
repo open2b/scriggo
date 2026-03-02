@@ -43,13 +43,13 @@ var globals = native.Declarations{
 	"pow": builtin.Pow,
 
 	// net
-	"File":        reflect.TypeOf((*builtin.File)(nil)).Elem(),
-	"FormData":    reflect.TypeOf(builtin.FormData{}),
+	"File":        reflect.TypeFor[builtin.File](),
+	"FormData":    reflect.TypeFor[builtin.FormData](),
 	"form":        (*builtin.FormData)(nil),
 	"queryEscape": builtin.QueryEscape,
 
 	// regexp
-	"Regexp": reflect.TypeOf(builtin.Regexp{}),
+	"Regexp": reflect.TypeFor[builtin.Regexp](),
 	"regexp": builtin.RegExp,
 
 	// sort
@@ -91,14 +91,14 @@ var globals = native.Declarations{
 	"trimSuffix":    builtin.TrimSuffix,
 
 	// time
-	"Duration":      reflect.TypeOf(builtin.Duration(0)),
+	"Duration":      reflect.TypeFor[builtin.Duration](),
 	"Hour":          time.Hour,
 	"Microsecond":   time.Microsecond,
 	"Millisecond":   time.Millisecond,
 	"Minute":        time.Minute,
 	"Nanosecond":    time.Nanosecond,
 	"Second":        time.Second,
-	"Time":          reflect.TypeOf(builtin.Time{}),
+	"Time":          reflect.TypeFor[builtin.Time](),
 	"date":          builtin.Date,
 	"now":           builtin.Now,
 	"parseDuration": builtin.ParseDuration,

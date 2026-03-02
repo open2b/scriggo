@@ -26,8 +26,8 @@ const maxUint32 = 1<<31 - 1
 
 const stackSize = 512
 
-var envType = reflect.TypeOf((*native.Env)(nil)).Elem()
-var emptyInterfaceType = reflect.TypeOf(&[]any{nil}[0]).Elem()
+var envType = reflect.TypeFor[native.Env]()
+var emptyInterfaceType = reflect.TypeFor[any]()
 var emptyInterfaceNil = reflect.ValueOf(&[]any{nil}[0]).Elem()
 
 // Converter is implemented by format converters.

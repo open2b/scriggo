@@ -23,7 +23,7 @@ func TestInitPackageLevelVariables(t *testing.T) {
 	global := compiler.Global{
 		Pkg:  "p",
 		Name: "a",
-		Type: reflect.TypeOf(0),
+		Type: reflect.TypeFor[int](),
 	}
 	globals = initPackageLevelVariables([]compiler.Global{global})
 	g := globals[0]
@@ -39,7 +39,7 @@ func TestInitPackageLevelVariables(t *testing.T) {
 	global = compiler.Global{
 		Pkg:   "p",
 		Name:  "a",
-		Type:  reflect.TypeOf(n),
+		Type:  reflect.TypeFor[int](),
 		Value: reflect.ValueOf(&n).Elem(),
 	}
 	globals = initPackageLevelVariables([]compiler.Global{global})

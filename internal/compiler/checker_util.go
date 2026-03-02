@@ -16,7 +16,7 @@ import (
 	"github.com/open2b/scriggo/native"
 )
 
-var envType = reflect.TypeOf((*native.Env)(nil)).Elem()
+var envType = reflect.TypeFor[native.Env]()
 var errTypeConversion = errors.New("failed type conversion")
 
 type nilConversionError struct {

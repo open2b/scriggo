@@ -29,7 +29,7 @@ func TestInitGlobals(t *testing.T) {
 	global := compiler.Global{
 		Pkg:  "p",
 		Name: "a",
-		Type: reflect.TypeOf(0),
+		Type: reflect.TypeFor[int](),
 	}
 	globals = initGlobalVariables([]compiler.Global{global}, nil)
 	g := globals[0]
@@ -45,7 +45,7 @@ func TestInitGlobals(t *testing.T) {
 	global = compiler.Global{
 		Pkg:   "p",
 		Name:  "a",
-		Type:  reflect.TypeOf(n),
+		Type:  reflect.TypeFor[int](),
 		Value: reflect.ValueOf(&n).Elem(),
 	}
 	globals = initGlobalVariables([]compiler.Global{global}, nil)
@@ -63,7 +63,7 @@ func TestInitGlobals(t *testing.T) {
 	global = compiler.Global{
 		Pkg:  "main",
 		Name: "a",
-		Type: reflect.TypeOf(n),
+		Type: reflect.TypeFor[int](),
 	}
 	init := map[string]any{"a": &n}
 	globals = initGlobalVariables([]compiler.Global{global}, init)
@@ -84,7 +84,7 @@ func TestInitGlobals(t *testing.T) {
 	global = compiler.Global{
 		Pkg:  "main",
 		Name: "a",
-		Type: reflect.TypeOf(n),
+		Type: reflect.TypeFor[int](),
 	}
 	init = map[string]any{"a": n}
 	globals = initGlobalVariables([]compiler.Global{global}, init)
@@ -121,7 +121,7 @@ func TestInitGlobalsAlreadyInitializedError(t *testing.T) {
 	global := compiler.Global{
 		Pkg:   "main",
 		Name:  "a",
-		Type:  reflect.TypeOf(n),
+		Type:  reflect.TypeFor[int](),
 		Value: reflect.ValueOf(&n).Elem(),
 	}
 	init := map[string]any{"a": 5}
@@ -133,7 +133,7 @@ func TestInitGlobalsNilError(t *testing.T) {
 	global := compiler.Global{
 		Pkg:  "main",
 		Name: "a",
-		Type: reflect.TypeOf(0),
+		Type: reflect.TypeFor[int](),
 	}
 	init := map[string]any{"a": nil}
 	_ = initGlobalVariables([]compiler.Global{global}, init)
@@ -144,7 +144,7 @@ func TestInitGlobalsInvalidTypeError(t *testing.T) {
 	global := compiler.Global{
 		Pkg:  "main",
 		Name: "a",
-		Type: reflect.TypeOf(0),
+		Type: reflect.TypeFor[int](),
 	}
 	init := map[string]any{"a": true}
 	_ = initGlobalVariables([]compiler.Global{global}, init)
@@ -155,7 +155,7 @@ func TestInitGlobalsNilPointerError(t *testing.T) {
 	global := compiler.Global{
 		Pkg:  "main",
 		Name: "a",
-		Type: reflect.TypeOf(0),
+		Type: reflect.TypeFor[int](),
 	}
 	init := map[string]any{"a": (*int)(nil)}
 	_ = initGlobalVariables([]compiler.Global{global}, init)

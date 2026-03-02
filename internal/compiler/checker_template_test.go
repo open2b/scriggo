@@ -17,10 +17,10 @@ import (
 )
 
 func init() {
-	jsStringerType = reflect.TypeOf((*native.JSStringer)(nil)).Elem()
-	jsEnvStringerType = reflect.TypeOf((*native.JSEnvStringer)(nil)).Elem()
-	jsonStringerType = reflect.TypeOf((*native.JSONStringer)(nil)).Elem()
-	jsonEnvStringerType = reflect.TypeOf((*native.JSONEnvStringer)(nil)).Elem()
+	jsStringerType = reflect.TypeFor[native.JSStringer]()
+	jsEnvStringerType = reflect.TypeFor[native.JSEnvStringer]()
+	jsonStringerType = reflect.TypeFor[native.JSONStringer]()
+	jsonEnvStringerType = reflect.TypeFor[native.JSONEnvStringer]()
 }
 
 type html string
@@ -30,11 +30,11 @@ type json string
 type markdown string
 
 var formatTypes = map[ast.Format]reflect.Type{
-	ast.FormatHTML:     reflect.TypeOf((*html)(nil)).Elem(),
-	ast.FormatCSS:      reflect.TypeOf((*css)(nil)).Elem(),
-	ast.FormatJS:       reflect.TypeOf((*js)(nil)).Elem(),
-	ast.FormatJSON:     reflect.TypeOf((*json)(nil)).Elem(),
-	ast.FormatMarkdown: reflect.TypeOf((*markdown)(nil)).Elem(),
+	ast.FormatHTML:     reflect.TypeFor[html](),
+	ast.FormatCSS:      reflect.TypeFor[css](),
+	ast.FormatJS:       reflect.TypeFor[js](),
+	ast.FormatJSON:     reflect.TypeFor[json](),
+	ast.FormatMarkdown: reflect.TypeFor[markdown](),
 }
 
 var intSliceTypeInfo = &typeInfo{Type: reflect.SliceOf(intType), Properties: propertyAddressable}
@@ -55,10 +55,10 @@ var definedIntToStringMapTypeInfo = &typeInfo{Type: reflect.MapOf(definedIntType
 
 var stringToStringToIntMapTypeInfo = &typeInfo{Type: reflect.MapOf(stringType, reflect.MapOf(stringType, intType)), Properties: propertyAddressable}
 
-var definedIntTypeInfo = &typeInfo{Type: reflect.TypeOf(definedInt(0)), Properties: propertyAddressable}
+var definedIntTypeInfo = &typeInfo{Type: reflect.TypeFor[definedInt](), Properties: propertyAddressable}
 var definedIntSliceTypeInfo = &typeInfo{Type: reflect.SliceOf(definedIntTypeInfo.Type), Properties: propertyAddressable}
 
-var definedStringTypeInfo = &typeInfo{Type: reflect.TypeOf(definedString("")), Properties: propertyAddressable}
+var definedStringTypeInfo = &typeInfo{Type: reflect.TypeFor[definedString](), Properties: propertyAddressable}
 
 func tiHTMLConst(s string) *typeInfo {
 	return &typeInfo{Type: formatTypes[ast.FormatHTML], Constant: stringConst(s)}
@@ -80,7 +80,7 @@ type TF struct {
 	F int
 }
 
-var stringToTFMapTypeInfo = &typeInfo{Type: reflect.MapOf(stringType, reflect.TypeOf(TF{})), Properties: propertyAddressable}
+var stringToTFMapTypeInfo = &typeInfo{Type: reflect.MapOf(stringType, reflect.TypeFor[TF]()), Properties: propertyAddressable}
 
 var checkerTemplateExprs = []struct {
 	src   string
@@ -158,12 +158,12 @@ var checkerTemplateExprs = []struct {
 	{`àb contains à`, tiUntypedBool(), map[string]*typeInfo{"àb": definedStringTypeInfo, "à": tiRune()}},
 
 	// macro type literal
-	{`(macro() string)(nil)`, &typeInfo{Type: reflect.TypeOf((func() string)(nil))}, nil},
-	{`(macro() html)(nil)`, &typeInfo{Type: reflect.TypeOf((func() html)(nil))}, nil},
-	{`(macro() css)(nil)`, &typeInfo{Type: reflect.TypeOf((func() css)(nil))}, nil},
-	{`(macro() js)(nil)`, &typeInfo{Type: reflect.TypeOf((func() js)(nil))}, nil},
-	{`(macro() json)(nil)`, &typeInfo{Type: reflect.TypeOf((func() json)(nil))}, nil},
-	{`(macro() markdown)(nil)`, &typeInfo{Type: reflect.TypeOf((func() markdown)(nil))}, nil},
+	{`(macro() string)(nil)`, &typeInfo{Type: reflect.TypeFor[func() string]()}, nil},
+	{`(macro() html)(nil)`, &typeInfo{Type: reflect.TypeFor[func() html]()}, nil},
+	{`(macro() css)(nil)`, &typeInfo{Type: reflect.TypeFor[func() css]()}, nil},
+	{`(macro() js)(nil)`, &typeInfo{Type: reflect.TypeFor[func() js]()}, nil},
+	{`(macro() json)(nil)`, &typeInfo{Type: reflect.TypeFor[func() json]()}, nil},
+	{`(macro() markdown)(nil)`, &typeInfo{Type: reflect.TypeFor[func() markdown]()}, nil},
 
 	// conversion from markdown to html
 	{`html(a)`, tiHTMLConst("<h1>title</h1>"), map[string]*typeInfo{"a": tiMarkdownConst("# title")}},
@@ -251,9 +251,9 @@ var checkerTemplateExprErrors = []struct {
 	{`[2]int{0,1} contains rune('a')`, tierr(1, 16, `invalid operation: [2]int{...} contains rune('a') (mismatched types int and rune)`), nil},
 
 	// macro type literal
-	{`(macro() css)(nil)`, tierr(1, 13, `invalid macro result type css`), map[string]*typeInfo{"css": {Type: reflect.TypeOf(0), Properties: propertyIsType}}},
-	{`(macro() html)(nil)`, tierr(1, 13, `invalid macro result type html`), map[string]*typeInfo{"html": {Type: reflect.TypeOf(definedInt(0)), Properties: propertyIsType}}},
-	{`(macro() markdown)(nil)`, tierr(1, 13, `invalid macro result type markdown`), map[string]*typeInfo{"markdown": {Type: reflect.TypeOf(js("")), Properties: propertyIsType}}},
+	{`(macro() css)(nil)`, tierr(1, 13, `invalid macro result type css`), map[string]*typeInfo{"css": {Type: reflect.TypeFor[int](), Properties: propertyIsType}}},
+	{`(macro() html)(nil)`, tierr(1, 13, `invalid macro result type html`), map[string]*typeInfo{"html": {Type: reflect.TypeFor[definedInt](), Properties: propertyIsType}}},
+	{`(macro() markdown)(nil)`, tierr(1, 13, `invalid macro result type markdown`), map[string]*typeInfo{"markdown": {Type: reflect.TypeFor[js](), Properties: propertyIsType}}},
 
 	// slicing of a format type
 	{`a[1:2]`, tierr(1, 5, `invalid operation a[1:2] (slice of compiler.html)`), map[string]*typeInfo{"a": tiHTMLConst("<b>a</b>")}},
@@ -673,14 +673,14 @@ func TestCheckerTemplatesStatements(t *testing.T) {
 		FormatTypes: formatTypes,
 		Globals: native.Declarations{
 			"p":  p,
-			"T":  reflect.TypeOf(int(0)),
+			"T":  reflect.TypeFor[int](),
 			"I":  &I,
 			"S":  &S,
 			"Ci": 5,
 			"Ui": native.UntypedNumericConst("5"),
 			"Uf": native.UntypedNumericConst("5.0"),
 			"R":  'r',
-			"DS": reflect.TypeOf(definedString("")),
+			"DS": reflect.TypeFor[definedString](),
 		},
 	}
 	for _, cas := range checkerTemplateStmts {
@@ -718,18 +718,18 @@ type N struct {
 
 func TestJSCycles(t *testing.T) {
 	for range 1 {
-		err := checkShowJS(reflect.TypeOf(S{}), nil)
+		err := checkShowJS(reflect.TypeFor[S](), nil)
 		if err != nil {
 			t.Fatalf("unexpected error %q showing S", err)
 		}
-		err = checkShowJS(reflect.TypeOf(L{}), nil)
+		err = checkShowJS(reflect.TypeFor[L](), nil)
 		if err == nil {
 			t.Fatalf("unexpected nil error showing L")
 		}
 		if err.Error() != "cannot show struct containing complex64 as JavaScript" {
 			t.Fatalf("unexpected error %q showing L", err)
 		}
-		err = checkShowJS(reflect.TypeOf(N{}), nil)
+		err = checkShowJS(reflect.TypeFor[N](), nil)
 		if err != nil {
 			t.Fatalf("unexpected error %q showing N", err)
 		}
@@ -738,18 +738,18 @@ func TestJSCycles(t *testing.T) {
 
 func TestJSONCycles(t *testing.T) {
 	for range 1 {
-		err := checkShowJSON(reflect.TypeOf(S{}), nil)
+		err := checkShowJSON(reflect.TypeFor[S](), nil)
 		if err != nil {
 			t.Fatalf("unexpected error %q showing S", err)
 		}
-		err = checkShowJSON(reflect.TypeOf(L{}), nil)
+		err = checkShowJSON(reflect.TypeFor[L](), nil)
 		if err == nil {
 			t.Fatalf("unexpected nil error showing L")
 		}
 		if err.Error() != "cannot show struct containing complex64 as JSON" {
 			t.Fatalf("unexpected error %q showing L", err)
 		}
-		err = checkShowJSON(reflect.TypeOf(N{}), nil)
+		err = checkShowJSON(reflect.TypeFor[N](), nil)
 		if err != nil {
 			t.Fatalf("unexpected error %q showing N", err)
 		}

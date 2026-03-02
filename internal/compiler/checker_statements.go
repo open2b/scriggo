@@ -16,23 +16,23 @@ import (
 )
 
 var (
-	stringerType    = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
-	envStringerType = reflect.TypeOf((*native.EnvStringer)(nil)).Elem()
+	stringerType    = reflect.TypeFor[fmt.Stringer]()
+	envStringerType = reflect.TypeFor[native.EnvStringer]()
 
-	htmlStringerType    = reflect.TypeOf((*native.HTMLStringer)(nil)).Elem()
-	htmlEnvStringerType = reflect.TypeOf((*native.HTMLEnvStringer)(nil)).Elem()
+	htmlStringerType    = reflect.TypeFor[native.HTMLStringer]()
+	htmlEnvStringerType = reflect.TypeFor[native.HTMLEnvStringer]()
 
-	cssStringerType    = reflect.TypeOf((*native.CSSStringer)(nil)).Elem()
-	cssEnvStringerType = reflect.TypeOf((*native.CSSEnvStringer)(nil)).Elem()
+	cssStringerType    = reflect.TypeFor[native.CSSStringer]()
+	cssEnvStringerType = reflect.TypeFor[native.CSSEnvStringer]()
 
-	jsStringerType    = reflect.TypeOf((*native.JSStringer)(nil)).Elem()
-	jsEnvStringerType = reflect.TypeOf((*native.JSEnvStringer)(nil)).Elem()
+	jsStringerType    = reflect.TypeFor[native.JSStringer]()
+	jsEnvStringerType = reflect.TypeFor[native.JSEnvStringer]()
 
-	jsonStringerType    = reflect.TypeOf((*native.JSONStringer)(nil)).Elem()
-	jsonEnvStringerType = reflect.TypeOf((*native.JSONEnvStringer)(nil)).Elem()
+	jsonStringerType    = reflect.TypeFor[native.JSONStringer]()
+	jsonEnvStringerType = reflect.TypeFor[native.JSONEnvStringer]()
 
-	mdStringerType    = reflect.TypeOf((*native.MarkdownStringer)(nil)).Elem()
-	mdEnvStringerType = reflect.TypeOf((*native.MarkdownEnvStringer)(nil)).Elem()
+	mdStringerType    = reflect.TypeFor[native.MarkdownStringer]()
+	mdEnvStringerType = reflect.TypeFor[native.MarkdownEnvStringer]()
 )
 
 // templateFileToPackage transforms a tree of a declarations file to a package
@@ -1395,8 +1395,8 @@ func (tc *typechecker) explodeUsingStatement(using *ast.Using, iteaIdent string)
 	return iteaDeclaration, using.Statement
 }
 
-var byteSliceType = reflect.TypeOf([]byte(nil))
-var timeType = reflect.TypeOf(time.Time{})
+var byteSliceType = reflect.TypeFor[[]byte]()
+var timeType = reflect.TypeFor[time.Time]()
 
 // checkShow type checks the show of a value of type t in context ctx.
 func checkShow(t reflect.Type, ctx ast.Context) error {

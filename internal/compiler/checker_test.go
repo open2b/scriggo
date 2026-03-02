@@ -61,12 +61,12 @@ type Mei interface {
 }
 
 var structTypeInfo = &typeInfo{Type: reflect.StructOf([]reflect.StructField{
-	{Name: "F", Type: reflect.TypeOf(0)},
-	{Name: "f", Type: reflect.TypeOf(0), PkgPath: "foo"},
+	{Name: "F", Type: reflect.TypeFor[int]()},
+	{Name: "f", Type: reflect.TypeFor[int](), PkgPath: "foo"},
 })}
 var structPointerTypeInfo = &typeInfo{Type: reflect.PointerTo(structTypeInfo.Type)}
-var definedStructTypeInfo = &typeInfo{Type: reflect.TypeOf(definedStruct{})}
-var definedStructPointerTypeInfo = &typeInfo{Type: reflect.TypeOf(definedStructPointer(nil))}
+var definedStructTypeInfo = &typeInfo{Type: reflect.TypeFor[definedStruct]()}
+var definedStructPointerTypeInfo = &typeInfo{Type: reflect.TypeFor[definedStructPointer]()}
 
 var structAddrTypeInfo = &typeInfo{Type: structTypeInfo.Type, Properties: propertyAddressable}
 var structPointerAddrTypeInfo = &typeInfo{Type: structPointerTypeInfo.Type, Properties: propertyAddressable}
@@ -328,11 +328,11 @@ var checkerExprs = []struct {
 	{`map[int]int{}[i]`, tiInt(), map[string]*typeInfo{"i": tiIntConst(1)}},
 	{`map[int]int{}[i]`, tiInt(), map[string]*typeInfo{"i": tiAddrInt()}},
 	{`map[int]int{}[i]`, tiInt(), map[string]*typeInfo{"i": tiInt()}},
-	{`p[1]`, tiAddrInt(), map[string]*typeInfo{"p": {Type: reflect.TypeOf(new([2]int))}}},
+	{`p[1]`, tiAddrInt(), map[string]*typeInfo{"p": {Type: reflect.TypeFor[*[2]int]()}}},
 	{`a[1]`, tiByte(), map[string]*typeInfo{"a": tiString()}},
-	{`a[1]`, tiAddrInt(), map[string]*typeInfo{"a": {Type: reflect.TypeOf([]int{0, 1}), Properties: propertyAddressable}}},
-	{`a[1]`, tiAddrInt(), map[string]*typeInfo{"a": {Type: reflect.TypeOf([...]int{0, 1}), Properties: propertyAddressable}}},
-	{`a[1]`, tiInt(), map[string]*typeInfo{"a": {Type: reflect.TypeOf(map[int]int(nil)), Properties: propertyAddressable}}},
+	{`a[1]`, tiAddrInt(), map[string]*typeInfo{"a": {Type: reflect.TypeFor[[]int](), Properties: propertyAddressable}}},
+	{`a[1]`, tiAddrInt(), map[string]*typeInfo{"a": {Type: reflect.TypeFor[[2]int](), Properties: propertyAddressable}}},
+	{`a[1]`, tiInt(), map[string]*typeInfo{"a": {Type: reflect.TypeFor[map[int]int](), Properties: propertyAddressable}}},
 
 	// Slicing.
 	{`"a"[:]`, tiString(), nil},
@@ -361,7 +361,7 @@ var checkerExprs = []struct {
 	{`new([3]int)[:]`, tiIntSlice(), nil},
 	{`a[:]`, tiIntSlice(), map[string]*typeInfo{"a": tiIntSlice()}},
 	{`a[:]`, tiIntSlice(), map[string]*typeInfo{"a": tiIntSlice()}},
-	{`a[:]`, tiIntSlice(), map[string]*typeInfo{"a": {Type: reflect.TypeOf(new([3]int))}}},
+	{`a[:]`, tiIntSlice(), map[string]*typeInfo{"a": {Type: reflect.TypeFor[*[3]int]()}}},
 
 	// Conversions ( untyped )
 	{`int(5)`, tiIntConst(5), nil},
@@ -401,8 +401,8 @@ var checkerExprs = []struct {
 	{`string(-1)`, tiStringConst(string(rune(-1))), nil},
 	{`[]byte("abc")`, &typeInfo{Type: reflect.SliceOf(uint8Type)}, nil},
 	{`[]rune("abc")`, &typeInfo{Type: reflect.SliceOf(int32Type)}, nil},
-	{`[]Byte("abc")`, &typeInfo{Type: reflect.SliceOf(reflect.TypeOf(definedByte(0)))}, map[string]*typeInfo{"Byte": {Type: reflect.TypeOf(definedByte(0)), Properties: propertyIsType}}},
-	{`[]Rune("abc")`, &typeInfo{Type: reflect.SliceOf(reflect.TypeOf(definedRune(0)))}, map[string]*typeInfo{"Rune": {Type: reflect.TypeOf(definedRune(0)), Properties: propertyIsType}}},
+	{`[]Byte("abc")`, &typeInfo{Type: reflect.SliceOf(reflect.TypeFor[definedByte]())}, map[string]*typeInfo{"Byte": {Type: reflect.TypeFor[definedByte](), Properties: propertyIsType}}},
+	{`[]Rune("abc")`, &typeInfo{Type: reflect.SliceOf(reflect.TypeFor[definedRune]())}, map[string]*typeInfo{"Rune": {Type: reflect.TypeFor[definedRune](), Properties: propertyIsType}}},
 
 	// Conversions ( typed constants )
 	{`int(a)`, tiIntConst(5), map[string]*typeInfo{"a": tiIntConst(5)}},
@@ -451,7 +451,7 @@ var checkerExprs = []struct {
 	{`string([]rune{'a','b','c'})`, tiString(), nil},
 	{`(*int)(nil)`, tiIntPtr(), nil},
 	{`interface{}(nil)`, &typeInfo{Type: emptyInterfaceType}, nil},
-	{`(func())(nil)`, &typeInfo{Type: reflect.TypeOf((func())(nil))}, nil},
+	{`(func())(nil)`, &typeInfo{Type: reflect.TypeFor[func()]()}, nil},
 
 	// append
 	{`append([]byte{})`, tiByteSlice(), nil},
@@ -460,7 +460,7 @@ var checkerExprs = []struct {
 	{`append([]byte{}, "abc"...)`, tiByteSlice(), nil},
 	{`append([]string{}, "a", "b", "c")`, tiStringSlice(), nil},
 	{`append([]string{}, []string{"a", "b", "c"}...)`, tiStringSlice(), nil},
-	{`append([]int{}, T{1, 2, 3}...)`, tiIntSlice(), map[string]*typeInfo{"T": {Type: reflect.TypeOf(definedIntSlice{}), Properties: propertyIsType}}},
+	{`append([]int{}, T{1, 2, 3}...)`, tiIntSlice(), map[string]*typeInfo{"T": {Type: reflect.TypeFor[definedIntSlice](), Properties: propertyIsType}}},
 	{`append(s, 1, 2, 3)`, tiIntSlice(), map[string]*typeInfo{"s": tiIntSlice()}},
 	{`append(s, 1, 2, 3)`, tiDefinedIntSlice, map[string]*typeInfo{"s": tiDefinedIntSlice}},
 	{`append(s, 1.0, 2.0, 3.0)`, tiDefinedIntSlice, map[string]*typeInfo{"s": tiDefinedIntSlice}},
@@ -491,22 +491,22 @@ var checkerExprs = []struct {
 	// cap
 	{`cap([]int{})`, tiInt(), nil},
 	{`cap([...]byte{})`, tiIntConst(0), nil},
-	{`cap(s)`, tiInt(), map[string]*typeInfo{"s": {Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`cap(s)`, tiInt(), map[string]*typeInfo{"s": {Type: reflect.TypeFor[definedIntSlice]()}}},
 	{`cap(new([1]byte))`, tiInt(), nil},
 
 	// copy
 	{`copy([]int{}, []int{})`, tiInt(), nil},
 	{`copy([]interface{}{}, []interface{}{})`, tiInt(), nil},
-	{`copy([]int{}, s)`, tiInt(), map[string]*typeInfo{"s": {Type: reflect.TypeOf(definedIntSlice{})}}},
-	{`copy(s, []int{})`, tiInt(), map[string]*typeInfo{"s": {Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`copy([]int{}, s)`, tiInt(), map[string]*typeInfo{"s": {Type: reflect.TypeFor[definedIntSlice]()}}},
+	{`copy(s, []int{})`, tiInt(), map[string]*typeInfo{"s": {Type: reflect.TypeFor[definedIntSlice]()}}},
 	{`copy(s1, s2)`, tiInt(), map[string]*typeInfo{
-		"s1": {Type: reflect.TypeOf(definedIntSlice{})},
-		"s2": {Type: reflect.TypeOf(definedIntSlice2{})},
+		"s1": {Type: reflect.TypeFor[definedIntSlice]()},
+		"s2": {Type: reflect.TypeFor[definedIntSlice2]()},
 	}},
 	{`copy([]byte{0}, "a")`, tiInt(), nil},
 	{`copy(s1, s2)`, tiInt(), map[string]*typeInfo{
-		"s1": {Type: reflect.TypeOf(definedByteSlice{})},
-		"s2": {Type: reflect.TypeOf(definedString(""))},
+		"s1": {Type: reflect.TypeFor[definedByteSlice]()},
+		"s2": {Type: reflect.TypeFor[definedString]()},
 	}},
 
 	// new
@@ -518,7 +518,7 @@ var checkerExprs = []struct {
 	{`len([]int{})`, tiInt(), nil},
 	{`len(map[string]int{})`, tiInt(), nil},
 	{`len([...]byte{})`, tiIntConst(0), nil},
-	{`len(s)`, tiInt(), map[string]*typeInfo{"s": {Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`len(s)`, tiInt(), map[string]*typeInfo{"s": {Type: reflect.TypeFor[definedIntSlice]()}}},
 	{`len(new([1]byte))`, tiInt(), nil},
 
 	// recover
@@ -1802,21 +1802,21 @@ func (p *pointInt) SetX(newX int) {
 func TestCheckerStatements(t *testing.T) {
 	names := map[string]*typeInfo{
 		"pkg":        {Properties: propertyIsPackage | propertyHasValue, value: &packageInfo{Name: "pkg"}},
-		"Me":         {Properties: propertyIsType, Type: reflect.TypeOf(Me(0))},
-		"Mei":        {Properties: propertyIsType, Type: reflect.TypeOf((*Mei)(nil)).Elem()},
-		"boolType":   {Properties: propertyIsType, Type: reflect.TypeOf(definedBool(false))},
-		"aString":    {Type: reflect.TypeOf(definedString(""))},
-		"stringType": {Properties: propertyIsType, Type: reflect.TypeOf(definedString(""))},
-		"aStringMap": {Type: reflect.TypeOf(definedStringMap{})},
-		"pointInt":   {Properties: propertyIsType, Type: reflect.TypeOf(pointInt{})},
-		"aIntChan":   {Type: reflect.TypeOf(make(chan int))},
-		"aSliceChan": {Type: reflect.TypeOf(make(chan []int))},
-		"ioReader":   {Properties: propertyIsType, Type: reflect.TypeOf((*io.Reader)(nil)).Elem()},
-		"osFile":     {Properties: propertyIsType, Type: reflect.TypeOf((*os.File)(nil)).Elem()},
-		"noRead1":    {Properties: propertyIsType, Type: reflect.TypeOf((*noRead1)(nil)).Elem()},
-		"noRead2":    {Properties: propertyIsType, Type: reflect.TypeOf((*noRead2)(nil)).Elem()},
-		"noRead3":    {Properties: propertyIsType, Type: reflect.TypeOf((*noRead3)(nil)).Elem()},
-		"Float64":    {Properties: propertyIsType, Type: reflect.TypeOf((*Float64)(nil)).Elem()},
+		"Me":         {Properties: propertyIsType, Type: reflect.TypeFor[Me]()},
+		"Mei":        {Properties: propertyIsType, Type: reflect.TypeFor[Mei]()},
+		"boolType":   {Properties: propertyIsType, Type: reflect.TypeFor[definedBool]()},
+		"aString":    {Type: reflect.TypeFor[definedString]()},
+		"stringType": {Properties: propertyIsType, Type: reflect.TypeFor[definedString]()},
+		"aStringMap": {Type: reflect.TypeFor[definedStringMap]()},
+		"pointInt":   {Properties: propertyIsType, Type: reflect.TypeFor[pointInt]()},
+		"aIntChan":   {Type: reflect.TypeFor[chan int]()},
+		"aSliceChan": {Type: reflect.TypeFor[chan []int]()},
+		"ioReader":   {Properties: propertyIsType, Type: reflect.TypeFor[io.Reader]()},
+		"osFile":     {Properties: propertyIsType, Type: reflect.TypeFor[os.File]()},
+		"noRead1":    {Properties: propertyIsType, Type: reflect.TypeFor[noRead1]()},
+		"noRead2":    {Properties: propertyIsType, Type: reflect.TypeFor[noRead2]()},
+		"noRead3":    {Properties: propertyIsType, Type: reflect.TypeFor[noRead3]()},
+		"Float64":    {Properties: propertyIsType, Type: reflect.TypeFor[Float64]()},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {
@@ -1884,7 +1884,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 	p := native.Package{
 		Name: "p",
 		Declarations: native.Declarations{
-			"T":      reflect.TypeOf(T(0)),
+			"T":      reflect.TypeFor[T](),
 			"F0":     func() {},
 			"F1":     func(a int) {},
 			"F2":     func(a, b int) {},
@@ -1892,7 +1892,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 			"Env1":   func(env native.Env, a int) {},
 			"Env2":   func(env native.Env, a, b int) {},
 			"EnvVar": func(env native.Env, a ...int) {},
-			"Mv":     reflect.TypeOf(MvEnv(0)),
+			"Mv":     reflect.TypeFor[MvEnv](),
 		},
 	}
 	main := `
@@ -2329,7 +2329,7 @@ func tiIntPtr() *typeInfo {
 	return &typeInfo{Type: reflect.PointerTo(intType)}
 }
 
-var tiDefinedIntSlice = &typeInfo{Type: reflect.TypeOf(definedIntSlice{})}
+var tiDefinedIntSlice = &typeInfo{Type: reflect.TypeFor[definedIntSlice]()}
 
 // nil type info.
 
@@ -2341,11 +2341,11 @@ func tiByte() *typeInfo { return &typeInfo{Type: uint8Type} }
 
 // byte slice type info.
 
-func tiByteSlice() *typeInfo { return &typeInfo{Type: reflect.TypeOf([]byte{})} }
+func tiByteSlice() *typeInfo { return &typeInfo{Type: reflect.TypeFor[[]byte]()} }
 
 // string slice type info.
 
-func tiStringSlice() *typeInfo { return &typeInfo{Type: reflect.TypeOf([]string{})} }
+func tiStringSlice() *typeInfo { return &typeInfo{Type: reflect.TypeFor[[]string]()} }
 
 // int slice type info.
 
@@ -2353,7 +2353,7 @@ func tiIntSlice() *typeInfo { return &typeInfo{Type: reflect.SliceOf(intType)} }
 
 // string map type info.
 
-func tiStringMap() *typeInfo { return &typeInfo{Type: reflect.TypeOf(map[string]string(nil))} }
+func tiStringMap() *typeInfo { return &typeInfo{Type: reflect.TypeFor[map[string]string]()} }
 
 // int chan type info.
 
@@ -2392,17 +2392,17 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 }
 
 func TestTypechecker_IsAssignableTo(t *testing.T) {
-	intSliceType := reflect.TypeOf([]int{})
-	intChanType := reflect.TypeOf(make(chan int))
-	stringSliceType := reflect.TypeOf([]string{})
-	weirdInterfaceType := reflect.TypeOf(&[]interface{ F() }{interface{ F() }(nil)}[0]).Elem()
-	byteType := reflect.TypeOf(byte(0))
+	intSliceType := reflect.TypeFor[[]int]()
+	intChanType := reflect.TypeFor[chan int]()
+	stringSliceType := reflect.TypeFor[[]string]()
+	weirdInterfaceType := reflect.TypeFor[interface{ F() }]()
+	byteType := reflect.TypeFor[byte]()
 	type myInt int
-	myIntType := reflect.TypeOf(myInt(0))
+	myIntType := reflect.TypeFor[myInt]()
 	type myIntSlice []int
-	myIntSliceType := reflect.TypeOf(myIntSlice(nil))
+	myIntSliceType := reflect.TypeFor[myIntSlice]()
 	type myIntSlice2 []int
-	myIntSliceType2 := reflect.TypeOf(myIntSlice2(nil))
+	myIntSliceType2 := reflect.TypeFor[myIntSlice2]()
 	cases := []struct {
 		x          *typeInfo
 		T          reflect.Type
