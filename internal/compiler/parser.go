@@ -1950,7 +1950,7 @@ func cutSpaces(first, last *ast.Text) {
 		// or before the first '\n' must only contain '', '\t' and '\r'.
 		txt := last.Text
 		var lastCut = len(txt)
-		for i := 0; i < len(txt); i++ {
+		for i := range txt {
 			c := txt[i]
 			if c == '\n' {
 				lastCut = i + 1

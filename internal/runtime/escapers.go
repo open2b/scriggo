@@ -488,7 +488,7 @@ func isCDATA(s string, p int) bool {
 	if len(s) < p+9 {
 		return false
 	}
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		if s[p+i] != "<![CDATA["[i] {
 			return false
 		}
@@ -502,7 +502,7 @@ func isHTMLComment(s string, p int) bool {
 	if len(s) < p+4 {
 		return false
 	}
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if s[p+i] != "<!--"[i] {
 			return false
 		}

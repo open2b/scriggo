@@ -1763,7 +1763,7 @@ LOOP:
 				p += 2
 				cols += 2
 			case 'x':
-				for i := 0; i < 2; i++ {
+				for i := range 2 {
 					if p+2+i == len(l.src) {
 						l.src = l.src[p:]
 						return l.errorf("string not terminated")
@@ -1777,7 +1777,7 @@ LOOP:
 				cols += 4
 			case '0', '1', '2', '3', '4', '5', '6', '7':
 				r := rune(c - '0')
-				for i := 0; i < 2; i++ {
+				for i := range 2 {
 					if p+2+i == len(l.src) {
 						l.src = l.src[p:]
 						return l.errorf("string not terminated")

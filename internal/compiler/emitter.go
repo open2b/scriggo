@@ -326,7 +326,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 	fOutTypes := make([]reflect.Type, fNumOut)
 
 	// Reserve space for the output parameters.
-	for i := 0; i < fNumOut; i++ {
+	for i := range fNumOut {
 		t := fType.Out(i)
 		fOutRegs[i] = em.fb.newRegister(t.Kind())
 		fOutTypes[i] = t
@@ -352,7 +352,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 			varArgsCount := gOutCount - (fNumIn - 1)
 			// Reserve space for non variadic parameters.
 			var nonVarParamRegs []int8
-			for i := 0; i < nonVarArgsCount; i++ {
+			for i := range nonVarArgsCount {
 				reg := em.fb.newRegister(fType.In(i).Kind())
 				nonVarParamRegs = append(nonVarParamRegs, reg)
 			}
@@ -363,7 +363,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 				// When calling a predefined variadic function, the variadic
 				// parameters must be emitted each one in its register,
 				// separately.
-				for i := 0; i < varArgsCount; i++ {
+				for range varArgsCount {
 					reg := em.fb.newRegister(sliceType.Elem().Kind())
 					varParamRegs = append(varParamRegs, reg)
 				}
@@ -375,7 +375,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 			em.fb.enterStack()
 			gOutRegs, gOutTypes := em.emitCallNode(g, false, false, runtime.ReturnString)
 			// Move the non-variadic parameters to the space reserved.
-			for i := 0; i < nonVarArgsCount; i++ {
+			for i := range nonVarArgsCount {
 				dstType := fType.In(i)
 				reg := nonVarParamRegs[i]
 				em.changeRegister(false, gOutRegs[i], reg, gOutTypes[i], dstType)
@@ -438,7 +438,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 		varArgsCount := len(fArgs) - (fNumIn - 1)
 		t := fType.In(fNumIn - 1).Elem()
 		if opts.predefined {
-			for i := 0; i < varArgsCount; i++ {
+			for i := range varArgsCount {
 				reg := em.fb.newRegister(t.Kind())
 				em.fb.enterStack()
 				em.emitExprR(fArgs[i+fNumIn-1], t, reg)
@@ -447,7 +447,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 		} else {
 			slice := em.fb.newRegister(reflect.Slice)
 			em.fb.emitMakeSlice(true, true, fType.In(fNumIn-1), int8(varArgsCount), int8(varArgsCount), slice, nil) // TODO: fix pos.
-			for i := 0; i < varArgsCount; i++ {
+			for i := range varArgsCount {
 				tmp := em.fb.newRegister(t.Kind())
 				em.fb.enterStack()
 				em.emitExprR(fArgs[i+fNumIn-1], t, tmp)
@@ -476,7 +476,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 	}
 
 	// Emit the arguments in a non-variadic non-special call.
-	for i := 0; i < fNumIn; i++ {
+	for i := range fNumIn {
 		t := fType.In(i)
 		reg := em.fb.newRegister(t.Kind())
 		em.fb.enterStack()

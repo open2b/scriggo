@@ -7,7 +7,7 @@ package main
 var a int
 
 func main() {
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		a = k(i)
 	}
 	_ = a

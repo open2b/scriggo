@@ -1519,7 +1519,7 @@ func checkShowJS(t reflect.Type, types []reflect.Type) error {
 		}
 	case reflect.Struct:
 		n := t.NumField()
-		for i := 0; i < n; i++ {
+		for i := range n {
 			field := t.Field(i)
 			if field.PkgPath == "" {
 				if err := checkShowJS(field.Type, append(types, t)); err != nil {
@@ -1577,7 +1577,7 @@ func checkShowJSON(t reflect.Type, types []reflect.Type) error {
 		}
 	case reflect.Struct:
 		n := t.NumField()
-		for i := 0; i < n; i++ {
+		for i := range n {
 			field := t.Field(i)
 			if field.PkgPath == "" {
 				if err := checkShowJSON(field.Type, append(types, t)); err != nil {

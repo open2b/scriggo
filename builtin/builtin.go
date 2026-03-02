@@ -727,7 +727,7 @@ func Sort(slice any, less func(i, j int) bool) {
 		v := reflect.ValueOf(slice)
 		l := v.Len()
 		sv := make([]reflect.Value, l)
-		for i := 0; i < l; i++ {
+		for i := range l {
 			sv[i] = v.Index(i)
 		}
 		sort.SliceStable(slice, func(i, j int) bool {
@@ -809,7 +809,7 @@ func ToKebab(s string) string {
 	noDash := false    // true if the last written rune is not a dash.
 	runes := []rune(s)
 	n := len(runes)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r := runes[i]
 		switch {
 		case unicode.IsLower(r) || unicode.IsDigit(r):

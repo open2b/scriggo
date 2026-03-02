@@ -151,7 +151,7 @@ func TestSwapStack(t *testing.T) {
 			m.regs.general[i] = sst.regs.general[i]
 		}
 		m.swapStack(&sst.a, &sst.b, sst.bSize)
-		for i := 0; i < 4; i++ {
+		for i := range 4 {
 			if sst.a[i] != sst.expected.a[i] {
 				t.Fatalf("test %d: expected %d for a[%d], got %d", n, sst.expected.a[i], i, sst.a[i])
 			}

@@ -549,7 +549,7 @@ func (tc *typechecker) typedValue(ti *typeInfo, t reflect.Type) any {
 func (tc *typechecker) errTypeAssertion(typ reflect.Type, iface reflect.Type) error {
 	msg := fmt.Sprintf("impossible type assertion:\n\t%s does not implement %s", typ, iface)
 	num := iface.NumMethod()
-	for i := 0; i < num; i++ {
+	for i := range num {
 		mi := iface.Method(i)
 		mt, ok := typ.MethodByName(mi.Name)
 		if !ok {
@@ -565,7 +565,7 @@ func (tc *typechecker) errTypeAssertion(typ reflect.Type, iface reflect.Type) er
 		isVariadic := mt.Type.IsVariadic()
 		sameParameters := mi.Type.NumIn() == numIn && mi.Type.NumOut() == numOut && mi.Type.IsVariadic() == isVariadic
 		if sameParameters {
-			for j := 0; j < numIn; j++ {
+			for j := range numIn {
 				if mi.Type.In(j) != mt.Type.In(j+1) {
 					sameParameters = false
 					break
@@ -573,7 +573,7 @@ func (tc *typechecker) errTypeAssertion(typ reflect.Type, iface reflect.Type) er
 			}
 		}
 		if sameParameters {
-			for j := 0; j < numOut; j++ {
+			for j := range numOut {
 				if mi.Type.Out(j) != mt.Type.Out(j) {
 					sameParameters = false
 					break
