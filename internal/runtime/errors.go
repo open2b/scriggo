@@ -396,7 +396,7 @@ func panicToString(msg any) string {
 // missingMethod returns a method in iface and not in typ.
 func missingMethod(typ reflect.Type, iface reflect.Type) string {
 	num := iface.NumMethod()
-	for i := 0; i < num; i++ {
+	for i := range num {
 		mi := iface.Method(i)
 		mt, ok := typ.MethodByName(mi.Name)
 		if !ok {
@@ -407,12 +407,12 @@ func missingMethod(typ reflect.Type, iface reflect.Type) string {
 		if mt.Type.NumIn()-1 != numIn || mt.Type.NumOut() != numOut {
 			return mi.Name
 		}
-		for j := 0; j < numIn; j++ {
+		for j := range numIn {
 			if mt.Type.In(j+1) != mi.Type.In(j) {
 				return mi.Name
 			}
 		}
-		for j := 0; j < numOut; j++ {
+		for j := range numOut {
 			if mt.Type.Out(j) != mi.Type.Out(j) {
 				return mi.Name
 			}

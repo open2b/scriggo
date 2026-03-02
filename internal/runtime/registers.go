@@ -350,7 +350,7 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 		}
 		t := s[ol:]
 		regs := vm.regs.int[vm.fp[0]+Addr(first):]
-		for i := 0; i < length; i++ {
+		for i := range length {
 			t[i] = int(regs[i])
 		}
 		return reflect.ValueOf(s)
@@ -370,7 +370,7 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 		}
 		t := s[ol:]
 		r := vm.regs.int[vm.fp[0]+Addr(first):]
-		for i := 0; i < length; i++ {
+		for i := range length {
 			t[i] = byte(r[i])
 		}
 		return reflect.ValueOf(s)
@@ -390,7 +390,7 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 		}
 		t := s[ol:]
 		r := vm.regs.int[vm.fp[0]+Addr(first):]
-		for i := 0; i < length; i++ {
+		for i := range length {
 			t[i] = rune(r[i])
 		}
 		return reflect.ValueOf(s)

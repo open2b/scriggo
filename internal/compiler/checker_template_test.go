@@ -717,7 +717,7 @@ type N struct {
 }
 
 func TestJSCycles(t *testing.T) {
-	for i := 0; i < 1; i++ {
+	for range 1 {
 		err := checkShowJS(reflect.TypeOf(S{}), nil)
 		if err != nil {
 			t.Fatalf("unexpected error %q showing S", err)
@@ -737,7 +737,7 @@ func TestJSCycles(t *testing.T) {
 }
 
 func TestJSONCycles(t *testing.T) {
-	for i := 0; i < 1; i++ {
+	for range 1 {
 		err := checkShowJSON(reflect.TypeOf(S{}), nil)
 		if err != nil {
 			t.Fatalf("unexpected error %q showing S", err)

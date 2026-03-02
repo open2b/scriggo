@@ -1658,7 +1658,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 		}
 		have += ")"
 		want := "("
-		for i := 0; i < numIn; i++ {
+		for i := range numIn {
 			if i > 0 {
 				want += ", "
 			}
@@ -1707,7 +1707,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 
 	numOut := t.Type.NumOut()
 	resultTypes := make([]*typeInfo, numOut)
-	for i := 0; i < numOut; i++ {
+	for i := range numOut {
 		resultTypes[i] = &typeInfo{Type: t.Type.Out(i)}
 	}
 
@@ -2620,7 +2620,7 @@ func (tc *typechecker) checkFieldSelector(t *typeInfo, expr *ast.Selector) *type
 // encodingName is empty.
 func (tc *typechecker) findStructField(s reflect.Type, expr *ast.Selector) (typ reflect.Type, depth int, encodedName string) {
 	n := s.NumField()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		f := s.Field(i)
 		if name := decodeFieldName(f.Name); name == expr.Ident {
 			typ = f.Type
@@ -2634,7 +2634,7 @@ func (tc *typechecker) findStructField(s reflect.Type, expr *ast.Selector) (typ 
 			return
 		}
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		f := s.Field(i)
 		if !f.Anonymous {
 			continue

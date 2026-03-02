@@ -162,19 +162,19 @@ func TestConstantsLimit(t *testing.T) {
 			fb := newTestBuilder()
 			switch kind {
 			case reflect.Int:
-				for i = 0; i < maxIntValuesCount+1; i++ {
+				for i = range maxIntValuesCount + 1 {
 					fb.makeIntValue(int64(i))
 				}
 			case reflect.Float64:
-				for i = 0; i < maxFloatValuesCount+1; i++ {
+				for i = range maxFloatValuesCount + 1 {
 					fb.makeFloatValue(float64(i))
 				}
 			case reflect.String:
-				for i = 0; i < maxStringValuesCount+1; i++ {
+				for i = range maxStringValuesCount + 1 {
 					fb.makeStringValue(strconv.Itoa(i))
 				}
 			case reflect.Interface:
-				for i = 0; i < maxGeneralValuesCount+1; i++ {
+				for i = range maxGeneralValuesCount + 1 {
 					fb.makeGeneralValue(reflect.ValueOf(i))
 				}
 			}

@@ -217,7 +217,7 @@ func disassembleFunction(b *bytes.Buffer, globals []Global, fn *runtime.Function
 				out[kindToType(fn.Type.Out(i).Kind())]++
 			}
 			in := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
-			for i := 0; i < nIn; i++ {
+			for i := range nIn {
 				if i > 0 {
 					b.WriteString(", ")
 				}
@@ -383,7 +383,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		_, _, typ := funcNameType(fn, a, addr, op)
-		for i := 0; i < 4; i++ {
+		for i := range 4 {
 			s += " "
 			if typ == nil || !funcHasParameterInRegister(typ, registerType(i)) {
 				s += "_"
@@ -804,7 +804,7 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr
 	var sout string
 	if nout := typ.NumOut(); nout > 0 {
 		sout += " ("
-		for i := 0; i < nout; i++ {
+		for i := range nout {
 			if i > 0 {
 				sout += ", "
 			}
@@ -820,7 +820,7 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr
 		s = "macro("
 	}
 	lastIn := typ.NumIn() - 1
-	for i := 0; i < lastIn; i++ {
+	for i := range lastIn {
 		s += print(typ.In(i)) + ", "
 	}
 	if lastIn >= 0 {
@@ -828,7 +828,7 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr
 			s += print(typ.In(lastIn))
 		} else {
 			varType := typ.In(lastIn).Elem()
-			for i := int8(0); i < variadic; i++ {
+			for i := range variadic {
 				s += print(varType)
 				if i < variadic-1 {
 					s += ", "

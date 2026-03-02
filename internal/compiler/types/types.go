@@ -209,7 +209,7 @@ func identical(x, y reflect.Type, underlying, ignoreTags bool) bool {
 		if n != y.NumField() {
 			return false
 		}
-		for i := 0; i < n; i++ {
+		for i := range n {
 			f1 := x.Field(i)
 			f2 := y.Field(i)
 			// Same name.
@@ -242,12 +242,12 @@ func identical(x, y reflect.Type, underlying, ignoreTags bool) bool {
 		if in != y.NumIn() || out != y.NumOut() || x.IsVariadic() != y.IsVariadic() {
 			return false
 		}
-		for i := 0; i < in; i++ {
+		for i := range in {
 			if !identical(x.In(i), y.In(i), false, ignoreTags) {
 				return false
 			}
 		}
-		for i := 0; i < out; i++ {
+		for i := range out {
 			if !identical(x.Out(i), y.Out(i), false, ignoreTags) {
 				return false
 			}
@@ -258,7 +258,7 @@ func identical(x, y reflect.Type, underlying, ignoreTags bool) bool {
 		if xn != yn {
 			return false
 		}
-		for i := 0; i < xn; i++ {
+		for i := range xn {
 			xm := x.Method(i)
 			ym := y.Method(i)
 			// Same name.

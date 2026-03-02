@@ -556,7 +556,7 @@ func showInJS(env *env, out io.Writer, value any) error {
 		n := t.NumField()
 		first := true
 		_, err := w.WriteString(`{`)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			if err != nil {
 				return err
 			}
@@ -759,7 +759,7 @@ func showInJSON(env *env, out io.Writer, value any) error {
 		n := t.NumField()
 		first := true
 		_, err := w.WriteString(`{`)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			if err != nil {
 				return err
 			}

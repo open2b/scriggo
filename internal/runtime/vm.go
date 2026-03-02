@@ -333,7 +333,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 		if variadic && numVariadic != NoVariadicArgs {
 			lastNonVariadic--
 		}
-		for i := 0; i < nunIn; i++ {
+		for i := range nunIn {
 			if i < lastNonVariadic {
 				if i < 2 && typ.In(i) == envType {
 					// Set the path of the file that contains the call.
@@ -761,7 +761,7 @@ func NewNativeFunction(pkg, name string, function any) *NativeFunction {
 	}
 	typ := fn.value.Type()
 	nOut := typ.NumOut()
-	for i := 0; i < nOut; i++ {
+	for i := range nOut {
 		k := typ.Out(i).Kind()
 		fn.outOff[kindToType[k]]++
 	}
@@ -777,7 +777,7 @@ func NewNativeFunction(pkg, name string, function any) *NativeFunction {
 			fn.argsPool = &sync.Pool{
 				New: func() any {
 					args := make([]reflect.Value, numIn)
-					for i := 0; i < numIn; i++ {
+					for i := range numIn {
 						t := typ.In(i)
 						args[i] = reflect.New(t).Elem()
 					}
@@ -921,7 +921,7 @@ func (c *callable) Value(env *env) reflect.Value {
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		var r = [4]int8{1, 1, 1, 1}
-		for i := 0; i < nOut; i++ {
+		for i := range nOut {
 			typ := fn.Type.Out(i)
 			results[i] = reflect.New(typ).Elem()
 			t := kindToType[typ.Kind()]

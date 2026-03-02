@@ -666,7 +666,7 @@ func (vm *VM) run() (Addr, bool) {
 				n := x.Len()
 				k := x.Type().Elem().Kind()
 				if k == reflect.Interface {
-					for i := 0; i < n; i++ {
+					for i := range n {
 						if vm.equals(x.Index(i).Elem(), y) {
 							cond = true
 							break
@@ -674,7 +674,7 @@ func (vm *VM) run() (Addr, bool) {
 					}
 				} else {
 					e := y.Interface()
-					for i := 0; i < n; i++ {
+					for i := range n {
 						if x.Index(i).Interface() == e {
 							cond = true
 							break
@@ -692,7 +692,7 @@ func (vm *VM) run() (Addr, bool) {
 					cond = x.MapIndex(zero).IsValid()
 				} else {
 					n := x.Len()
-					for i := 0; i < n; i++ {
+					for i := range n {
 						if x.Index(i).IsZero() {
 							cond = true
 							break
@@ -746,21 +746,21 @@ func (vm *VM) run() (Addr, bool) {
 					switch {
 					case k == reflect.Bool:
 						y := vm.boolk(c, op < 0)
-						for i := 0; i < n; i++ {
+						for i := range n {
 							if cond = x.Index(i).Bool() == y; cond {
 								break
 							}
 						}
 					case reflect.Int <= k && k <= reflect.Int64:
 						y := vm.intk(c, op < 0)
-						for i := 0; i < n; i++ {
+						for i := range n {
 							if cond = x.Index(i).Int() == y; cond {
 								break
 							}
 						}
 					default:
 						y := uint64(vm.intk(c, op < 0))
-						for i := 0; i < n; i++ {
+						for i := range n {
 							if cond = x.Index(i).Uint() == y; cond {
 								break
 							}
@@ -825,7 +825,7 @@ func (vm *VM) run() (Addr, bool) {
 					}
 				} else {
 					n := x.Len()
-					for i := 0; i < n; i++ {
+					for i := range n {
 						if x.Index(i).Float() == y {
 							cond = true
 							break
@@ -915,7 +915,7 @@ func (vm *VM) run() (Addr, bool) {
 				n := x.Len()
 				if n > 0 {
 					y := vm.stringk(c, op < 0)
-					for i := 0; i < n; i++ {
+					for i := range n {
 						if x.Index(i).String() == y {
 							cond = true
 							break
@@ -1436,7 +1436,7 @@ func (vm *VM) run() (Addr, bool) {
 						v = v.Elem()
 					}
 					length := v.Len()
-					for i := 0; i < length; i++ {
+					for i := range length {
 						if b != 0 {
 							vm.setInt(b, int64(i))
 						}
