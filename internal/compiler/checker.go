@@ -346,11 +346,11 @@ func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
 //	if bad(node) {
 //		panic(tc.errorf(node, "bad node"))
 //	}
-func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...interface{}) error {
+func (tc *typechecker) errorf(nodeOrPos any, format string, args ...any) error {
 	return checkError(tc.path, nodeOrPos, format, args...)
 }
 
-func checkError(path string, nodeOrPos interface{}, format string, args ...interface{}) error {
+func checkError(path string, nodeOrPos any, format string, args ...any) error {
 	var pos *ast.Position
 	if node, ok := nodeOrPos.(ast.Node); ok {
 		pos = node.Pos()

@@ -17,7 +17,7 @@ var errNilPointer = runtimeError("runtime error: invalid memory address or nil p
 // the running program.
 type fatalError struct {
 	env  *env
-	msg  interface{}
+	msg  any
 	pos  Position
 	path string
 }
@@ -105,7 +105,7 @@ func (vm *VM) errIndexOutOfRange() runtimeError {
 }
 
 // newPanic returns a new *PanicError with the given error message.
-func (vm *VM) newPanic(msg interface{}) *PanicError {
+func (vm *VM) newPanic(msg any) *PanicError {
 	return &PanicError{
 		message:  msg,
 		path:     vm.fn.InstructionInfo[vm.pc].Path,
@@ -114,7 +114,7 @@ func (vm *VM) newPanic(msg interface{}) *PanicError {
 }
 
 // convertPanic converts a panic to an error.
-func (vm *VM) convertPanic(msg interface{}) error {
+func (vm *VM) convertPanic(msg any) error {
 	switch err := msg.(type) {
 	case stopError:
 		return err
@@ -253,7 +253,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 }
 
 type PanicError struct {
-	message    interface{}
+	message    any
 	recovered  bool
 	stackTrace []byte
 	next       *PanicError
@@ -281,7 +281,7 @@ func (p *PanicError) Error() string {
 }
 
 // Message returns the message.
-func (p *PanicError) Message() interface{} {
+func (p *PanicError) Message() any {
 	return p.message
 }
 
@@ -310,7 +310,7 @@ func (p *PanicError) Position() Position {
 	return p.position
 }
 
-func panicToString(msg interface{}) string {
+func panicToString(msg any) string {
 	switch v := msg.(type) {
 	case nil:
 		return "nil"

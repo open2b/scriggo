@@ -169,7 +169,7 @@ func F11(a string, b float64, c []string) (string, error) {
 }
 
 // Fatal calls env.Fatal(v).
-func Fatal(env native.Env, v interface{}) {
+func Fatal(env native.Env, v any) {
 	env.Fatal(v)
 }
 

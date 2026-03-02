@@ -235,7 +235,7 @@ func init() {
 }
 `
 
-	pkgOutput := map[string]interface{}{
+	pkgOutput := map[string]any{
 		"GOOS":              goos,
 		"BaseVersion":       goBaseVersion(runtime.Version()),
 		"NextGoVersion":     nextGoVersion(runtime.Version()),

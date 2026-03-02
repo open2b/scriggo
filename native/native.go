@@ -52,17 +52,17 @@ type Env interface {
 
 	// Fatal exits the execution and then panics with value v. Deferred
 	// functions are not called and started goroutines are not terminated.
-	Fatal(v interface{})
+	Fatal(v any)
 
 	// MarkdownConverter returns the Markdown converter provided to the
 	// BuildTemplate function, if one was set.
 	MarkdownConverter() Converter
 
 	// Print calls the print built-in function with args as argument.
-	Print(args ...interface{})
+	Print(args ...any)
 
 	// Println calls the println built-in function with args as argument.
-	Println(args ...interface{})
+	Println(args ...any)
 
 	// Stop stops the execution with the given error. Deferred functions are
 	// not called and started goroutines are not terminated.
@@ -148,7 +148,7 @@ type (
 //   - for a typed constant: its value as a string, boolean or numeric value
 //   - for an untyped constant: an [UntypedStringConst], [UntypedBooleanConst] or [UntypedNumericConst] value
 //   - for a package: an [ImportablePackage] value (used only for template globals)
-type Declaration interface{}
+type Declaration any
 
 // Declarations represents a set of variables, constants, functions, types and
 // packages declarations and can be used for template globals and package

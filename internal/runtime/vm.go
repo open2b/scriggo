@@ -27,8 +27,8 @@ const maxUint32 = 1<<31 - 1
 const stackSize = 512
 
 var envType = reflect.TypeOf((*native.Env)(nil)).Elem()
-var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
-var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
+var emptyInterfaceType = reflect.TypeOf(&[]any{nil}[0]).Elem()
+var emptyInterfaceNil = reflect.ValueOf(&[]any{nil}[0]).Elem()
 
 // Converter is implemented by format converters.
 type Converter = func(src []byte, out io.Writer) error
@@ -737,7 +737,7 @@ type Registers struct {
 type NativeFunction struct {
 	pkg         string        // package.
 	name        string        // name.
-	function    interface{}   // value.
+	function    any           // value.
 	outOff      [4]int8       // offset of out arguments.
 	value       reflect.Value // reflect value.
 	reflectCall bool          // reports whether it can be called only with reflect.
@@ -747,7 +747,7 @@ type NativeFunction struct {
 // NewNativeFunction returns a new native function given its package and name
 // and the function value or its reflect value. pkg and name can be empty
 // strings.
-func NewNativeFunction(pkg, name string, function interface{}) *NativeFunction {
+func NewNativeFunction(pkg, name string, function any) *NativeFunction {
 	fn := &NativeFunction{
 		pkg:  pkg,
 		name: name,
@@ -775,7 +775,7 @@ func NewNativeFunction(pkg, name string, function interface{}) *NativeFunction {
 		fn.reflectCall = true
 		if numIn := typ.NumIn(); numIn > 0 {
 			fn.argsPool = &sync.Pool{
-				New: func() interface{} {
+				New: func() any {
 					args := make([]reflect.Value, numIn)
 					for i := 0; i < numIn; i++ {
 						t := typ.In(i)
@@ -797,7 +797,7 @@ func (fn *NativeFunction) Name() string {
 	return fn.name
 }
 
-func (fn *NativeFunction) Func() interface{} {
+func (fn *NativeFunction) Func() any {
 	return fn.function
 }
 

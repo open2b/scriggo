@@ -39,7 +39,7 @@ type typeInfo struct {
 	Constant          constant     // Constant value.
 	NativePackageName string       // Name of the package. Empty string if non-native.
 	MethodType        methodType   // Method type.
-	value             interface{}  // value; for packages has type *Package.
+	value             any          // value; for packages has type *Package.
 	valueType         reflect.Type // When value is a native type holds the original type of value.
 	replacement       ast.Node     // Replacement node.
 }

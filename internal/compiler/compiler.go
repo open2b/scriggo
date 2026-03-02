@@ -344,6 +344,6 @@ func getExtends(nodes []ast.Node) (*ast.Extends, bool) {
 //	panic(internalError(format, a...))
 //
 // Keep in sync with types.internalError.
-func internalError(format string, a ...interface{}) string {
+func internalError(format string, a ...any) string {
 	return fmt.Sprintf("scriggo: internal error: "+format, a...)
 }

@@ -105,7 +105,7 @@ func (l *lexer) newline() {
 
 // errorf returns a syntax error at the current lexer position with a message
 // formatted according to the format specifier.
-func (l *lexer) errorf(format string, a ...interface{}) *SyntaxError {
+func (l *lexer) errorf(format string, a ...any) *SyntaxError {
 	pos := ast.Position{
 		Line:   l.line,
 		Column: l.column,
