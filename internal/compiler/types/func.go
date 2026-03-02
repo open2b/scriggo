@@ -6,6 +6,7 @@ package types
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/open2b/scriggo/internal/runtime"
 )
@@ -148,27 +149,28 @@ func (x funcType) Out(i int) reflect.Type {
 
 // TODO: does this function handle variadic functions properly?
 func (x funcType) String() string {
-	s := "func("
+	var s strings.Builder
+	s.WriteString("func(")
 	for i, t := range *x.in {
 		if i > 0 {
-			s += ", "
+			s.WriteString(", ")
 		}
-		s += t.String()
+		s.WriteString(t.String())
 	}
-	s += ") "
+	s.WriteString(") ")
 	if len(*x.out) >= 2 {
-		s += "("
+		s.WriteString("(")
 	}
 	for i, t := range *x.out {
 		if i > 0 {
-			s += ", "
+			s.WriteString(", ")
 		}
-		s += t.String()
+		s.WriteString(t.String())
 	}
 	if len(*x.out) >= 2 {
-		s += ")"
+		s.WriteString(")")
 	}
-	return s
+	return s.String()
 }
 
 // GoType implements the interface runtime.ScriggoType.

@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/open2b/scriggo/ast"
@@ -769,23 +770,24 @@ func TestDependencies(t *testing.T) {
 }
 
 func fmtDeps(symbolDeps map[string][]string) string {
-	s := "{"
+	var s strings.Builder
+	s.WriteString("{")
 	i := 0
 	for symbol, deps := range symbolDeps {
-		s += strconv.Quote(symbol)
-		s += " → ["
+		s.WriteString(strconv.Quote(symbol))
+		s.WriteString(" → [")
 		for i, dep := range deps {
-			s += strconv.Quote(dep)
+			s.WriteString(strconv.Quote(dep))
 			if i < len(deps)-1 {
-				s += ", "
+				s.WriteString(", ")
 			}
 		}
-		s += "]"
+		s.WriteString("]")
 		if i < len(symbolDeps)-1 {
-			s += ", "
+			s.WriteString(", ")
 		}
 		i++
 	}
-	s += "}"
-	return s
+	s.WriteString("}")
+	return s.String()
 }

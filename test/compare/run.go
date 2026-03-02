@@ -387,20 +387,21 @@ func goldenCompare(testPath string, got []byte) error {
 			}
 		}
 		if len(expectedLines) != len(gotLines) {
-			err := fmt.Sprintf("expecting an output of %d lines, got %d lines\n", len(expectedLines), len(gotLines))
+			var err strings.Builder
+			err.WriteString(fmt.Sprintf("expecting an output of %d lines, got %d lines\n", len(expectedLines), len(gotLines)))
 			if len(expectedLines) > len(gotLines) {
-				err += "expected lines (not returned by the test): \n"
+				err.WriteString("expected lines (not returned by the test): \n")
 				for i := len(gotLines); i < len(expectedLines); i++ {
-					err += fmt.Sprintf("> %s\n", expectedLines[i])
+					err.WriteString(fmt.Sprintf("> %s\n", expectedLines[i]))
 				}
 			}
 			if len(expectedLines) < len(gotLines) {
-				err += "additional lines returned by the test (not expected): \n"
+				err.WriteString("additional lines returned by the test (not expected): \n")
 				for i := len(expectedLines); i < len(gotLines); i++ {
-					err += fmt.Sprintf("> %s\n", gotLines[i])
+					err.WriteString(fmt.Sprintf("> %s\n", gotLines[i]))
 				}
 			}
-			return errors.New(err)
+			return errors.New(err.String())
 		}
 	}
 	// Make an additional compare: any difference not catched by the previous

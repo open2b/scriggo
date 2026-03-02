@@ -195,13 +195,14 @@ func detectConstantsLoop(consts []*ast.Const, deps packageDeclsDeps) error {
 		path := []*ast.Identifier{c.Lhs[0]}
 		loopPath := checkDepsPath(path, deps)
 		if loopPath != nil {
-			msg := "constant definition loop\n"
+			var msg strings.Builder
+			msg.WriteString("constant definition loop\n")
 			for i := 0; i < len(loopPath)-1; i++ {
-				msg += "\t" + loopPath[i].Pos().String() + ": "
-				msg += loopPath[i].String() + " uses " + loopPath[i+1].String()
-				msg += "\n"
+				msg.WriteString("\t" + loopPath[i].Pos().String() + ": ")
+				msg.WriteString(loopPath[i].String() + " uses " + loopPath[i+1].String())
+				msg.WriteString("\n")
 			}
-			return initLoopError{node: c, msg: msg}
+			return initLoopError{node: c, msg: msg.String()}
 		}
 	}
 	return nil
@@ -213,11 +214,12 @@ func detectVarsLoop(vars []*ast.Var, deps packageDeclsDeps) error {
 			path := []*ast.Identifier{left}
 			loopPath := checkDepsPath(path, deps)
 			if loopPath != nil {
-				msg := "typechecking loop involving " + v.String() + "\n"
+				var msg strings.Builder
+				msg.WriteString("typechecking loop involving " + v.String() + "\n")
 				for _, p := range loopPath {
-					msg += "\t" + p.Pos().String() + ": " + p.String() + "\n"
+					msg.WriteString("\t" + p.Pos().String() + ": " + p.String() + "\n")
 				}
-				return initLoopError{node: v, msg: msg}
+				return initLoopError{node: v, msg: msg.String()}
 			}
 		}
 	}
@@ -233,15 +235,16 @@ func detectTypeLoop(types []*ast.TypeDeclaration, deps packageDeclsDeps) error {
 		if loopPath == nil {
 			continue // Ok, no loops.
 		}
-		msg := "invalid recursive type"
+		var msg strings.Builder
+		msg.WriteString("invalid recursive type")
 		if t.IsAliasDeclaration {
-			msg += " alias"
+			msg.WriteString(" alias")
 		}
-		msg += " " + t.Ident.String() + "\n"
+		msg.WriteString(" " + t.Ident.String() + "\n")
 		for _, p := range loopPath {
-			msg += "\t" + p.Pos().String() + ": " + p.String() + "\n"
+			msg.WriteString("\t" + p.Pos().String() + ": " + p.String() + "\n")
 		}
-		return initLoopError{node: t, msg: msg}
+		return initLoopError{node: t, msg: msg.String()}
 	}
 	return nil
 }
