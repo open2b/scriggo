@@ -122,7 +122,7 @@ func Disassemble(main *runtime.Function, globals []Global, n int) map[string][]b
 			for pkg := range imports {
 				packages = append(packages, pkg)
 			}
-			sort.Slice(packages, func(i, j int) bool { return packages[i] < packages[j] })
+			slices.Sort(packages)
 			for _, pkg := range packages {
 				b.WriteString("\nImport ")
 				b.WriteString(strconv.Quote(pkg))

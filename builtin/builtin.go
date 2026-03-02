@@ -150,6 +150,7 @@ import (
 	"math"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -706,9 +707,9 @@ func Sort(slice any, less func(i, j int) bool) {
 	case []string:
 		sort.Strings(s)
 	case []rune:
-		sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
+		slices.Sort(s)
 	case []byte:
-		sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
+		slices.Sort(s)
 	case []int:
 		sort.Ints(s)
 	case []float64:
