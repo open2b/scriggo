@@ -552,6 +552,27 @@ func runGc(path string) (int, []byte, []byte, error) {
 			return 0, nil, nil, err
 		}
 	}
+	// Run 'go mod tidy' in the 'testpkg' directory inside the temporary
+	// directory.
+	//
+	// This is necessary to update the "go.mod" by adding the "go" directive,
+	// which is required for some Go features (such as using "any" instead of
+	// "interface{}") which would otherwise result in a compilation error.
+	{
+		cmd := exec.Command("go", "mod", "tidy")
+		cmd.Dir = filepath.Join(tmpDir, "testpkg")
+		stdout := bytes.Buffer{}
+		stderr := bytes.Buffer{}
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		err = cmd.Run()
+		if err != nil {
+			if ee, ok := err.(*exec.ExitError); ok {
+				return ee.ProcessState.ExitCode(), stdout.Bytes(), stderr.Bytes(), nil
+			}
+			return 0, nil, nil, err
+		}
+	}
 	// Create a "go.mod" file inside the testing directory.
 	{
 		data := strings.Join([]string{
