@@ -5,7 +5,6 @@
 package compiler
 
 import (
-	"path/filepath"
 	"reflect"
 
 	"github.com/open2b/scriggo/ast"
@@ -86,7 +85,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				// Import a template file.
 				// Precompiled packages have been already handled by the type
 				// checker and should be ignored by the emitter.
-				if ext := filepath.Ext(node.Path); ext != "" {
+				if node.Tree != nil {
 					inits := em.emitImport(node, true)
 					if len(inits) > 0 && !em.alreadyInitializedTemplatePkgs[node.Tree.Path] {
 						for _, initFunc := range inits {
