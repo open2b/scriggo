@@ -67,6 +67,9 @@ processing Markdown and HTML files and generating their final output in the
 without modification, resulting in a complete static site ready for deployment.
 If 'dist' already exists, the command returns an error.
 
+Markdown is converted to HTML with the Goldmark parser with the options
+html.WithUnsafe, parser.WithAutoHeadingID, extension.GFM and extension.Footnote.
+
 The -llms flag generates two outputs for each template file: an HTML version and
 a Markdown version. Both share the same path but use different file extensions.
 The Markdown output is intended for consumption by LLMs.
@@ -225,7 +228,7 @@ The -o flag writes the result to the named output file or directory, instead to
 the standard output.
 
 Markdown is converted to HTML with the Goldmark parser with the options
-html.WithUnsafe, parser.WithAutoHeadingID and extension.GFM.
+html.WithUnsafe, parser.WithAutoHeadingID, extension.GFM and extension.Footnote.
 
 The run flags are:
 
@@ -285,7 +288,7 @@ Serving a URL terminating with a slash:
 it renders 'blog/index.html' or 'blog/index.md'.
 
 Markdown is converted to HTML with the Goldmark parser with the options
-html.WithUnsafe, parser.WithAutoHeadingID and extension.GFM.
+html.WithUnsafe, parser.WithAutoHeadingID, extension.GFM and extension.Footnote.
 
 When a file is modified, the server automatically rebuilds templates, and the
 browser reloads the page.
