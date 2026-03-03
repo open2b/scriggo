@@ -138,8 +138,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingFile bool, path string
 			pkgInits := em.emitImport(node, false)
 			// Do not add duplicated init functions.
 			for _, pkgInit := range pkgInits {
-				add := !slices.Contains(inits, pkgInit)
-				if add {
+				if !slices.Contains(inits, pkgInit) {
 					inits = append(inits, pkgInits...)
 				}
 			}
