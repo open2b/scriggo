@@ -927,11 +927,7 @@ func (fb *functionBuilder) emitText(txt []byte, inURL, isURLSet bool) {
 	if len(fb.text.txt) > 0 {
 		addr := fb.currentAddr()
 		if addr == fb.text.addr+1 && inURL == fb.text.inURL {
-			var hasLabel bool
-			if slices.Contains(fb.labelAddrs, addr) {
-				hasLabel = true
-			}
-			if !hasLabel {
+			if !slices.Contains(fb.labelAddrs, addr) {
 				fb.text.txt = append(fb.text.txt, txt)
 				return
 			}
