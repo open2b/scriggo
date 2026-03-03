@@ -807,32 +807,34 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr
 		}
 		sout.WriteString(")")
 	}
-	s := "func("
+	var s strings.Builder
 	if macro {
 		if typ.NumIn() == 0 {
 			return "macro"
 		}
-		s = "macro("
+		s.WriteString("macro(")
+	} else {
+		s.WriteString("func(")
 	}
 	lastIn := typ.NumIn() - 1
 	for i := range lastIn {
-		s += print(typ.In(i)) + ", "
+		s.WriteString(print(typ.In(i)) + ", ")
 	}
 	if lastIn >= 0 {
 		if variadic == runtime.NoVariadicArgs || variadic == 0 {
-			s += print(typ.In(lastIn))
+			s.WriteString(print(typ.In(lastIn)))
 		} else {
 			varType := typ.In(lastIn).Elem()
 			for i := range variadic {
-				s += print(varType)
+				s.WriteString(print(varType))
 				if i < variadic-1 {
-					s += ", "
+					s.WriteString(", ")
 				}
 			}
 		}
 	}
-	s += ")" + sout.String()
-	return s
+	s.WriteString(")" + sout.String())
+	return s.String()
 }
 
 func disassembleVarRef(fn *runtime.Function, globals []Global, ref int16) string {
