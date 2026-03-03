@@ -1,4 +1,4 @@
-name: goreleaser
+name: Run GoReleaser to build release assets
 
 on:
   workflow_dispatch:
