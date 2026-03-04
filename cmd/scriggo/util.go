@@ -102,7 +102,7 @@ func isPredeclaredIdentifier(name string) bool {
 
 func txtToHelp(s string) {
 	s = strings.TrimSpace(s)
-	stderr(strings.Split(s, "\n")...)
+	stdout(strings.Split(s, "\n")...)
 }
 
 var goKeywords = []string{

@@ -98,6 +98,13 @@ func stderr(lines ...string) {
 	}
 }
 
+// stdout prints lines on stdout.
+func stdout(lines ...string) {
+	for _, l := range lines {
+		_, _ = fmt.Fprint(os.Stdout, l+"\n")
+	}
+}
+
 // exitError prints an error message on stderr with a bold red color and exits
 // with status code 1.
 func exitError(format string, a ...any) {
