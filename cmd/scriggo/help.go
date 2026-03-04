@@ -130,7 +130,7 @@ It creates in the directory:
 * a main.go file with the 'main' function
 
 * a Scriggofile named 'Scriggofile' with the instructions to import the
-packages of the standard library
+  packages of the standard library
 
 then it calls the 'go mod tidy' command.
 
