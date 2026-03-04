@@ -84,7 +84,7 @@ link destinations in the generated Markdown by prefixing them with the provided
 base URL. Link destinations that are absolute, or consist only of a query string
 or a fragment, are left unchanged. For example:
 
-	scriggo build -llms https://example.com src
+    scriggo build -llms https://example.com src
 
 builds the template and also generates the Markdown files. In these files,
 relative link destinations are rewritten as absolute ones; for example, the URL
@@ -100,15 +100,15 @@ default 'public'.
 
 Examples:
 
-	scriggo build src
+    scriggo build src
 
-	scriggo build -llms https://docs.example.com/ src
+    scriggo build -llms https://docs.example.com/ src
 
-	scriggo build -const 'version=1.12 title="The ancient art of tea"'
+    scriggo build -const 'version=1.12 title="The ancient art of tea"'
 
-	scriggo build -o ../public
+    scriggo build -o ../public
 
-	scriggo build -o /var/www site
+    scriggo build -o /var/www site
 
 `
 
@@ -130,7 +130,7 @@ It creates in the directory:
 * a main.go file with the 'main' function
 
 * a Scriggofile named 'Scriggofile' with the instructions to import the
-packages of the standard library
+  packages of the standard library
 
 then it calls the 'go mod tidy' command.
 
@@ -232,37 +232,37 @@ html.WithUnsafe, parser.WithAutoHeadingID, extension.GFM and extension.Footnote.
 
 The run flags are:
 
-	-root dir
-		set the root directory to dir instead of the file's directory.
-	-const name=value
-		run the template file with a global constant with the given name and
-		value. name should be a Go identifier and value should be a string
-		literal, a number literal, true or false. There can be multiple
-		name=value pairs.
-	-format format
-		use the named file format: Text, HTML, Markdown, CSS, JS or JSON.
-	-metrics
-		print metrics about execution time.
-	-S n
-		print the assembly code of the executed file to the standard error.
-		n determines the maximum length, in runes, of disassembled Text
-		instructions:
+    -root dir
+        set the root directory to dir instead of the file's directory.
+    -const name=value
+        run the template file with a global constant with the given name and
+        value. name should be a Go identifier and value should be a string
+        literal, a number literal, true or false. There can be multiple
+        name=value pairs.
+    -format format
+        use the named file format: Text, HTML, Markdown, CSS, JS or JSON.
+    -metrics
+        print metrics about execution time.
+    -S n
+        print the assembly code of the executed file to the standard error.
+        n determines the maximum length, in runes, of disassembled Text
+        instructions:
 
-		n > 0: at most n runes; leading and trailing white space are removed
-		n == 0: no text
-		n < 0: all text
+        n > 0: at most n runes; leading and trailing white space are removed
+        n == 0: no text
+        n < 0: all text
 
 Examples:
 
-	scriggo run index.html
+    scriggo run index.html
 
-	scriggo run -const 'version=1.12 title="The ancient art of tea"' index.md
+    scriggo run -const 'version=1.12 title="The ancient art of tea"' index.md
 
-	scriggo run -root . docs/article.html
+    scriggo run -root . docs/article.html
 
-	scriggo run -format Markdown index
+    scriggo run -format Markdown index
 
-	scriggo run -o ./public ./sources/index.html
+    scriggo run -o ./public ./sources/index.html
 
 `
 
@@ -308,7 +308,7 @@ reloads in the browser.
 The -http flag configures the address the server listens on, and at least one of
 the host and port must be provided when using this flag:
 
-	-http [host][:port]   listen address (default "localhost:8080")
+    -http [host][:port]   listen address (default "localhost:8080")
 
 The -const name=value flag serves the template with a global constant with the
 given name and value. name should be a Go identifier and value should be a
@@ -319,9 +319,9 @@ Examples:
 
     scriggo serve
 
-	scriggo serve -http example.com:80
+    scriggo serve -http example.com:80
 
-	scriggo serve -const 'version=1.12 title="The ancient art of tea"' -http example.com
+    scriggo serve -const 'version=1.12 title="The ancient art of tea"' -http example.com
 
 `
 
