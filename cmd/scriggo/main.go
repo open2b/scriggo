@@ -128,7 +128,7 @@ var commandsHelp = map[string]func(){
 
 	// Commands helps.
 	"bug": func() {
-		stderr(
+		stdout(
 			`usage: scriggo bug`,
 			`Bug opens the default browser and starts a new bug report.`,
 			`The report includes useful system information.`,
@@ -153,7 +153,7 @@ var commandsHelp = map[string]func(){
 		txtToHelp(helpLimitations)
 	},
 	"stdlib": func() {
-		stderr(
+		stdout(
 			`usage: scriggo stdlib`,
 			``,
 			`Stdlib prints to the standard output the paths of the packages of the Go`,
@@ -162,7 +162,7 @@ var commandsHelp = map[string]func(){
 
 	},
 	"version": func() {
-		stderr(
+		stdout(
 			`usage: scriggo version`,
 		)
 	},
