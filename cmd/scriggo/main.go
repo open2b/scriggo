@@ -59,7 +59,7 @@ func main() {
 	// No command provided.
 	if len(os.Args) == 1 {
 		flag.Usage()
-		exit(0)
+		exit(2)
 		return
 	}
 
