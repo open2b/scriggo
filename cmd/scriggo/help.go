@@ -20,12 +20,12 @@ The commands are:
     serve       run a web server and serve the template rooted at the current
                 directory
 
-    build       generate static files from the template rooted at the current 
+    build       generate static files from the template rooted at the current
                 directory, writing them to './public' by default
 
     init        initialize an interpreter for Go programs
 
-    import      generate the source for an importer used by Scriggo to import 
+    import      generate the source for an importer used by Scriggo to import
                 a package when an 'import' statement is executed
 
     version     print the scriggo command version
@@ -340,14 +340,14 @@ The format of the Scriggofile is:
 
 A line starting with '#' is a comment, and the instructions are case
 insensitive but for convention are written in uppercase (the syntax recalls
-that used by Dockerfile). 
+that used by Dockerfile).
 
 A Scriggofile must be encoded as UTF-8 and it should be named 'Scriggofile'
 or with the extension '.Scriggofile' as for 'example.Scriggofile'.
 
 The instructions are:
 
-    IMPORT STANDARD LIBRARY 
+    IMPORT STANDARD LIBRARY
 
         Makes the packages in the Go standard library (almost all) importable
         in a program executed by the interpreter.
@@ -356,7 +356,7 @@ The instructions are:
 
     IMPORT <package>
 
-        Make the package with path <package> importable. 
+        Make the package with path <package> importable.
 
     IMPORT <package> INCLUDING <A> <B> <C>
 
@@ -366,7 +366,7 @@ The instructions are:
     IMPORT <package> EXCLUDING <A> <B> <C>
 
         As for 'IMPORT <package>' but the exported names <A>, <B> and <C> are
-        not imported.  
+        not imported.
 
     IMPORT <package> AS <as>
 
@@ -375,7 +375,7 @@ The instructions are:
         forms of IMPORT at the end of the instruction. Is not possible to use
         a path <as> that would conflict with a Go standard library package path,
         even if this latter is not imported in the Scriggofile.
-    
+
     IMPORT <package> AS main
 
         Make the package with path <package> imported as the main package.
@@ -389,12 +389,12 @@ The instructions are:
         will be imported not capitalized. For example a name 'FooFoo' declared
         in the package will be imported in a template file as 'fooFoo'.
 
-    SET VARIABLE <name> 
+    SET VARIABLE <name>
 
         Set the name of the variable to witch is assigned the value of type
         scriggo.PackageImporter with the packages to import. By default the
         name is 'packages'. This instruction is only read by the 'import'
-        command. 
+        command.
 
     SET PACKAGE <name>
 
@@ -408,7 +408,7 @@ The instructions are:
         interpreter. If the GOOS at the time the Scriggofile is parsed is not
         listed in the GOOS instruction, the 'init' and 'import' commands
         fail. If there is no GOOS instruction, all the operating systems are
-        supported. 
+        supported.
 
         To view possible GOOS values run 'go tool dist list'.
 `
