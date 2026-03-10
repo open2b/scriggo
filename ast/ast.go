@@ -621,22 +621,23 @@ func NewCompositeLiteral(pos *Position, typ Expression, keyValues []KeyValue) *C
 
 // String returns the string representation of n.
 func (n *CompositeLiteral) String() string {
-	s := n.Type.String()
+	var s strings.Builder
+	s.WriteString(n.Type.String())
 	if expandedPrint {
-		s += "{"
+		s.WriteString("{")
 		for i, kv := range n.KeyValues {
 			if i > 0 {
-				s += ", "
+				s.WriteString(", ")
 			}
-			s += kv.String()
+			s.WriteString(kv.String())
 		}
-		s += "}"
-		return s
+		s.WriteString("}")
+		return s.String()
 	}
 	if len(n.KeyValues) > 0 {
-		return s + "{...}"
+		return s.String() + "{...}"
 	}
-	return s + "{}"
+	return s.String() + "{}"
 }
 
 // Const node represents a "const" declaration.

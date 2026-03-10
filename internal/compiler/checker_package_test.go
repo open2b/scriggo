@@ -6,6 +6,7 @@ package compiler
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/open2b/scriggo/ast"
@@ -302,23 +303,23 @@ func TestPackageOrdering(t *testing.T) {
 			}
 			pkg := tree.Nodes[0].(*ast.Package)
 			sortDeclarations(pkg)
-			got := ""
+			var got strings.Builder
 			for _, d := range pkg.Declarations {
 				switch d := d.(type) {
 				case *ast.Var:
 					for _, left := range d.Lhs {
-						got += left.Name + ","
+						got.WriteString(left.Name + ",")
 					}
 				case *ast.Const:
-					got += d.Lhs[0].Name + ","
+					got.WriteString(d.Lhs[0].Name + ",")
 				case *ast.Func:
-					got += d.Ident.Name + ","
+					got.WriteString(d.Ident.Name + ",")
 				case *ast.TypeDeclaration:
-					got += d.Ident.Name + ","
+					got.WriteString(d.Ident.Name + ",")
 				}
 			}
-			if cas.expected != got {
-				t.Fatalf("expecting %q, got %q", cas.expected, got)
+			if cas.expected != got.String() {
+				t.Fatalf("expecting %q, got %q", cas.expected, got.String())
 			}
 		})
 	}

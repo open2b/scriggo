@@ -1639,41 +1639,43 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 	}
 
 	if len(args) != numIn && (!funcIsVariadic || callIsVariadic || len(args) < numIn-1) {
-		have := "("
+		var have strings.Builder
+		have.WriteString("(")
 		for i, arg := range args {
 			if i > 0 {
-				have += ", "
+				have.WriteString(", ")
 			}
 			c := tc.compilation.typeInfos[arg]
 			if c == nil {
 				c = tc.checkExpr(arg)
 			}
 			if callIsVariadic && i == len(args)-1 && (c.Nil() || types.AssignableTo(c.Type, t.Type.In(numIn-1))) {
-				have += "..." + t.Type.In(numIn-1).Elem().String()
+				have.WriteString("..." + t.Type.In(numIn-1).Elem().String())
 			} else if c.Nil() {
-				have += "nil"
+				have.WriteString("nil")
 			} else {
-				have += c.StringWithNumber(false)
+				have.WriteString(c.StringWithNumber(false))
 			}
 		}
-		have += ")"
-		want := "("
+		have.WriteString(")")
+		var want strings.Builder
+		want.WriteString("(")
 		for i := range numIn {
 			if i > 0 {
-				want += ", "
+				want.WriteString(", ")
 			}
 			in := t.Type.In(i)
 			if i == numIn-1 && funcIsVariadic {
-				want += "..."
+				want.WriteString("...")
 				in = in.Elem()
 			}
-			want += in.String()
+			want.WriteString(in.String())
 		}
-		want += ")"
+		want.WriteString(")")
 		if len(args) < numIn {
-			panic(tc.errorf(expr, "not enough arguments in call to %s\n\thave %s\n\twant %s", expr.Func, have, want))
+			panic(tc.errorf(expr, "not enough arguments in call to %s\n\thave %s\n\twant %s", expr.Func, have.String(), want.String()))
 		}
-		panic(tc.errorf(expr, "too many arguments in call to %s\n\thave %s\n\twant %s", expr.Func, have, want))
+		panic(tc.errorf(expr, "too many arguments in call to %s\n\thave %s\n\twant %s", expr.Func, have.String(), want.String()))
 	}
 
 	var in reflect.Type
