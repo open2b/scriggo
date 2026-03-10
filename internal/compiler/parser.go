@@ -177,7 +177,7 @@ func (p *parsing) next() token {
 
 // parseSource parses a program and returns its tree.
 // If noPackage is true, it does not expect a package statement.
-func parseSource(src []byte, noPackage bool) (tree *ast.Tree, err error) {
+func parseSource(name string, src []byte, noPackage bool) (tree *ast.Tree, err error) {
 
 	tree = ast.NewTree("", nil, ast.FormatText)
 
@@ -192,6 +192,7 @@ func parseSource(src []byte, noPackage bool) (tree *ast.Tree, err error) {
 		if r := recover(); r != nil {
 			if e, ok := r.(*SyntaxError); ok {
 				tree = nil
+				e.path = name
 				err = e
 			} else {
 				panic(r)
@@ -210,16 +211,22 @@ func parseSource(src []byte, noPackage bool) (tree *ast.Tree, err error) {
 
 	if len(p.ancestors) == 1 {
 		if !noPackage && len(tree.Nodes) == 0 {
-			panic(syntaxError(tok.pos, "expected 'package', found 'EOF'"))
+			se := syntaxError(tok.pos, "expected 'package', found 'EOF'")
+			se.path = name
+			panic(se)
 		}
 	} else {
 		switch p.ancestors[1].(type) {
 		case *ast.Package:
 		case *ast.Label:
-			return nil, syntaxError(tok.pos, "missing statement after label")
+			se := syntaxError(tok.pos, "missing statement after label")
+			se.path = name
+			return nil, se
 		default:
 			if len(p.ancestors) > 2 {
-				return nil, syntaxError(tok.pos, "unexpected EOF, expecting }")
+				se := syntaxError(tok.pos, "unexpected EOF, expecting }")
+				se.path = name
+				return nil, se
 			}
 		}
 	}

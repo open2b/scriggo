@@ -150,7 +150,7 @@ func parsePackage(fsys fs.FS, dir string) (*ast.Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	tree, err := parseSource(src, false)
+	tree, err := parseSource(name, src, false)
 	if err != nil {
 		return nil, err
 	}

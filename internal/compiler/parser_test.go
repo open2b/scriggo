@@ -1459,7 +1459,7 @@ func fileTests() map[string]struct {
 
 func TestGoContextTrees(t *testing.T) {
 	for _, tree := range goContextTreeTests {
-		node, err := parseSource([]byte(tree.src), true)
+		node, err := parseSource("", []byte(tree.src), true)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue
@@ -1488,7 +1488,7 @@ func TestShebang(t *testing.T) {
 		if test.template {
 			_, _, err = ParseTemplateSource([]byte(test.src), ast.FormatText, false, false)
 		} else {
-			_, err = parseSource([]byte(test.src), false)
+			_, err = parseSource("", []byte(test.src), false)
 		}
 		if err == nil {
 			if test.err != "" {

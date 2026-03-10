@@ -741,7 +741,7 @@ var cases = map[string]struct {
 func TestDependencies(t *testing.T) {
 	for name, cas := range cases {
 		t.Run(name, func(t *testing.T) {
-			tree, err := parseSource([]byte(cas.src), false)
+			tree, err := parseSource("", []byte(cas.src), false)
 			if err != nil {
 				t.Fatalf("parsing error: %s", err)
 			}
