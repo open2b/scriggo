@@ -195,6 +195,12 @@ func goBaseVersion(v string) string {
 	if i := strings.Index(v, "rc"); i >= 0 {
 		v = v[:i]
 	}
+
+	// On Linux, Go might be built by default with extra args, separated by -, like "go1.26.0-X:nodwarf5"
+	if i := strings.Index(v, "-"); i >= 0 {
+		v = v[:i]
+	}
+
 	v = v[4:]
 	f, err := strconv.ParseFloat(v, 32)
 	if err != nil {
