@@ -218,7 +218,7 @@ func TestIssue881(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected build error, got no error")
 	}
-	const expected = "main:6:4: pkg redeclared as imported package name\n\tmain:5:4: previous declaration"
+	const expected = "main.go:6:4: pkg redeclared as imported package name\n\tmain.go:5:4: previous declaration"
 	if s := err.Error(); s != expected {
 		t.Fatalf("expected error %q, got %q", expected, s)
 	}
@@ -241,14 +241,14 @@ var compositeStructLiteralTests = []struct {
 		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{3, 5} }`,
 		"p/p.go":  `package p; type S struct{ F, f int }`,
 	},
-	err: "main:1:56: implicit assignment of unexported field 'f' in p.S literal",
+	err: "main.go:1:56: implicit assignment of unexported field 'f' in p.S literal",
 }, {
 	fsys: fstest.Files{
 		"go.mod":  "module a.b\ngo 1.16",
 		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{F: 3} }`,
 		"p/p.go":  `package p; type T struct { F int }; type S struct{ T }`,
 	},
-	err: "main:1:53: cannot use promoted field T.F in struct literal of type p.S",
+	err: "main.go:1:53: cannot use promoted field T.F in struct literal of type p.S",
 }}
 
 // TestCompositeStructLiterals tests composite struct literals when the struct
@@ -288,21 +288,21 @@ var structFieldSelectorTests = []struct {
 		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.f }`,
 		"p/p.go":  `package p; type S struct{ f int }`,
 	},
-	err: "main:1:54: p.S{}.f undefined (cannot refer to unexported field or method f)",
+	err: "main.go:1:54: p.S{}.f undefined (cannot refer to unexported field or method f)",
 }, {
 	fsys: fstest.Files{
 		"go.mod":  "module a.b\ngo 1.16",
 		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.G }`,
 		"p/p.go":  `package p; type S struct{ F int }`,
 	},
-	err: "main:1:54: p.S{}.G undefined (type S has no field or method G)",
+	err: "main.go:1:54: p.S{}.G undefined (type S has no field or method G)",
 }, {
 	fsys: fstest.Files{
 		"go.mod":  "module a.b\ngo 1.16",
 		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.g }`,
 		"p/p.go":  `package p; type S struct{ F int }`,
 	},
-	err: "main:1:54: p.S{}.g undefined (type S has no field or method g)",
+	err: "main.go:1:54: p.S{}.g undefined (type S has no field or method g)",
 }, {
 	fsys: fstest.Files{
 		"go.mod":  "module a.b\ngo 1.16",
@@ -316,21 +316,21 @@ var structFieldSelectorTests = []struct {
 		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.F }`,
 		"p/p.go":  `package p; type ( T struct { F int }; V struct { F int }; S struct{ T; V } )`,
 	},
-	err: "main:1:54: ambiguous selector p.S{}.F",
+	err: "main.go:1:54: ambiguous selector p.S{}.F",
 }, {
 	fsys: fstest.Files{
 		"go.mod":  "module a.b\ngo 1.16",
 		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.F }`,
 		"p/p.go":  `package p; type ( T struct { F int }; V struct { F int }; S struct{ T; V } )`,
 	},
-	err: "main:1:54: ambiguous selector p.S{}.F",
+	err: "main.go:1:54: ambiguous selector p.S{}.F",
 }, {
 	fsys: fstest.Files{
 		"go.mod":  "module a.b\ngo 1.16",
 		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.f }`,
 		"p/p.go":  `package p; type ( T struct { f int }; V struct { f int }; S struct{ T; V } )`,
 	},
-	err: "main:1:54: p.S{}.f undefined (type S has no field or method f)", // TODO(marco): S should be p.S
+	err: "main.go:1:54: p.S{}.f undefined (type S has no field or method f)", // TODO(marco): S should be p.S
 }, {
 	fsys: fstest.Files{
 		"go.mod":  "module a.b\ngo 1.16",
@@ -344,7 +344,7 @@ var structFieldSelectorTests = []struct {
 		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.t.F }`,
 		"p/p.go":  `package p; type ( t struct { F int }; S struct{ t } )`,
 	},
-	err: "main:1:54: p.S{}.t undefined (cannot refer to unexported field or method t)",
+	err: "main.go:1:54: p.S{}.t undefined (cannot refer to unexported field or method t)",
 }, {
 	fsys: fstest.Files{
 		"go.mod":  "module a.b\ngo 1.16",
@@ -549,7 +549,7 @@ func TestIssue855(t *testing.T) {
 	if err != nil {
 		gotErr = err.Error()
 	}
-	expectedErr := "main:7:9: undefined: V2"
+	expectedErr := "index.go:7:9: undefined: V2"
 	if gotErr != expectedErr {
 		t.Fatalf("expected error %q, got %q", expectedErr, gotErr)
 	}
@@ -646,4 +646,86 @@ func TestIssue967(t *testing.T) {
 			t.Fatalf(`expected %q, got %q`, expected, got)
 		}
 	})
+}
+
+// TestIssue1017 executes a test the issue
+// https://github.com/open2b/scriggo/issues/1017.
+func TestIssue1017(t *testing.T) {
+	t.Run("syntax error in main has file path", func(t *testing.T) {
+		fsys := fstest.Files{
+			"go.mod":  "module a.b",
+			"main.go": `package main; BAD`,
+		}
+		_, err := scriggo.Build(fsys, nil)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		be, ok := err.(*scriggo.BuildError)
+		if !ok {
+			t.Fatalf("expected *scriggo.BuildError, got %T", err)
+		}
+		if expected := "main.go"; be.Path() != expected {
+			t.Errorf("expected path %q, got %q", expected, be.Path())
+		}
+	})
+
+	t.Run("syntax error in subpackage has file path", func(t *testing.T) {
+		fsys := fstest.Files{
+			"go.mod":     "module a.b",
+			"main.go":    `package main; import _ "a.b/sub"; func main() {}`,
+			"sub/sub.go": `package sub; BAD`,
+		}
+		_, err := scriggo.Build(fsys, nil)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		be, ok := err.(*scriggo.BuildError)
+		if !ok {
+			t.Fatalf("expected *scriggo.BuildError, got %T", err)
+		}
+		if be.Path() == "" {
+			t.Errorf("expected non-empty path, got empty string (full error: %s)", err)
+		}
+		if expected := "sub/sub.go"; be.Path() != expected {
+			t.Errorf("expected path %q, got %q", expected, be.Path())
+		}
+	})
+
+	t.Run("type-checking error in main has file path", func(t *testing.T) {
+		fsys := fstest.Files{
+			"go.mod":  "module a.b",
+			"main.go": `package main; import "a.b/missing"; func main() { _ = missing.X }`,
+		}
+		_, err := scriggo.Build(fsys, nil)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		be, ok := err.(*scriggo.BuildError)
+		if !ok {
+			t.Fatalf("expected *scriggo.BuildError, got %T", err)
+		}
+		if expected := "main.go"; be.Path() != expected {
+			t.Errorf("expected path %q, got %q", expected, be.Path())
+		}
+	})
+
+	t.Run("type-checking error in main has file path", func(t *testing.T) {
+		fsys := fstest.Files{
+			"go.mod":     "module a.b",
+			"main.go":    `package main; import "a.b/sub"; func main() { _ = c.X }`,
+			"sub/sub.go": `package c; import "a.b/sub/missing"`,
+		}
+		_, err := scriggo.Build(fsys, nil)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		be, ok := err.(*scriggo.BuildError)
+		if !ok {
+			t.Fatalf("expected *scriggo.BuildError, got %T", err)
+		}
+		if expected := "sub/sub.go"; be.Path() != expected {
+			t.Errorf("expected path %q, got %q", expected, be.Path())
+		}
+	})
+
 }
