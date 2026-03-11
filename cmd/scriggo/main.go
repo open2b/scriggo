@@ -588,7 +588,11 @@ func _init(path string, flags buildFlags) error {
 }
 
 func stdlib() (err error) {
-	for _, path := range stdLibPaths() {
+	v, err := goLanguageVersion()
+	if err != nil {
+		return err
+	}
+	for _, path := range stdLibPaths(v) {
 		_, err = fmt.Println(path)
 		if err != nil {
 			break
@@ -685,10 +689,9 @@ func execGoCommand(dir string, args ...string) (out io.Reader, err error) {
 	return stdout, nil
 }
 
-// stdLibPaths returns a copy of stdlibPaths with the packages for the runtime
-// Go version.
-func stdLibPaths() []string {
-	version := goBaseVersion(runtime.Version())
+// stdLibPaths returns a copy of stdlibPaths containing the packages available
+// in the given Go language version.
+func stdLibPaths(version string) []string {
 	paths := make([]string, 0, len(stdlibPaths))
 	for _, path := range stdlibPaths {
 		switch path {

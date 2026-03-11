@@ -6,11 +6,14 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	pkgVersion "go/version"
 	"io"
 	"math"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
@@ -162,48 +165,18 @@ func (u packageNameCache) uniquePackageName(pkgPath, pkgName string) string {
 	return pkgName
 }
 
-// goBaseVersion returns the go base version for v.
-//
-// For example:
-//
-// - "1.15.5" -> "go1.15"
-// - "go1.20.1" -> "go1.20"
-// - "go1.23.0 X:rangefunc" -> "go1.23.0"
-func goBaseVersion(v string) string {
-
-	// IMPORTANT: keep in sync with the function 'goBaseVersion' in
-	// 'test/compare/run.go'.
-
-	if strings.HasPrefix(v, "devel ") {
-		v = v[len("devel "):]
-		if i := strings.Index(v, "-"); i >= 0 {
-			v = v[:i]
-		}
+// goLanguageVersion returns the Go language version used to build the binary,
+// for example "go1.22". It returns an error if the version cannot be
+// determined.
+func goLanguageVersion() (string, error) {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "", errors.New("scriggo binary was not built with module support")
 	}
-
-	// The version returned by 'runtime.Version' may contain a string related to
-	// GOEXPERIMENTs, in the form 'X:<GOEXPERIMENT>'. This is documented in the
-	// (unexported) variable 'buildVersion', the value of which is returned by
-	// 'runtime.Version'.
-	if i := strings.Index(v, " X:"); i > 0 {
-		v = v[:i]
+	if !pkgVersion.IsValid(info.GoVersion) {
+		return "", errors.New("scriggo binary contains an invalid Go language version number")
 	}
-
-	if i := strings.Index(v, "beta"); i >= 0 {
-		v = v[:i]
-	}
-	if i := strings.Index(v, "rc"); i >= 0 {
-		v = v[:i]
-	}
-	v = v[4:]
-	f, err := strconv.ParseFloat(v, 32)
-	if err != nil {
-		panic(err)
-	}
-	f = math.Floor(f)
-	next := int(f)
-
-	return fmt.Sprintf("go1.%d", next)
+	return pkgVersion.Lang(info.GoVersion), nil
 }
 
 // hasStdlibPrefix reports whether the prefix of path conflicts with the path of
@@ -222,11 +195,11 @@ func hasStdlibPrefix(path string) bool {
 	return slices.Contains(stdlibPrefixes, first)
 }
 
-// nextGoVersion returns the successive go version of v.
+// nextGoVersion returns the successive Go version of v.
 //
-//	1.15.5 -> 1.16
+//	go1.15 -> go1.16
 func nextGoVersion(v string) string {
-	v = goBaseVersion(v)[4:]
+	v = v[4:]
 	f, err := strconv.ParseFloat(v, 32)
 	if err != nil {
 		panic(err)

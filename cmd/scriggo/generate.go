@@ -12,7 +12,6 @@ import (
 	"io"
 	"math/big"
 	"os"
-	"runtime"
 	"slices"
 	"sort"
 	"strconv"
@@ -36,7 +35,11 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 	// Import the packages of the Go standard library.
 	for i, imp := range sf.imports {
 		if imp.stdlib {
-			paths := stdLibPaths()
+			v, err := goLanguageVersion()
+			if err != nil {
+				return err
+			}
+			paths := stdLibPaths(v)
 			imports := make([]*importCommand, len(sf.imports)+len(paths)-1)
 			copy(imports[:i], sf.imports[:i])
 			for j, path := range paths {
@@ -236,10 +239,15 @@ func init() {
 }
 `
 
+	v, err := goLanguageVersion()
+	if err != nil {
+		return err
+	}
+
 	pkgOutput := map[string]any{
 		"GOOS":              goos,
-		"BaseVersion":       goBaseVersion(runtime.Version()),
-		"NextGoVersion":     nextGoVersion(runtime.Version()),
+		"BaseVersion":       v,
+		"NextGoVersion":     nextGoVersion(v),
 		"Name":              sf.pkgName,
 		"ExplicitImports":   explicitImports,
 		"MustImportReflect": mustImportReflect,
@@ -248,7 +256,7 @@ func init() {
 	}
 
 	t := template.Must(template.New("packages").Parse(pkgsSkeleton))
-	err := t.Execute(w, pkgOutput)
+	err = t.Execute(w, pkgOutput)
 
 	return err
 }
