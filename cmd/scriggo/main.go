@@ -342,20 +342,16 @@ var Version string
 
 // version returns the scriggo command version.
 func version() string {
-	// First: read the version from 'runtime/debug', that holds a valid
-	// semantic version if the scriggo command is compiled through 'go
-	// install'.
-	if info, ok := debug.ReadBuildInfo(); ok {
-		if v := info.Main.Version; v != "(devel)" {
-			return v
-		}
-	}
-	// Second: read the version from the package-level variable Version, that
-	// is set passing the ldflags to 'go build'.
+	// If the Version variable has been set, take the version directly from
+	// that.
 	if Version != "" {
 		return Version
 	}
-	// None of the versions above have been set.
+	// Take the module version from 'runtime/debug', if available.
+	if info, ok := debug.ReadBuildInfo(); ok {
+		return info.Main.Version
+	}
+	// Fallback case.
 	return "unknown"
 }
 
