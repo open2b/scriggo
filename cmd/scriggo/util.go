@@ -10,7 +10,6 @@ import (
 	"fmt"
 	pkgVersion "go/version"
 	"io"
-	"math"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -198,15 +197,11 @@ func hasStdlibPrefix(path string) bool {
 // nextGoVersion returns the successive Go version of v.
 //
 //	go1.15 -> go1.16
+//
+// If v is not valid, the behavior is undefined.
 func nextGoVersion(v string) string {
-	v = v[4:]
-	f, err := strconv.ParseFloat(v, 32)
-	if err != nil {
-		panic(err)
-	}
-	f = math.Floor(f)
-	next := int(f) + 1
-	return fmt.Sprintf("go1.%d", next)
+	minor, _ := strconv.Atoi(v[4:])
+	return "go1." + strconv.Itoa(minor+1)
 }
 
 // checkIdentifierName checks that name is a valid not blank identifier name.
