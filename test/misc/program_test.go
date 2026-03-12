@@ -648,7 +648,7 @@ func TestIssue967(t *testing.T) {
 	})
 }
 
-// TestIssue1017 executes a test the issue
+// TestIssue1017 executes a test for the issue
 // https://github.com/open2b/scriggo/issues/1017.
 func TestIssue1017(t *testing.T) {
 	t.Run("syntax error in main has file path", func(t *testing.T) {
@@ -709,7 +709,7 @@ func TestIssue1017(t *testing.T) {
 		}
 	})
 
-	t.Run("type-checking error in main has file path", func(t *testing.T) {
+	t.Run("type-checking error in subpackage has file path", func(t *testing.T) {
 		fsys := fstest.Files{
 			"go.mod":     "module a.b",
 			"main.go":    `package main; import "a.b/sub"; func main() { _ = c.X }`,
