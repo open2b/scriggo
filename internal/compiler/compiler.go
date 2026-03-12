@@ -140,7 +140,7 @@ func BuildProgram(fsys fs.FS, opts Options) (*Code, error) {
 	}
 
 	// Emit the code.
-	code, err := emitProgram(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars)
+	code, err := emitProgram(tree.Nodes[0].(*ast.Package), typeInfos, tci[tree.Path].IndirectVars)
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ package compiler
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"strings"
@@ -53,12 +54,12 @@ func ParseProgram(fsys fs.FS) (*ast.Tree, error) {
 			return nil, err
 		}
 		if n.Tree == nil {
-			if n.Path == "main" {
+			if last == 0 {
 				return nil, errors.New("cannot find main package")
 			}
-			return nil, syntaxError(n.Position, "cannot find package %q", n.Path)
+			path := imports[last-1].Tree.Path
+			return nil, &SyntaxError{path, *n.Position, fmt.Sprintf("cannot find package %q", n.Path)}
 		}
-		n.Tree.Path = n.Path
 		trees[n.Path] = n.Tree
 
 		if modPath == "" {
@@ -152,8 +153,12 @@ func parsePackage(fsys fs.FS, dir string) (*ast.Tree, error) {
 	}
 	tree, err := parseSource(src, false)
 	if err != nil {
+		if err, ok := err.(*SyntaxError); ok {
+			err.path = name
+		}
 		return nil, err
 	}
+	tree.Path = name
 	return tree, nil
 }
 
