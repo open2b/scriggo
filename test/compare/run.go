@@ -643,9 +643,6 @@ func runGc(path string) (int, []byte, []byte, error) {
 // - "go1.23.0 X:rangefunc" -> "go1.23.0"
 func goBaseVersion(v string) string {
 
-	// IMPORTANT: keep in sync with the function 'goBaseVersion' in
-	// 'cmd/scriggo/util.go'.
-
 	if strings.HasPrefix(v, "devel ") {
 		v = v[len("devel "):]
 		if i := strings.Index(v, "-"); i >= 0 {

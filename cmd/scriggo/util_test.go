@@ -47,73 +47,22 @@ func Test_nextGoVersion(t *testing.T) {
 			want:    "go1.9",
 		},
 		{
-			current: "go1.20.1",
+			current: "go1.9",
+			want:    "go1.10",
+		},
+		{
+			current: "go1.20",
 			want:    "go1.21",
 		},
 		{
 			current: "go1.1000",
 			want:    "go1.1001",
 		},
-		{
-			current: "go1.1000beta2",
-			want:    "go1.1001",
-		},
-		{
-			current: "go1.16beta1",
-			want:    "go1.17",
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.current, func(t *testing.T) {
 			if got := nextGoVersion(tt.current); got != tt.want {
 				t.Errorf("nextGoVersion(%s) = %v, want %v", tt.current, got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_goBaseVersion(t *testing.T) {
-	tests := []struct {
-		current string
-		want    string
-	}{
-		{
-			current: "go1.16",
-			want:    "go1.16",
-		},
-		{
-			current: "go1.8",
-			want:    "go1.8",
-		},
-		{
-			current: "go1.20.1",
-			want:    "go1.20",
-		},
-		{
-			current: "go1.16beta1",
-			want:    "go1.16",
-		},
-		{
-			current: "go1.1000",
-			want:    "go1.1000",
-		},
-		{
-			current: "go1.1000beta5",
-			want:    "go1.1000",
-		},
-		{
-			current: "go1.16rc1",
-			want:    "go1.16",
-		},
-		{
-			current: "go1.23.0 X:rangefunc",
-			want:    "go1.23",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.current, func(t *testing.T) {
-			if got := goBaseVersion(tt.current); got != tt.want {
-				t.Errorf("goBaseVersion(%s) = %v, want %v", tt.current, got, tt.want)
 			}
 		})
 	}
