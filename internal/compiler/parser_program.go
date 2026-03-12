@@ -124,6 +124,8 @@ func parsePackage(fsys fs.FS, dir string) (*ast.Tree, error) {
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			err = nil
+		} else if err2, ok := err.(*fs.PathError); ok && err2.Op == "readdir" {
+			err = nil
 		}
 		return nil, err
 	}

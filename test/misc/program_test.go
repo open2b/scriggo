@@ -729,3 +729,25 @@ func TestIssue1017(t *testing.T) {
 	})
 
 }
+
+// TestRegularFileImport tests that importing a regular file path produces the
+// same error returned when the referenced directory does not exist.
+func TestRegularFileImport(t *testing.T) {
+	fsys := fstest.Files{
+		"go.mod":  "module a.b",
+		"main.go": `package main; import "a.b/c"`,
+		"c":       ``,
+	}
+	_, err := scriggo.Build(fsys, nil)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	be, ok := err.(*scriggo.BuildError)
+	if !ok {
+		t.Fatalf("expected *scriggo.BuildError, got %T", err)
+	}
+	expected := `cannot find package "a.b/c"`
+	if got := be.Message(); got != expected {
+		t.Fatalf("expected error %q, got %q", expected, got)
+	}
+}
