@@ -194,11 +194,13 @@ func hasStdlibPrefix(path string) bool {
 	return slices.Contains(stdlibPrefixes, first)
 }
 
-// nextGoVersion returns the successive Go version of v.
+// nextGoVersion returns the next Go language version after v.
+// The input v must be a Go language version in the form "go1.N", such as
+// "go1.26", and not a patch version like "go1.26.1".
 //
-//	go1.15 -> go1.16
+// For example, given "go1.25" it returns "go1.26".
 //
-// If v is not valid, the behavior is undefined.
+// If v is not a valid Go language version, the behavior is undefined.
 func nextGoVersion(v string) string {
 	minor, _ := strconv.Atoi(v[4:])
 	return "go1." + strconv.Itoa(minor+1)
