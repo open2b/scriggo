@@ -118,7 +118,8 @@ func ParseProgram(fsys fs.FS) (*ast.Tree, error) {
 	return main.Tree, nil
 }
 
-// parsePackage parses a package at the given directory in fsys.
+// parsePackage parses the package located in dir within fsys and returns its
+// AST tree. If dir does not exist, it returns a nil tree and no error.
 func parsePackage(fsys fs.FS, dir string) (*ast.Tree, error) {
 	files, err := fs.ReadDir(fsys, dir)
 	if err != nil {
