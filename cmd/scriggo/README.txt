@@ -3,7 +3,7 @@ Scriggo command
 
 The scriggo command is a command-line tool that allows you to:
 
-  * serve and build templates with Markdown support
+  * serve and build templates with HTML and Markdown support
   * initialize an interpreter for Go programs
   * generate code for package importers
 
