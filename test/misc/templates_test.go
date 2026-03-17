@@ -905,8 +905,8 @@ func TestRecoveredOutError(t *testing.T) {
 }
 
 // TestLimitExceededErrorInRenderedFile tests whether a 'LimitExceededError'
-// error occurs within rendered file, this doesn't cause Scriggo to panic but
-// instead it returns an error message with file path and position (1:1).
+// error, occurred within rendered file, returns an error message with file path
+// and position (1:1).
 func TestLimitExceededErrorInRenderedFile(t *testing.T) {
 
 	var renderedHTML strings.Builder
