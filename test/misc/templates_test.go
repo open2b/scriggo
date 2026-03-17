@@ -904,6 +904,34 @@ func TestRecoveredOutError(t *testing.T) {
 	}
 }
 
+// TestLimitExceededErrorInRenderedFile tests whether a 'LimitExceededError'
+// error, occurred within rendered file, returns an error message with file path
+// and position (1:1).
+func TestLimitExceededErrorInRenderedFile(t *testing.T) {
+
+	var renderedHTML strings.Builder
+	for i := range 257 {
+		_, _ = fmt.Fprintf(&renderedHTML, "{{ `string %d` }}", i)
+	}
+	fsys := fstest.Files{
+		"index.html":    `{{ render "rendered.html" }}`,
+		"rendered.html": renderedHTML.String(),
+	}
+	_, err := scriggo.BuildTemplate(fsys, "index.html", nil)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	be, ok := err.(*scriggo.BuildError)
+	if !ok {
+		t.Fatalf("expected *scriggo.BuildError, got %T", err)
+	}
+	const expected = "rendered.html:1:1: string values count exceeded 256"
+	if be.Error() != expected {
+		t.Fatalf("expected error %q, got %q", expected, be.Error())
+	}
+
+}
+
 // TestUsingLimitExceededError tests whether a 'LimitExceededError' error,
 // occurred within a "using" statement, contains the line and position of the
 // "using" statement that causes the limit to be exceeded.
@@ -956,5 +984,4 @@ func TestUsingLimitExceededError(t *testing.T) {
 			t.Fatalf("expected error %q, got %q", expected, be.Error())
 		}
 	})
-
 }
