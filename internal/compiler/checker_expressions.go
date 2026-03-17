@@ -2333,7 +2333,7 @@ func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
 	stored, ok := tc.compilation.renderImportMacro[tree]
 	if !ok {
 		macroDecl := ast.NewFunc(
-			nil,
+			&ast.Position{Line: 1, Column: 1, Start: 0, End: 1},
 			ast.NewIdentifier(nil, "M"+strconv.Quote(tree.Path)),
 			ast.NewFuncType(nil, true, nil, nil, false), // func()
 			ast.NewBlock(nil, tree.Nodes),

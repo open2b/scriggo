@@ -40,9 +40,6 @@ func (err *BuildError) Path() string {
 }
 
 // Position returns the position in the file where the error occurred.
-//
-// If there is no position associated with the error (as it refers to the entire
-// file), this method returns the zero value of Position.
 func (err *BuildError) Position() Position {
 	pos := err.err.Position()
 	return Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}

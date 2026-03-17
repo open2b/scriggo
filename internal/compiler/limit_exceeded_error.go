@@ -15,7 +15,6 @@ import (
 // compilation has exceeded a limit imposed by the implementation.
 type LimitExceededError struct {
 	// pos is the position of the function that cannot be compiled.
-	// A nil pos means that the error refers to the entire file path in general.
 	pos *ast.Position
 	// path of file in which the function is defined.
 	path string
@@ -25,16 +24,12 @@ type LimitExceededError struct {
 
 // newLimitExceededError returns a new LimitError that occurred in the file path
 // inside a function declared at the given pos.
-// A nil pos means that the error refers to the entire file path in general.
 func newLimitExceededError(pos *runtime.Position, path, format string, a ...any) *LimitExceededError {
-	var astPos *ast.Position
-	if pos != nil {
-		astPos = &ast.Position{
-			Line:   pos.Line,
-			Column: pos.Column,
-			Start:  pos.Start,
-			End:    pos.End,
-		}
+	astPos := &ast.Position{
+		Line:   pos.Line,
+		Column: pos.Column,
+		Start:  pos.Start,
+		End:    pos.End,
 	}
 	return &LimitExceededError{
 		pos:  astPos,
@@ -44,12 +39,7 @@ func newLimitExceededError(pos *runtime.Position, path, format string, a ...any)
 }
 
 // Position returns the position of the function that caused the LimitError.
-// If there is no position associated with the error (as it refers to the entire
-// file), this method returns the zero value of 'ast.Position'.
 func (e *LimitExceededError) Position() ast.Position {
-	if e.pos == nil {
-		return ast.Position{}
-	}
 	return *e.pos
 }
 
@@ -65,8 +55,5 @@ func (e *LimitExceededError) Message() string {
 
 // Error implements the interface error for the LimitError.
 func (e *LimitExceededError) Error() string {
-	if e.pos == nil {
-		return fmt.Sprintf("%s: %s", e.path, e.msg)
-	}
 	return fmt.Sprintf("%s:%s: %s", e.path, e.pos, e.msg)
 }
