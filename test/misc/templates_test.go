@@ -904,10 +904,9 @@ func TestRecoveredOutError(t *testing.T) {
 	}
 }
 
-// TestUsingLimitExceededError tests whether a 'LimitExceededError' error occurs
-// within a "using" statement, this doesn't cause Scriggo to panic, but rather
-// contains the line and position of the "using" statement that causes the limit
-// to be exceeded.
+// TestUsingLimitExceededError tests whether a 'LimitExceededError' error,
+// occurred within a "using" statement, contains the line and position of the
+// "using" statement that causes the limit to be exceeded.
 func TestUsingLimitExceededError(t *testing.T) {
 
 	t.Run("limit exceeded error with 'using' (identifier)", func(t *testing.T) {
