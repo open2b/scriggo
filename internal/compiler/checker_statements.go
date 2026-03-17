@@ -1366,12 +1366,12 @@ func (tc *typechecker) explodeUsingStatement(using *ast.Using, iteaIdent string)
 	switch typ := using.Type.(type) {
 	case *ast.Identifier:
 		itea = ast.NewCall(nil,
-			ast.NewFunc(nil, nil,
+			ast.NewFunc(using.Position, nil,
 				ast.NewFuncType(nil, true, nil, []*ast.Parameter{ast.NewParameter(nil, typ)}, false),
 				using.Body, false, using.Format),
 			nil, false)
 	case *ast.FuncType:
-		itea = ast.NewFunc(nil, nil, typ, using.Body, false, using.Format)
+		itea = ast.NewFunc(using.Position, nil, typ, using.Body, false, using.Format)
 	default:
 		panic(internalError("the parser should not allow this"))
 	}

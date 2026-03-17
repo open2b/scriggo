@@ -931,3 +931,57 @@ func TestLimitExceededErrorInRenderedFile(t *testing.T) {
 	}
 
 }
+
+// TestUsingLimitExceededError tests whether a 'LimitExceededError' error,
+// occurred within a "using" statement, contains the line and position of the
+// "using" statement that causes the limit to be exceeded.
+func TestUsingLimitExceededError(t *testing.T) {
+
+	t.Run("limit exceeded error with 'using' (identifier)", func(t *testing.T) {
+		var indexHTML strings.Builder
+		indexHTML.WriteString("\n\n\n\t\t\t\t{% show itea; using %}\n")
+		for i := range 257 {
+			_, _ = fmt.Fprintf(&indexHTML, "{{ `string %d` }}", i)
+		}
+		indexHTML.WriteString("{% end using %}")
+		fsys := fstest.Files{
+			"index.html": indexHTML.String(),
+		}
+		_, err := scriggo.BuildTemplate(fsys, "index.html", nil)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		be, ok := err.(*scriggo.BuildError)
+		if !ok {
+			t.Fatalf("expected *scriggo.BuildError, got %T", err)
+		}
+		const expected = "index.html:4:19: string values count exceeded 256"
+		if be.Error() != expected {
+			t.Fatalf("expected error %q, got %q", expected, be.Error())
+		}
+	})
+
+	t.Run("limit exceeded error with 'using' (macro)", func(t *testing.T) {
+		var indexHTML strings.Builder
+		indexHTML.WriteString("\n\n\n\t\t\t\t{% show itea(\"hello\"); using macro(name string) %}\n")
+		for i := range 257 {
+			_, _ = fmt.Fprintf(&indexHTML, "{{ `string %d` }}", i)
+		}
+		indexHTML.WriteString("{% end using %}")
+		fsys := fstest.Files{
+			"index.html": indexHTML.String(),
+		}
+		_, err := scriggo.BuildTemplate(fsys, "index.html", nil)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		be, ok := err.(*scriggo.BuildError)
+		if !ok {
+			t.Fatalf("expected *scriggo.BuildError, got %T", err)
+		}
+		const expected = "index.html:4:28: string values count exceeded 256"
+		if be.Error() != expected {
+			t.Fatalf("expected error %q, got %q", expected, be.Error())
+		}
+	})
+}
