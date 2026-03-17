@@ -909,6 +909,7 @@ func TestRecoveredOutError(t *testing.T) {
 // contains the line and position of the "using" statement that causes the limit
 // to be exceeded.
 func TestUsingLimitExceededError(t *testing.T) {
+
 	t.Run("limit exceeded error with 'using' (identifier)", func(t *testing.T) {
 		var indexHTML strings.Builder
 		indexHTML.WriteString("\n\n\n\t\t\t\t{% show itea; using %}\n")
@@ -932,6 +933,7 @@ func TestUsingLimitExceededError(t *testing.T) {
 			t.Fatalf("expected error %q, got %q", expected, be.Error())
 		}
 	})
+
 	t.Run("limit exceeded error with 'using' (macro)", func(t *testing.T) {
 		var indexHTML strings.Builder
 		indexHTML.WriteString("\n\n\n\t\t\t\t{% show itea(\"hello\"); using macro(name string) %}\n")
@@ -955,4 +957,5 @@ func TestUsingLimitExceededError(t *testing.T) {
 			t.Fatalf("expected error %q, got %q", expected, be.Error())
 		}
 	})
+
 }
