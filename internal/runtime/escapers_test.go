@@ -62,13 +62,29 @@ func TestMarkdownEscape(t *testing.T) {
 }
 
 func TestJSStringEscape(t *testing.T) {
-	b := strings.Builder{}
-	s := "a\u2028b&\u2029c"
-	err := jsStringEscape(&b, s)
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		src      string
+		expected string
+	}{
+		{"", ""},
+		{"a", "a"},
+		{"a\u2028b&\u2029c", `a\u2028b\u0026\u2029c`},
+		{`"'\`, `\"\u0027\\`},
+		{"<>", `\u003c\u003e`},
+		{"`", `\u0060`},
+		{"$", `\u0024`},
+		{"{}", `\u007b}`},
+		{"`${a}`", `\u0060\u0024\u007ba}\u0060`},
+		{"$\u2028{", `\u0024\u2028\u007b`},
 	}
-	if b.String() != `a\u2028b\u0026\u2029c` {
-		t.Errorf("unexpected %q, expecting %q\n", b.String(), s)
+	for _, tt := range tests {
+		var b strings.Builder
+		err := jsStringEscape(&b, tt.src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if b.String() != tt.expected {
+			t.Errorf("src: %q: expecting %q, got %q", tt.src, tt.expected, b.String())
+		}
 	}
 }
