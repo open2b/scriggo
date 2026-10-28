@@ -682,6 +682,40 @@ func TestStatementBranchContexts(t *testing.T) {
 	}
 }
 
+// TestTypeAttributeNotKnown tests that the content of a script or style
+// element whose type attribute is not known at compile time is escaped as
+// JavaScript or CSS.
+func TestTypeAttributeNotKnown(t *testing.T) {
+	tests := []struct {
+		name     string
+		src      string
+		expected string
+	}{
+		{"script with show", `<script type="{{ t }}">var s = {{ v }};</script>`, `<script type="module">var s = "a";</script>`},
+		{"script with statement", `<script type="text/{% if true %}plain{% end %}">var s = {{ v }};</script>`, `<script type="text/plain">var s = "a";</script>`},
+		{"style with statement", `<style type="text/{% if true %}css{% end %}">a { font-family: {{ v }}; }</style>`, `<style type="text/css">a { font-family: "a"; }</style>`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vars := Vars{"t": "module", "v": "a"}
+			opts := &scriggo.BuildOptions{Globals: asDeclarations(vars)}
+			fsys := fstest.Files{"index.html": tt.src}
+			template, err := scriggo.BuildTemplate(fsys, "index.html", opts)
+			if err != nil {
+				t.Fatalf("unexpected build error: %s", err)
+			}
+			var b bytes.Buffer
+			err = template.Run(&b, vars, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+			if got := b.String(); got != tt.expected {
+				t.Fatalf("expecting %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
 var jsonContextTests = []struct {
 	src  string
 	res  string
