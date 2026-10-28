@@ -160,6 +160,7 @@ const (
 	ContextJSONString
 	ContextTabCodeBlock
 	ContextSpacesCodeBlock
+	ContextJSRegExp
 )
 
 // String returns the name of the context.
@@ -193,6 +194,8 @@ func (ctx Context) String() string {
 		return "tab code block"
 	case ContextSpacesCodeBlock:
 		return "spaces code block"
+	case ContextJSRegExp:
+		return "JavaScript regular expression"
 	}
 	panic("invalid context")
 }

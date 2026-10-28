@@ -1408,7 +1408,8 @@ func checkShow(t reflect.Type, ctx ast.Context) error {
 	switch ctx {
 	case ast.ContextText, ast.ContextTag, ast.ContextQuotedAttr, ast.ContextUnquotedAttr,
 		ast.ContextCSSString, ast.ContextJSString, ast.ContextJSONString,
-		ast.ContextTabCodeBlock, ast.ContextSpacesCodeBlock:
+		ast.ContextTabCodeBlock, ast.ContextSpacesCodeBlock,
+		ast.ContextJSRegExp:
 		switch {
 		case kind == reflect.String:
 		case reflect.Bool <= kind && kind <= reflect.Complex128:

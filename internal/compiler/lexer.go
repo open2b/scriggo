@@ -193,8 +193,11 @@ const (
 // scanState is the state of the scan that, in addition to the context, is
 // needed to determine the context of the text that follows.
 type scanState struct {
-	quote     byte           // quote of the current attribute value or string
-	jsComment jsCommentState // current JavaScript comment
+	quote      byte           // quote of the current attribute value or string
+	jsComment  jsCommentState // current JavaScript comment
+	jsDivision bool           // a JavaScript '/' is a division, not a regular expression
+	jsClass    bool           // in a class of a JavaScript regular expression
+	jsBraces   []int          // depth of the braces in JavaScript template literal substitutions
 }
 
 // scan scans the text by placing the tokens on the tokens channel. If an
@@ -266,6 +269,9 @@ func (l *lexer) scan() {
 					if err != nil {
 						l.err = err
 						break LOOP
+					}
+					if l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone {
+						l.state.jsDivision = true
 					}
 					lin = l.line
 					col = l.column
@@ -392,6 +398,9 @@ func (l *lexer) scan() {
 				if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
 					// End tag.
 					l.ctx = l.tag.ctx
+					// The content of the element, such as a script, is
+					// scanned starting from an empty state.
+					l.state = scanState{}
 					l.tag.name = ""
 					l.tag.ctx = fileContext
 					if c == '/' {
@@ -514,7 +523,7 @@ func (l *lexer) scan() {
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
 					l.ctx = fileContext
-					l.state.jsComment = jsCommentNone
+					l.state = scanState{}
 					p += 8
 					l.column += 8
 				} else if l.state.jsComment == jsCommentLine {
@@ -527,36 +536,119 @@ func (l *lexer) scan() {
 						p++
 						l.column++
 					}
-				} else if c == '/' && p+1 < len(l.src) {
-					switch l.src[p+1] {
-					case '/':
-						l.state.jsComment = jsCommentLine
-						p++
-						l.column++
-					case '*':
-						l.state.jsComment = jsCommentBlock
-						p++
-						l.column++
+				} else if c == '/' && p+1 < len(l.src) && l.src[p+1] == '/' {
+					l.state.jsComment = jsCommentLine
+					p++
+					l.column++
+				} else if c == '/' && p+1 < len(l.src) && l.src[p+1] == '*' {
+					l.state.jsComment = jsCommentBlock
+					p++
+					l.column++
+				} else if c == '/' {
+					if l.state.jsDivision && !endsWithRegExpPrecederKeyword(l.src[:p]) {
+						l.state.jsDivision = false
+					} else {
+						l.ctx = ast.ContextJSRegExp
+						l.state.jsClass = false
 					}
 				} else if c == '"' || c == '\'' {
 					l.ctx = ast.ContextJSString
 					l.state.quote = c
+				} else if c == '`' {
+					// Template literal.
+					l.ctx = ast.ContextJSString
+					l.state.quote = c
+				} else if c == '{' {
+					if n := len(l.state.jsBraces); n > 0 {
+						l.state.jsBraces[n-1]++
+					}
+					l.state.jsDivision = false
+				} else if c == '}' {
+					if n := len(l.state.jsBraces); n > 0 {
+						if l.state.jsBraces[n-1] == 0 {
+							// End of a template literal substitution.
+							l.state.jsBraces = l.state.jsBraces[:n-1]
+							l.ctx = ast.ContextJSString
+							l.state.quote = '`'
+						} else {
+							l.state.jsBraces[n-1]--
+						}
+					}
+					l.state.jsDivision = false
+				} else if (c == '+' || c == '-') && p > 0 && l.src[p-1] == c {
+					// "++" and "--" are followed by a division, "+++" and
+					// "---" by a regular expression, and so on.
+					l.state.jsDivision = !l.state.jsDivision
+				} else if !isASCIISpace(c) {
+					l.state.jsDivision = isJSDivisionAfter(l.src[:p+1])
 				}
 
 			case ast.ContextJSString:
 				switch c {
 				case '\\':
-					if p+1 < len(l.src) && (l.src[p+1] == l.state.quote || l.src[p+1] == '\\') {
+					if p+1 < len(l.src) && (l.src[p+1] == l.state.quote || l.src[p+1] == '\\' ||
+						l.state.quote == '`' && l.src[p+1] == '$') {
 						p++
 						l.column++
 					}
 				case l.state.quote:
 					l.ctx = ast.ContextJS
 					l.state.quote = 0
+					l.state.jsDivision = true
+				case '$':
+					if l.state.quote == '`' && p+1 < len(l.src) && l.src[p+1] == '{' {
+						if !l.isShowStatementOrCommentStart(p + 1) {
+							// Start of a template literal substitution.
+							l.state.jsBraces = append(l.state.jsBraces, 0)
+							l.ctx = ast.ContextJS
+							l.state.quote = 0
+							l.state.jsDivision = false
+							p++
+							l.column++
+						} else if l.src[p+2] != '{' {
+							// The text that follows the statement or the
+							// comment could start a substitution.
+							l.err = l.errorf("unexpected statement or comment after $ in %s", l.ctx)
+							break LOOP
+						}
+					}
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
 						l.ctx = fileContext
-						l.state.quote = 0
+						l.state = scanState{}
+						p += 8
+						l.column += 8
+					}
+				}
+
+			case ast.ContextJSRegExp:
+				switch c {
+				case '\\':
+					if p+1 < len(l.src) {
+						switch l.src[p+1] {
+						case '/', '\\', '[', ']':
+							p++
+							l.column++
+						}
+					}
+				case '[':
+					l.state.jsClass = true
+				case ']':
+					l.state.jsClass = false
+				case '/':
+					if !l.state.jsClass {
+						l.ctx = ast.ContextJS
+						l.state.jsDivision = true
+					}
+				case '\n', '\r':
+					// A regular expression cannot span lines.
+					l.ctx = ast.ContextJS
+					l.state.jsClass = false
+					l.state.jsDivision = false
+				case '<':
+					if isHTML && isEndScript(l.src[p:]) {
+						l.ctx = fileContext
+						l.state = scanState{}
 						p += 8
 						l.column += 8
 					}
@@ -871,9 +963,67 @@ func isEndScript(s []byte) bool {
 }
 
 // isStringContext reports whether the current context is a CSS, JavaScript
-// or JSON string.
+// or JSON string, including a JavaScript template literal, or a JavaScript
+// regular expression.
 func (l *lexer) isStringContext() bool {
-	return l.ctx == ast.ContextCSSString || l.ctx == ast.ContextJSString || l.ctx == ast.ContextJSONString
+	switch l.ctx {
+	case ast.ContextCSSString, ast.ContextJSString, ast.ContextJSONString, ast.ContextJSRegExp:
+		return true
+	}
+	return false
+}
+
+// regExpPrecederKeywords contains the JavaScript keywords that can be
+// followed by a regular expression literal.
+var regExpPrecederKeywords = map[string]bool{
+	"break":      true,
+	"case":       true,
+	"continue":   true,
+	"delete":     true,
+	"do":         true,
+	"else":       true,
+	"finally":    true,
+	"in":         true,
+	"instanceof": true,
+	"return":     true,
+	"throw":      true,
+	"try":        true,
+	"typeof":     true,
+	"void":       true,
+}
+
+// isJSIdentifierPart reports whether c can be part of a JavaScript
+// identifier or number. Bytes of non-ASCII characters are considered part
+// of an identifier.
+func isJSIdentifierPart(c byte) bool {
+	return c == '_' || c == '$' || isDecDigit(c) || isAlpha(c) || c >= 0x80
+}
+
+// isJSDivisionAfter reports whether a '/' that follows the JavaScript code s
+// is a division operator, and not the start of a regular expression. s ends
+// with a non-space character that is not a '+' or '-' following the same
+// character.
+func isJSDivisionAfter(s []byte) bool {
+	c := s[len(s)-1]
+	if c == ')' || c == ']' {
+		return true
+	}
+	return isJSIdentifierPart(c)
+}
+
+// endsWithRegExpPrecederKeyword reports whether the JavaScript code s, with
+// trailing spaces removed, ends with a keyword that can be followed by a
+// regular expression literal.
+func endsWithRegExpPrecederKeyword(s []byte) bool {
+	end := len(s)
+	for end > 0 && isASCIISpace(s[end-1]) {
+		end--
+	}
+	start := end
+	for start > 0 && isJSIdentifierPart(s[start-1]) {
+		start--
+	}
+	return regExpPrecederKeywords[string(s[start:end])]
 }
 
 // isShowStatementOrCommentStart reports whether l.src[p:] starts with a

@@ -88,3 +88,31 @@ func TestJSStringEscape(t *testing.T) {
 		}
 	}
 }
+
+func TestJSRegExpEscape(t *testing.T) {
+	tests := []struct {
+		src      string
+		expected string
+	}{
+		{"", "(?:)"},
+		{"a", "a"},
+		{"a.b", "a\\.b"},
+		{"^$.*+?()[]{}|/\\", "\\^\\$\\.\\*\\+\\?\\(\\)\\[\\]\\{\\}\\|\\/\\\\"},
+		{"a-b", "a\\u002db"},
+		{"\"'`&<>", "\\u0022\\u0027\\u0060\\u0026\\u003c\\u003e"},
+		{"\b\t\n", "\\u0008\\u0009\\u000a"},
+		{"a\u2028b\u2029c", "a\\u2028b\\u2029c"},
+		{"\u00e8", "\u00e8"},
+		{"!#%,:;=@~", "\\u0021\\u0023\\u0025\\u002c\\u003a\\u003b\\u003d\\u0040\\u007e"},
+	}
+	for _, tt := range tests {
+		var b strings.Builder
+		err := jsRegExpEscape(&b, tt.src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if b.String() != tt.expected {
+			t.Errorf("src: %q: expecting %q, got %q", tt.src, tt.expected, b.String())
+		}
+	}
+}
