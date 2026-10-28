@@ -97,6 +97,8 @@ func (r *renderer) Show(env *env, v any, context Context) error {
 		err = showInMarkdownCodeBlock(env, r.out, v, false)
 	case ast.ContextSpacesCodeBlock:
 		err = showInMarkdownCodeBlock(env, r.out, v, true)
+	case ast.ContextJSRegExp:
+		err = showInJSRegExp(env, r.out, v)
 	default:
 		panic("scriggo: unknown context")
 	}
@@ -863,22 +865,34 @@ func showInJSON(env *env, out io.Writer, value any) error {
 
 // showInJSString shows value in JSString context.
 func showInJSString(env *env, out io.Writer, value any) error {
-	var s string
-	switch v := value.(type) {
-	case fmt.Stringer:
-		s = v.String()
-	case native.EnvStringer:
-		s = v.String(env)
-	case error:
-		s = v.Error()
-	default:
-		var err error
-		s, err = toString(env, value)
-		if err != nil {
-			return err
-		}
+	s, err := jsStringValue(env, value)
+	if err != nil {
+		return err
 	}
 	return jsStringEscape(newStringWriter(out), s)
+}
+
+// showInJSRegExp shows value in JSRegExp context.
+func showInJSRegExp(env *env, out io.Writer, value any) error {
+	s, err := jsStringValue(env, value)
+	if err != nil {
+		return err
+	}
+	return jsRegExpEscape(newStringWriter(out), s)
+}
+
+// jsStringValue returns the string representation of value, as shown in a
+// JavaScript string.
+func jsStringValue(env *env, value any) (string, error) {
+	switch v := value.(type) {
+	case fmt.Stringer:
+		return v.String(), nil
+	case native.EnvStringer:
+		return v.String(env), nil
+	case error:
+		return v.Error(), nil
+	}
+	return toString(env, value)
 }
 
 // showInJSONString shows value in JSONString context.
