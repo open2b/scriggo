@@ -443,6 +443,7 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		"<script>b = /c/g / '{{a}}'</script>":         {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 		"<script>return /'/.test(b) + {{a}}</script>": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 		"<script>b = {{a}} / '{{a}}'</script>":        {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = {% show a %} / '{{a}}'</script>": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 		"<script>/b\n'{{a}}'</script>":                {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 		"<script>/b/</script>{{a}}":                   {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 
@@ -834,6 +835,8 @@ var blockContextTests = []struct {
 	{"<script>{% switch a %}{% case 1 %}'{% fallthrough %}{% case 2 %}'{% end %}</script>", ":1:39: syntax error: switch branches end in different contexts"},
 	{"<script>{% if a %}<!--{% end %}</script>", ":1:26: syntax error: if branches end in different contexts"},
 	{"<script>var b = {% if c %}1{% else %}({% end %}/d/;</script>", ":1:48: syntax error: '/' could start a division or a regular expression"},
+	{"<script>var a = {%% show v %%};</script>", ""},
+	{"<script>var a = {%% show v %%} / 2;</script>", ":1:32: syntax error: '/' could start a division or a regular expression"},
 	{"<script>{% if c %}b{% end %}--> d</script>", ":1:29: syntax error: '-->' could start a comment or be an operator"},
 	{"<script>var a = 1;{% for x in xs %}/'/.test(x) + '{{ v }}'; a{% end %}</script>", ":1:36: syntax error: '/' could start a division or a regular expression"},
 	{"<script>{% for x in xs %}--> b\n{% end %}</script>", ":1:26: syntax error: '-->' could start a comment or be an operator"},
