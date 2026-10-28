@@ -390,9 +390,21 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<style type=module>s{{a}}t</style>{{a}}`:     {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		`<style type="Module">s{{a}}t</style>{{a}}`:   {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		`<style type=" module ">s{{a}}t</style>{{a}}`: {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+
+		// Strings that end with an escaped backslash.
+		`<script>'\''{{a}}</script>`:                            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script>'\\'{{a}}</script>`:                            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script>"\\"{{a}}</script>`:                            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script>'\\\\'{{a}}</script>`:                          {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script>'\\\''{{a}}</script>`:                          {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script>'\\{{a}}'</script>`:                            {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		`<style>'\\'{{a}}</style>`:                              {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
+		`<style>"\\"{{a}}</style>`:                              {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
+		`<script type="application/ld+json">"\\"{{a}}</script>`: {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText},
 	},
 	ast.ContextCSS: {
 		`a`:                             {ast.ContextText},
+		`'\\'{{a}}`:                     {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS},
 		`{{a}}`:                         {ast.ContextCSS, ast.ContextCSS, ast.ContextCSS},
 		"<script></script>":             {ast.ContextText},
 		"<style></style>":               {ast.ContextText},
@@ -404,6 +416,8 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 	},
 	ast.ContextJS: {
 		`a`:                             {ast.ContextText},
+		`'\\'{{a}}`:                     {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
+		`"\\"{{a}}`:                     {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
 		`{{a}}`:                         {ast.ContextJS, ast.ContextJS, ast.ContextJS},
 		"<script></script>":             {ast.ContextText},
 		"<style></style>":               {ast.ContextText},
@@ -416,6 +430,7 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 	},
 	ast.ContextJSON: {
 		`a`:                             {ast.ContextText},
+		`"\\"{{a}}`:                     {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON},
 		`{{a}}`:                         {ast.ContextJSON, ast.ContextJSON, ast.ContextJSON},
 		"<script></script>":             {ast.ContextText},
 		"<style></style>":               {ast.ContextText},
@@ -677,6 +692,43 @@ CONTEXTS:
 			if i < len(contexts) {
 				t.Errorf("source: %q, less contexts\n", source)
 			}
+		}
+	}
+}
+
+var stringEscapeErrorTests = []struct {
+	format      ast.Format
+	src         string
+	noParseShow bool
+	err         string
+}{
+	{ast.FormatHTML, `<script>'\{{a}}'</script>`, false, ":1:10: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, `<script>"\{{a}}"</script>`, false, ":1:10: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, `<script>'\{% if a %}{% end %}'</script>`, false, ":1:10: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, `<script>'\{# c #}'</script>`, false, ":1:10: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, `<script>'\\\{{a}}'</script>`, false, ":1:12: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, `<style>'\{{a}}'</style>`, false, ":1:9: syntax error: unfinished escape sequence in CSS string"},
+	{ast.FormatHTML, `<script type="application/ld+json">"\{{a}}"</script>`, false, ":1:37: syntax error: unfinished escape sequence in JSON string"},
+	{ast.FormatJS, `'\{{a}}'`, false, ":1:2: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatCSS, `'\{{a}}'`, false, ":1:2: syntax error: unfinished escape sequence in CSS string"},
+	{ast.FormatJSON, `"\{{a}}"`, false, ":1:2: syntax error: unfinished escape sequence in JSON string"},
+	{ast.FormatHTML, `<script>'\\{{a}}'</script>`, false, ""},
+	{ast.FormatHTML, `<script>'\{a}'</script>`, false, ""},
+	{ast.FormatHTML, `<script>\{{a}}</script>`, false, ""},
+	{ast.FormatHTML, `<script>'\{{a}}'</script>`, true, ""},
+}
+
+func TestLexerStringEscapeErrors(t *testing.T) {
+	for _, test := range stringEscapeErrorTests {
+		lex := scanTemplate([]byte(test.src), test.format, test.noParseShow)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
 		}
 	}
 }
