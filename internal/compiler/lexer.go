@@ -302,6 +302,13 @@ func (l *lexer) scan() {
 			} else if c == '#' && p+1 < len(l.src) && l.src[p+1] == '}' {
 				l.err = l.errorf("unexpected #}")
 				break LOOP
+			} else if c == '\\' && l.isStringContext() && l.isShowStatementOrCommentStart(p+1) {
+				// The backslash would escape the first character rendered by
+				// the statement or comment that follows or, if it renders
+				// nothing, the character after it, which the lexer cannot
+				// determine here.
+				l.err = l.errorf("unfinished escape sequence in %s", l.ctx)
+				break LOOP
 			}
 
 			switch l.ctx {
@@ -481,7 +488,7 @@ func (l *lexer) scan() {
 			case ast.ContextCSSString:
 				switch c {
 				case '\\':
-					if p+1 < len(l.src) && l.src[p+1] == quote {
+					if p+1 < len(l.src) && (l.src[p+1] == quote || l.src[p+1] == '\\') {
 						p++
 						l.column++
 					}
@@ -533,7 +540,7 @@ func (l *lexer) scan() {
 			case ast.ContextJSString:
 				switch c {
 				case '\\':
-					if p+1 < len(l.src) && l.src[p+1] == quote {
+					if p+1 < len(l.src) && (l.src[p+1] == quote || l.src[p+1] == '\\') {
 						p++
 						l.column++
 					}
@@ -563,7 +570,7 @@ func (l *lexer) scan() {
 			case ast.ContextJSONString:
 				switch c {
 				case '\\':
-					if p+1 < len(l.src) && l.src[p+1] == '"' {
+					if p+1 < len(l.src) && (l.src[p+1] == '"' || l.src[p+1] == '\\') {
 						p++
 						l.column++
 					}
@@ -855,6 +862,27 @@ func isEndScript(s []byte) bool {
 	return len(s) >= 9 && s[0] == '<' && s[1] == '/' && (s[8] == '>' || isSpace(s[8])) &&
 		(s[2] == 's' || s[2] == 'S') && (s[3] == 'c' || s[3] == 'C') && (s[4] == 'r' || s[4] == 'R') &&
 		(s[5] == 'i' || s[5] == 'I') && (s[6] == 'p' || s[6] == 'P') && (s[7] == 't' || s[7] == 'T')
+}
+
+// isStringContext reports whether the current context is a CSS, JavaScript
+// or JSON string.
+func (l *lexer) isStringContext() bool {
+	return l.ctx == ast.ContextCSSString || l.ctx == ast.ContextJSString || l.ctx == ast.ContextJSONString
+}
+
+// isShowStatementOrCommentStart reports whether l.src[p:] starts with a
+// short show statement, a statement or a comment.
+func (l *lexer) isShowStatementOrCommentStart(p int) bool {
+	if p+1 >= len(l.src) || l.src[p] != '{' {
+		return false
+	}
+	switch l.src[p+1] {
+	case '{':
+		return !l.noParseShow
+	case '%', '#':
+		return true
+	}
+	return false
 }
 
 // lexShow emits tokens knowing that src starts with '{{'.
