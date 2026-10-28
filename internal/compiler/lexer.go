@@ -87,10 +87,11 @@ type lexer struct {
 	blocks []lexBlock  // blocks of the statements being scanned
 	state  scanState   // scan state, in addition to the context
 	tag    struct {    // current tag
-		name  string      // name
-		attr  string      // current attribute name
-		index int         // index of first byte of the current attribute value in src
-		ctx   ast.Context // context of the tag's content
+		name    string      // name
+		attr    string      // current attribute name
+		index   int         // index of first byte of the current attribute value in src
+		dynamic bool        // the current attribute value contains a show, a statement or a comment
+		ctx     ast.Context // context of the tag's content
 	}
 	rawMarker      []byte     // raw marker, not nil when a raw statement has been lexed
 	tokens         chan token // tokens, is closed at the end of the scan
@@ -527,6 +528,11 @@ func (l *lexer) scan() {
 			}
 
 			if c == '{' && p+1 < len(l.src) {
+				if (l.ctx == ast.ContextQuotedAttr || l.ctx == ast.ContextUnquotedAttr) && l.isShowStatementOrCommentStart(p) {
+					// The attribute value is not known at compile time, and
+					// l.tag.index will no longer be valid.
+					l.tag.dynamic = true
+				}
 				switch l.src[p+1] {
 				case '{':
 					if l.noParseShow {
@@ -732,7 +738,9 @@ func (l *lexer) scan() {
 						p = 0
 						lin = l.line
 						col = l.column
-					} else if l.tag.attr == "type" {
+					} else if l.tag.attr == "type" && !l.tag.dynamic {
+						// If the type is not known at compile time, the
+						// content is scanned as if the attribute were missing.
 						switch l.tag.name {
 						case "script":
 							typ := l.src[l.tag.index:p]
@@ -758,6 +766,7 @@ func (l *lexer) scan() {
 					l.ctx = ast.ContextTag
 					l.tag.attr = ""
 					l.tag.index = 0
+					l.tag.dynamic = false
 					if c == '>' {
 						continue
 					}
