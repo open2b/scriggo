@@ -572,6 +572,7 @@ func TestJSTemplateLiteralAndRegExpContexts(t *testing.T) {
 		{"after a template literal", "<script>const s = `It's` + {{ v }};</script>", "a", "<script>const s = `It's` + \"a\";</script>"},
 		{"after a regular expression", "<script>const s = /'/.test(t) ? {{ v }} : 0;</script>", "a", "<script>const s = /'/.test(t) ? \"a\" : 0;</script>"},
 		{"after a macro", "{% macro M js %}a{% end %}<script>/'/.test(t); const s = {{ v }};</script>", "a", "<script>/'/.test(t); const s = \"a\";</script>"},
+		{"after a show statement", "<script>const n = {% show v %} / 2; const s = '{{ v }}';</script>", "a.b", "<script>const n = \"a.b\" / 2; const s = 'a.b';</script>"},
 		{"regular expression", "<script>const r = /^{{ v }}$/;</script>", "a.b/c", "<script>const r = /^a\\.b\\/c$/;</script>"},
 		{"empty regular expression", "<script>const r = /{{ v }}/;</script>", "", "<script>const r = /(?:)/;</script>"},
 		{"regular expression class", "<script>const r = /[{{ v }}]/;</script>", "a-]", "<script>const r = /[a\\u002d\\]]/;</script>"},

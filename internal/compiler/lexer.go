@@ -339,6 +339,10 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 		return nil
 	}
 	switch typ {
+	case tokenShow:
+		if l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone {
+			l.endJSOperand()
+		}
 	case tokenIf:
 		l.beginBlock(blockIf)
 	case tokenFor:
@@ -437,10 +441,10 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 	return nil
 }
 
-// endJSLiteral updates the state at the end of a JavaScript string,
-// template literal or regular expression literal: a following '/' is a
-// division, and the line contains code.
-func (l *lexer) endJSLiteral() {
+// endJSOperand updates the state at the end of a JavaScript operand, such
+// as a string, a template literal, a regular expression literal or a shown
+// value: a following '/' is a division, and the line contains code.
+func (l *lexer) endJSOperand() {
 	l.state.jsDivision = true
 	l.state.jsDivisionUnknown = false
 	l.state.jsLineCode = true
@@ -548,10 +552,7 @@ func (l *lexer) scan() {
 						break LOOP
 					}
 					if l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone {
-						l.state.jsDivision = true
-						l.state.jsLineCode = true
-						l.state.jsDivisionUnknown = false
-						l.state.jsLineCodeUnknown = false
+						l.endJSOperand()
 					}
 					lin = l.line
 					col = l.column
@@ -901,7 +902,7 @@ func (l *lexer) scan() {
 				case l.state.quote:
 					l.ctx = ast.ContextJS
 					l.state.quote = 0
-					l.endJSLiteral()
+					l.endJSOperand()
 				case '$':
 					if l.state.quote == '`' && p+1 < len(l.src) && l.src[p+1] == '{' {
 						if !l.isShowStatementOrCommentStart(p + 1) {
@@ -945,7 +946,7 @@ func (l *lexer) scan() {
 				case '/':
 					if !l.state.jsClass {
 						l.ctx = ast.ContextJS
-						l.endJSLiteral()
+						l.endJSOperand()
 					}
 				case '\n', '\r':
 					// A regular expression cannot span lines.
@@ -1859,6 +1860,12 @@ LOOP:
 					return l.errorf("invalid character %#U", r)
 				}
 				typ, txt = l.lexIdentifierOrKeyword(s)
+			}
+			// A show statement among other statements may not be executed,
+			// so it is not known whether a following '/' is a division.
+			if end == tokenEndStatements && typ == tokenShow && l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone {
+				l.state.jsDivisionUnknown = true
+				l.state.jsLineCodeUnknown = true
 			}
 			// If it has lexed the first token after '{%', or the using
 			// keyword, updates the state of the scan for block statements.
