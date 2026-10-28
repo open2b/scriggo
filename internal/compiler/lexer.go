@@ -6,6 +6,7 @@ package compiler
 
 import (
 	"bytes"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -78,14 +79,14 @@ var emptyMarker = []byte{}
 
 // lexer maintains the scanner status.
 type lexer struct {
-	text     []byte        // text on which the scans are performed
-	src      []byte        // slice of the text used during the scan
-	line     int           // current line starting from 1
-	column   int           // current column starting from 1
-	ctx      ast.Context   // current context used during the scan
-	contexts []ast.Context // contexts of blocks nested in a macro or using statement.
-	state    scanState     // scan state, in addition to the context
-	tag      struct {      // current tag
+	text   []byte      // text on which the scans are performed
+	src    []byte      // slice of the text used during the scan
+	line   int         // current line starting from 1
+	column int         // current column starting from 1
+	ctx    ast.Context // current context used during the scan
+	blocks []lexBlock  // blocks of the statements being scanned
+	state  scanState   // scan state, in addition to the context
+	tag    struct {    // current tag
 		name  string      // name
 		attr  string      // current attribute name
 		index int         // index of first byte of the current attribute value in src
@@ -201,6 +202,273 @@ type scanState struct {
 	jsClass    bool           // in a class of a JavaScript regular expression
 	jsBraces   []int          // depth of the braces in JavaScript template literal substitutions
 	jsLineCode bool           // the current JavaScript line contains code before the current position
+
+	// jsDivisionUnknown and jsLineCodeUnknown report whether jsDivision and
+	// jsLineCode are unknown, because they differ in the branches of a
+	// statement.
+	jsDivisionUnknown bool
+	jsLineCodeUnknown bool
+}
+
+// clone returns a copy of s.
+func (s scanState) clone() scanState {
+	s.jsBraces = slices.Clone(s.jsBraces)
+	return s
+}
+
+// lexState is the state of the scan at a position.
+type lexState struct {
+	ctx   ast.Context
+	state scanState
+}
+
+// joinLexStates returns the state at the end of a statement whose branches
+// end in the states a and b. It returns false if the states cannot be
+// joined. If they differ only in jsDivision or jsLineCode, the joined
+// state has them unknown.
+func joinLexStates(a, b lexState) (lexState, bool) {
+	sa, sb := a.state, b.state
+	if a.ctx != b.ctx || sa.quote != sb.quote || sa.jsComment != sb.jsComment ||
+		sa.jsClass != sb.jsClass || !slices.Equal(sa.jsBraces, sb.jsBraces) {
+		return lexState{}, false
+	}
+	if sa.jsDivision != sb.jsDivision || sb.jsDivisionUnknown {
+		sa.jsDivision = false
+		sa.jsDivisionUnknown = true
+	}
+	if sa.jsLineCode != sb.jsLineCode || sb.jsLineCodeUnknown {
+		sa.jsLineCode = false
+		sa.jsLineCodeUnknown = true
+	}
+	return lexState{ctx: a.ctx, state: sa.clone()}, true
+}
+
+// blockKind is the kind of a block statement.
+type blockKind uint8
+
+const (
+	blockIf blockKind = iota
+	blockFor
+	blockSwitch
+	blockSelect
+	blockMacro // macro and using statements
+	blockRaw
+)
+
+// lexBlock represents a block statement being scanned.
+type lexBlock struct {
+	kind     blockKind
+	start    lexState  // state at the beginning of the block
+	end      *lexState // joined state at the end of the branches scanned so far
+	implicit bool      // whether the block can be executed without executing any branch
+	cases    bool      // whether a case has been scanned, for switch and select blocks
+	next     *lexState // state at the beginning of the next case, after a fallthrough
+}
+
+// snapshot returns the current state of the scan.
+func (l *lexer) snapshot() lexState {
+	return lexState{ctx: l.ctx, state: l.state.clone()}
+}
+
+// restore restores the state of the scan to s.
+func (l *lexer) restore(s lexState) {
+	l.ctx = s.ctx
+	l.state = s.state.clone()
+}
+
+// beginBlock begins a block of kind kind.
+func (l *lexer) beginBlock(kind blockKind) {
+	b := lexBlock{kind: kind, start: l.snapshot()}
+	switch kind {
+	case blockIf, blockFor, blockSwitch:
+		// An if statement without else, a for statement with no
+		// iterations, and a switch statement without default do not
+		// execute any branch.
+		b.implicit = true
+	case blockMacro:
+		// The body of a macro or using statement is scanned starting from
+		// an empty state.
+		l.state = scanState{}
+	}
+	if kind == blockFor {
+		// From the second iteration on, the body starts in the state at the
+		// end of the previous one, which is not known yet.
+		l.state.jsDivisionUnknown = true
+		l.state.jsLineCodeUnknown = true
+	}
+	l.blocks = append(l.blocks, b)
+}
+
+// endBranch ends the current branch of the block b. col is the column of the
+// keyword of the statement that ends the branch, used to report errors.
+func (l *lexer) endBranch(b *lexBlock, col int) error {
+	cur := l.snapshot()
+	if b.end == nil {
+		b.end = &cur
+		return nil
+	}
+	end, ok := joinLexStates(*b.end, cur)
+	if !ok {
+		return l.errorAtColumnf(col, "%s branches end in different contexts", b.kind)
+	}
+	b.end = &end
+	return nil
+}
+
+// lastBlock returns the innermost block of one of the given kinds, or nil
+// if there is no such block.
+func (l *lexer) lastBlock(kinds ...blockKind) *lexBlock {
+	for i := len(l.blocks) - 1; i >= 0; i-- {
+		if slices.Contains(kinds, l.blocks[i].kind) {
+			return &l.blocks[i]
+		}
+	}
+	return nil
+}
+
+// scanBlockStatement updates the state of the scan when the statement that
+// starts with the keyword typ is scanned. elseIf reports whether typ is
+// the 'if' keyword of an 'else if' statement. col is the column of the
+// keyword.
+func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
+	if elseIf {
+		if b := l.lastBlock(blockIf); b != nil {
+			b.implicit = true
+		}
+		return nil
+	}
+	switch typ {
+	case tokenIf:
+		l.beginBlock(blockIf)
+	case tokenFor:
+		l.beginBlock(blockFor)
+	case tokenSwitch:
+		l.beginBlock(blockSwitch)
+	case tokenSelect:
+		l.beginBlock(blockSelect)
+	case tokenMacro, tokenUsing:
+		l.beginBlock(blockMacro)
+	case tokenRaw:
+		l.beginBlock(blockRaw)
+	case tokenElse:
+		n := len(l.blocks)
+		if n == 0 {
+			return nil
+		}
+		b := &l.blocks[n-1]
+		if b.kind != blockIf && b.kind != blockFor {
+			return nil
+		}
+		if err := l.endBranch(b, col); err != nil {
+			return err
+		}
+		l.restore(b.start)
+		if b.kind == blockIf {
+			b.implicit = false
+		}
+	case tokenCase, tokenDefault:
+		n := len(l.blocks)
+		if n == 0 {
+			return nil
+		}
+		b := &l.blocks[n-1]
+		if b.kind != blockSwitch && b.kind != blockSelect {
+			return nil
+		}
+		start := b.start
+		if b.next != nil {
+			// The previous case ends with a fallthrough statement.
+			start = *b.next
+			b.next = nil
+		} else if b.cases {
+			if err := l.endBranch(b, col); err != nil {
+				return err
+			}
+		}
+		b.cases = true
+		l.restore(start)
+		if typ == tokenDefault {
+			b.implicit = false
+		}
+	case tokenBreak:
+		if b := l.lastBlock(blockFor, blockSwitch, blockSelect); b != nil {
+			return l.endBranch(b, col)
+		}
+	case tokenContinue:
+		if b := l.lastBlock(blockFor); b != nil {
+			return l.endBranch(b, col)
+		}
+	case tokenFallthrough:
+		// The next case is scanned starting from the join of the state at
+		// the beginning of the switch statement and the current state.
+		if b := l.lastBlock(blockSwitch); b != nil {
+			next, ok := joinLexStates(b.start, l.snapshot())
+			if !ok {
+				return l.errorAtColumnf(col, "%s branches end in different contexts", b.kind)
+			}
+			b.next = &next
+		}
+	case tokenEnd:
+		n := len(l.blocks)
+		if n == 0 {
+			return nil
+		}
+		b := l.blocks[n-1]
+		l.blocks = l.blocks[:n-1]
+		switch b.kind {
+		case blockMacro:
+			l.restore(b.start)
+		case blockRaw:
+		default:
+			if err := l.endBranch(&b, col); err != nil {
+				return err
+			}
+			if b.implicit {
+				end, ok := joinLexStates(*b.end, b.start)
+				if !ok {
+					return l.errorAtColumnf(col, "%s branches end in different contexts", b.kind)
+				}
+				b.end = &end
+			}
+			l.restore(*b.end)
+		}
+	}
+	return nil
+}
+
+// endJSLiteral updates the state at the end of a JavaScript string,
+// template literal or regular expression literal: a following '/' is a
+// division, and the line contains code.
+func (l *lexer) endJSLiteral() {
+	l.state.jsDivision = true
+	l.state.jsDivisionUnknown = false
+	l.state.jsLineCode = true
+	l.state.jsLineCodeUnknown = false
+}
+
+// errorAtColumnf is like errorf but reports the error at the column col of
+// the current line.
+func (l *lexer) errorAtColumnf(col int, format string, a ...any) *SyntaxError {
+	err := l.errorf(format, a...)
+	err.pos.Column = col
+	return err
+}
+
+// String returns the keyword of the block kind.
+func (k blockKind) String() string {
+	switch k {
+	case blockIf:
+		return "if"
+	case blockFor:
+		return "for"
+	case blockSwitch:
+		return "switch"
+	case blockSelect:
+		return "select"
+	case blockMacro:
+		return "macro"
+	}
+	return "raw"
 }
 
 // scan scans the text by placing the tokens on the tokens channel. If an
@@ -276,6 +544,8 @@ func (l *lexer) scan() {
 					if l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone {
 						l.state.jsDivision = true
 						l.state.jsLineCode = true
+						l.state.jsDivisionUnknown = false
+						l.state.jsLineCodeUnknown = false
 					}
 					lin = l.line
 					col = l.column
@@ -541,6 +811,17 @@ func (l *lexer) scan() {
 						p++
 						l.column++
 					}
+				} else if c == '/' && l.state.jsDivisionUnknown && p+1 < len(l.src) && l.src[p+1] != '/' && l.src[p+1] != '*' ||
+					c == '-' && l.state.jsLineCodeUnknown && bytes.HasPrefix(l.src[p:], jsHTMLCommentEnd) {
+					// It is not known whether '/' starts a regular expression
+					// or "-->" starts a comment, for example because the
+					// branches of a statement end in different states.
+					if c == '/' {
+						l.err = l.errorf("'/' could start a division or a regular expression")
+					} else {
+						l.err = l.errorf("'-->' could start a comment or be an operator")
+					}
+					break LOOP
 				} else if c == '<' && bytes.HasPrefix(l.src[p:], jsHTMLCommentStart) ||
 					c == '-' && !l.state.jsLineCode && bytes.HasPrefix(l.src[p:], jsHTMLCommentEnd) ||
 					c == '#' && p+1 < len(l.src) && l.src[p+1] == '!' {
@@ -597,8 +878,11 @@ func (l *lexer) scan() {
 				// "-->" starts a comment only at the beginning of a line.
 				if c == '\n' || c == '\r' {
 					l.state.jsLineCode = false
+					l.state.jsLineCodeUnknown = false
 				} else if code && l.state.jsComment == jsCommentNone {
 					l.state.jsLineCode = true
+					l.state.jsLineCodeUnknown = false
+					l.state.jsDivisionUnknown = false
 				}
 
 			case ast.ContextJSString:
@@ -612,7 +896,7 @@ func (l *lexer) scan() {
 				case l.state.quote:
 					l.ctx = ast.ContextJS
 					l.state.quote = 0
-					l.state.jsDivision = true
+					l.endJSLiteral()
 				case '$':
 					if l.state.quote == '`' && p+1 < len(l.src) && l.src[p+1] == '{' {
 						if !l.isShowStatementOrCommentStart(p + 1) {
@@ -656,7 +940,7 @@ func (l *lexer) scan() {
 				case '/':
 					if !l.state.jsClass {
 						l.ctx = ast.ContextJS
-						l.state.jsDivision = true
+						l.endJSLiteral()
 					}
 				case '\n', '\r':
 					// A regular expression cannot span lines.
@@ -1150,6 +1434,8 @@ func (l *lexer) lexCode(end tokenTyp) error {
 	}
 	// first is the index of the first token in code.
 	var first = l.totals + 1
+	// afterElse reports whether the first token is the else keyword.
+	var afterElse bool
 	// macroOrUsing indicates if it has lexed the macro keyword or the using keyword.
 	var macroOrUsing bool
 	// ident stores the index and the text of the last lexed identifier after a macro or a using keyword.
@@ -1538,26 +1824,26 @@ LOOP:
 				}
 				typ, txt = l.lexIdentifierOrKeyword(s)
 			}
-			// If it has lexed the first token after '{%', checks whether to store or restore the context.
+			// If it has lexed the first token after '{%', or the using
+			// keyword, updates the state of the scan for block statements.
 			if end == tokenEndStatement {
 				if l.totals == first {
-					switch typ {
-					case tokenMacro:
+					if typ == tokenMacro {
 						macroOrUsing = true
-						l.contexts = append(l.contexts, l.ctx)
-					case tokenEnd:
-						if last := len(l.contexts) - 1; last >= 0 {
-							l.ctx = l.contexts[last]
-							l.contexts = l.contexts[:last]
-						}
-					case tokenIf, tokenFor, tokenSwitch, tokenSelect:
-						if len(l.contexts) > 0 {
-							l.contexts = append(l.contexts, l.ctx)
-						}
+					}
+					afterElse = typ == tokenElse
+					if err := l.scanBlockStatement(typ, false, l.column-len(txt)); err != nil {
+						return err
+					}
+				} else if afterElse && l.totals == first+1 && typ == tokenIf {
+					if err := l.scanBlockStatement(typ, true, l.column-len(txt)); err != nil {
+						return err
 					}
 				} else if typ == tokenUsing {
 					macroOrUsing = true
-					l.contexts = append(l.contexts, l.ctx)
+					if err := l.scanBlockStatement(typ, false, l.column-len(txt)); err != nil {
+						return err
+					}
 				} else if macroOrUsing && typ == tokenIdentifier && l.totals != first+1 {
 					ident.index = l.totals
 					ident.txt = txt

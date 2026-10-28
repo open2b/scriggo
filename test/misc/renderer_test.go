@@ -633,6 +633,55 @@ func TestJSCommentContexts(t *testing.T) {
 	}
 }
 
+// TestStatementBranchContexts tests the contexts after the branches of
+// statements and after macros.
+func TestStatementBranchContexts(t *testing.T) {
+	tests := []struct {
+		name     string
+		file     string
+		src      string
+		expected string
+		err      string
+	}{
+		{"if branch", "index.html", "<script>const r = {% if true %}'Admin: {% else %}'User: {% end %}' + {{ v }};</script>", "<script>const r = 'Admin: ' + \"a\";</script>", ""},
+		{"else branch", "index.html", "<script>const r = {% if false %}'Admin: {% else %}'User: {% end %}' + {{ v }};</script>", "<script>const r = 'User: ' + \"a\";</script>", ""},
+		{"after a macro", "index.js", "{% macro M %}a{% end %}/'/.test(x); var s = {{ v }};", "/'/.test(x); var s = \"a\";", ""},
+		{"in a macro", "index.js", "var a = b{% macro M(s string) %}/'/.test(x) + {{ s }}{% end %};\n{{ M(v) }}", "var a = b;\n/'/.test(x) + \"a\"", ""},
+		{"raw in a macro", "index.js", "{% macro M %}{% raw %}'{% end raw %}{% end %}var s = '{{ v }}';", "var s = 'a';", ""},
+		{"fallthrough", "index.html", "<script>{% switch 1 %}{% case 1 %}var s = {{ v }}{% fallthrough %}{% case 2 %};{% end %}</script>", "<script>var s = \"a\";</script>", ""},
+		{"loop re-entry", "index.html", "<script>var a = 1;{% for x in []int{1, 2} %}/'/.test(x) + '{{ v }}'; a{% end %}</script>", "", "index.html:1:45: syntax error: '/' could start a division or a regular expression"},
+		{"different contexts", "index.html", "<script>{% if false %}'{% end %} var r = {{ v }};</script>", "", "index.html:1:27: syntax error: if branches end in different contexts"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vars := Vars{"v": "a"}
+			opts := &scriggo.BuildOptions{Globals: asDeclarations(vars)}
+			fsys := fstest.Files{tt.file: tt.src}
+			template, err := scriggo.BuildTemplate(fsys, tt.file, opts)
+			if err != nil {
+				if tt.err == "" {
+					t.Fatalf("unexpected build error: %s", err)
+				}
+				if err.Error() != tt.err {
+					t.Fatalf("expecting build error %q, got %q", tt.err, err)
+				}
+				return
+			}
+			if tt.err != "" {
+				t.Fatalf("expecting build error %q, got no error", tt.err)
+			}
+			var b bytes.Buffer
+			err = template.Run(&b, vars, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+			if got := b.String(); got != tt.expected {
+				t.Fatalf("expecting %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
 var jsonContextTests = []struct {
 	src  string
 	res  string

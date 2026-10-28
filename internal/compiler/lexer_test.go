@@ -787,6 +787,56 @@ func TestLexerStringEscapeErrors(t *testing.T) {
 	}
 }
 
+var blockContextTests = []struct {
+	src string
+	err string
+}{
+	{"<script>const r = {% if a %}'Admin: {% else %}'User: {% end %}' + {{ v }};</script>", ""},
+	{"<script>var b = {% if c %}1{% else %}2{% end %} / 2;</script>", ""},
+	{"<script>var b = {% if c %}1{% end %};</script>", ""},
+	{"<a href=\"{% if c %}/b{% else %}/c{% end %}\">d</a>", ""},
+	{"<script>[{% for x in xs %}{{ x }}, {% end %}]</script>", ""},
+	{"{% for x in xs %}{{ x }}{% else %}none{% end %}", ""},
+	{"<script>{% switch a %}{% case 1 %}'b'{% case 2 %}\"c\"{% default %}d{% end %}</script>", ""},
+	{"<script>{% for x in xs %}{% if x %}{% break %}{% end %}'b'{% end %}</script>", ""},
+	{"<script>{% for x in xs %}(/b/).test(x);{% end %}</script>", ""},
+	{"<script>{% switch a %}{% case 1 %}{{ v }}{% fallthrough %}{% case 2 %}, 1{% end %}</script>", ""},
+	{"<script>{% select %}{% case <-ch %}'b{% end %}'</script>", ""},
+	{"<script>var n = '{% for x in xs %}{{ x }}{% end %}' / 2;</script>", ""},
+	{"<script>var n = /{% for x in xs %}{{ x }}{% end %}/ / 2;</script>", ""},
+	{"<script>var n = `{% for x in xs %}{{ x }}{% end %}` / 2;</script>", ""},
+	{"<script>var n = '{% for x in xs %}{{ x }}{% end %}'-->0;</script>", ""},
+	{"<script>{% if a %}'{% end %} {{ v }}</script>", ":1:23: syntax error: if branches end in different contexts"},
+	{"<script>{% if a %}'b{% else %}\"c{% end %}</script>", ":1:36: syntax error: if branches end in different contexts"},
+	{"<script>{% if a %}{% else if b %}'{% else %}{% end %}</script>", ":1:38: syntax error: if branches end in different contexts"},
+	{"<script>{% for x in xs %}'{% end %}</script>", ":1:30: syntax error: for branches end in different contexts"},
+	{"<script>{% for x in xs %}'{% else %}{% end %}</script>", ":1:40: syntax error: for branches end in different contexts"},
+	{"<script>{% for x in xs %}'{% if x %}{% break %}{% end %}'{% end %}</script>", ":1:61: syntax error: for branches end in different contexts"},
+	{"<script>{% switch a %}{% case 1 %}'{% case 2 %}{% end %}</script>", ":1:51: syntax error: switch branches end in different contexts"},
+	{"<script>{% switch a %}{% case 1 %}'{% fallthrough %}{% case 2 %}'{% end %}</script>", ":1:39: syntax error: switch branches end in different contexts"},
+	{"<script>{% if a %}<!--{% end %}</script>", ":1:26: syntax error: if branches end in different contexts"},
+	{"<script>var b = {% if c %}1{% else %}({% end %}/d/;</script>", ":1:48: syntax error: '/' could start a division or a regular expression"},
+	{"<script>{% if c %}b{% end %}--> d</script>", ":1:29: syntax error: '-->' could start a comment or be an operator"},
+	{"<script>var a = 1;{% for x in xs %}/'/.test(x) + '{{ v }}'; a{% end %}</script>", ":1:36: syntax error: '/' could start a division or a regular expression"},
+	{"<script>{% for x in xs %}--> b\n{% end %}</script>", ":1:26: syntax error: '-->' could start a comment or be an operator"},
+	{"<script>{% switch a %}{% case 1 %}b{% fallthrough %}{% case 2 %}/c/{% end %}</script>", ":1:65: syntax error: '/' could start a division or a regular expression"},
+}
+
+func TestLexerBlockContexts(t *testing.T) {
+	for _, test := range blockContextTests {
+		lex := scanTemplate([]byte(test.src), ast.FormatHTML, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
 func TestLexerMacroOrUsingContexts(t *testing.T) {
 CONTEXTS:
 	for source, contexts := range macroAndUsingContextTests {
