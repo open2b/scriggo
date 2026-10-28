@@ -510,6 +510,54 @@ func TestStringEscapedBackslash(t *testing.T) {
 	}
 }
 
+// TestRenderInStringAndAttributeContexts tests that the content of a file
+// rendered in a tag, attribute, string or Markdown code block context is
+// escaped, as it is when the rendered content is first assigned to a
+// variable, while it is written as is in the HTML context.
+func TestRenderInStringAndAttributeContexts(t *testing.T) {
+	tests := []struct {
+		name     string
+		main     string
+		src      string // {X} is replaced with the shown expression
+		file     string
+		content  string
+		expected string
+	}{
+		{"quoted attribute", "index.html", `<a title="{X}">x</a>`, "p.html", `"><i>`, `<a title="&#34;&gt;&lt;i&gt;">x</a>`},
+		{"unquoted attribute", "index.html", `<a title={X}>x</a>`, "p.html", `"><i>`, `<a title=&#34;&gt;&lt;i&gt;>x</a>`},
+		{"URL attribute", "index.html", `<a href="{X}">x</a>`, "p.html", `"><i>`, `<a href="%22%3e%3ci%3e">x</a>`},
+		{"tag", "index.html", `<a {X}>x</a>`, "p.html", `"><i>`, "<a \uFFFD\uFFFD<i\uFFFD>x</a>"},
+		{"JS string", "index.html", `<script>var s = '{X}';</script>`, "p.js", `it's`, `<script>var s = 'it\u0027s';</script>`},
+		{"CSS string", "index.html", `<style>a::before { content: "{X}"; }</style>`, "p.css", `a"b`, `<style>a::before { content: "a\22 b"; }</style>`},
+		{"JSON string", "index.html", `<script type="application/ld+json">{"a": "{X}"}</script>`, "p.json", `a"b`, `<script type="application/ld+json">{"a": "a\"b"}</script>`},
+		{"Markdown code block", "index.md", "text\n\n    x {X}\n", "p.md", "a\nb", "text\n\n    x a\n    b\n"},
+		{"HTML", "index.html", `<div>{X}</div>`, "p.html", `<b>x</b>`, `<div><b>x</b></div>`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sources := map[string]string{
+				"render":          strings.Replace(tt.src, "{X}", `{{ render "`+tt.file+`" }}`, 1),
+				"render variable": `{% var r = render "` + tt.file + `" %}` + strings.Replace(tt.src, "{X}", "{{ r }}", 1),
+			}
+			for name, src := range sources {
+				fsys := fstest.Files{tt.main: src, tt.file: tt.content}
+				template, err := scriggo.BuildTemplate(fsys, tt.main, nil)
+				if err != nil {
+					t.Fatalf("%s: unexpected build error: %s", name, err)
+				}
+				var b bytes.Buffer
+				err = template.Run(&b, nil, nil)
+				if err != nil {
+					t.Fatalf("%s: unexpected run error: %s", name, err)
+				}
+				if got := b.String(); got != tt.expected {
+					t.Fatalf("%s: expecting %q, got %q", name, tt.expected, got)
+				}
+			}
+		})
+	}
+}
+
 var jsonContextTests = []struct {
 	src  string
 	res  string
