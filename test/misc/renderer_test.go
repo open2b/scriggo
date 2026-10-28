@@ -436,6 +436,80 @@ func TestJSTemplateLiteralEscapes(t *testing.T) {
 	}
 }
 
+// TestStringEscapedBackslash tests that a string ending with an escaped
+// backslash is closed by the following quote, so the values shown after it
+// are not in the string context.
+func TestStringEscapedBackslash(t *testing.T) {
+	tests := []struct {
+		name     string
+		files    fstest.Files
+		expected string
+		err      string
+	}{
+		{
+			name:     "JS single quoted string",
+			files:    fstest.Files{"index.html": `<script>var s = '\\'; var r = {{ v }};</script>`},
+			expected: `<script>var s = '\\'; var r = "a";</script>`,
+		},
+		{
+			name:     "JS double quoted string",
+			files:    fstest.Files{"index.html": `<script>var s = "\\"; var r = {{ v }};</script>`},
+			expected: `<script>var s = "\\"; var r = "a";</script>`,
+		},
+		{
+			name:     "JS file",
+			files:    fstest.Files{"index.js": `var s = '\\'; var r = {{ v }};`},
+			expected: `var s = '\\'; var r = "a";`,
+		},
+		{
+			name:     "CSS string",
+			files:    fstest.Files{"index.html": `<style>a::before { content: '\\'; font-family: {{ v }}; }</style>`},
+			expected: `<style>a::before { content: '\\'; font-family: "a"; }</style>`,
+		},
+		{
+			name:     "JSON string",
+			files:    fstest.Files{"index.html": `<script type="application/ld+json">{"s": "\\", "r": {{ v }} }</script>`},
+			expected: `<script type="application/ld+json">{"s": "\\", "r": "a" }</script>`,
+		},
+		{
+			name:  "backslash before a show",
+			files: fstest.Files{"index.html": `<script>var s = "\{{ v }}";</script>`},
+			err:   "index.html:1:18: syntax error: unfinished escape sequence in JavaScript string",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			name := "index.html"
+			if _, ok := tt.files[name]; !ok {
+				name = "index.js"
+			}
+			vars := Vars{"v": "a"}
+			opts := &scriggo.BuildOptions{Globals: asDeclarations(vars)}
+			template, err := scriggo.BuildTemplate(tt.files, name, opts)
+			if err != nil {
+				if tt.err == "" {
+					t.Fatalf("unexpected build error: %s", err)
+				}
+				if err.Error() != tt.err {
+					t.Fatalf("expecting build error %q, got %q", tt.err, err)
+				}
+				return
+			}
+			if tt.err != "" {
+				t.Fatalf("expecting build error %q, got no error", tt.err)
+			}
+			var b bytes.Buffer
+			err = template.Run(&b, vars, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+			if got := b.String(); got != tt.expected {
+				t.Fatalf("expecting %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
 var jsonContextTests = []struct {
 	src  string
 	res  string
