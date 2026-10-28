@@ -256,6 +256,11 @@ func cssStringEscape(w strWriter, s string) error {
 // jsStringEscapes contains the runes that must be escaped when placed within
 // a JavaScript and JSON string with single or double quotes, in addition to
 // the runes U+2028 and U+2029.
+//
+// '`', '$' and '{' are also escaped, so that an escaped string cannot
+// close or interpolate a JavaScript template literal if it ends up inside
+// one, for example when the template text that precedes it already contains
+// a '$', or when a rendered file or a macro is shown in a template literal.
 var jsStringEscapes = []string{
 	0:    `\u0000`,
 	1:    `\u0001`,
@@ -290,11 +295,14 @@ var jsStringEscapes = []string{
 	30:   `\u001e`,
 	31:   `\u001f`,
 	'"':  `\"`,
+	'$':  `\u0024`,
 	'&':  `\u0026`,
 	'\'': `\u0027`,
 	'<':  `\u003c`,
 	'>':  `\u003e`,
 	'\\': `\\`,
+	'`':  `\u0060`,
+	'{':  `\u007b`,
 }
 
 // jsStringEscape escapes the string s so it can be placed within a JavaScript

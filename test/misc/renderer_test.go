@@ -223,6 +223,11 @@ var scriptContextTests = []struct {
 	{`a`, `{"A":5,"B":2,"C":7,"D":3}`, Vars{"a": map[string]any{"A": 5, "B": 2, "C": 7, "D": 3}}},
 	{`a`, `{"":"c","\"\u0027":5}`, Vars{"a": map[string]any{"\"'": 5, "": "c"}}},
 	{`a`, `{"a\u0027b":3}`, Vars{"a": map[string]any{"a'b": 3}}},
+	{`"$"`, `"\u0024"`, nil},
+	{`"{}"`, `"\u007b}"`, nil},
+	{`a`, `"\u0060"`, Vars{"a": "`"}},
+	{`a`, `"\u0060\u0024\u007ba}\u0060"`, Vars{"a": "`${a}`"}},
+	{`a`, `{"\u0024\u007ba}":1}`, Vars{"a": map[string]any{"${a}": 1}}},
 }
 
 func TestScriptContext(t *testing.T) {
@@ -364,6 +369,73 @@ if ("{{ x }}") { } // DDD
 	}
 }
 
+// TestJSTemplateLiteralEscapes tests that strings shown in the JavaScript
+// and JSON contexts are escaped so that they cannot close or interpolate a
+// JavaScript template literal, also when they are shown through a rendered
+// file or a macro.
+func TestJSTemplateLiteralEscapes(t *testing.T) {
+	const v = "`${a}`"
+	const e = `\u0060\u0024\u007ba}\u0060` // escaped v
+	tests := []struct {
+		name     string
+		files    fstest.Files
+		expected string
+	}{
+		{
+			name:     "script",
+			files:    fstest.Files{"index.html": "<script>const s = `{{ v }}`;</script>"},
+			expected: "<script>const s = `\"" + e + "\"`;</script>",
+		},
+		{
+			name:     "JS file",
+			files:    fstest.Files{"index.js": "const s = `{{ v }}`;"},
+			expected: "const s = `\"" + e + "\"`;",
+		},
+		{
+			name:     "dollar in template text",
+			files:    fstest.Files{"index.html": "<script>const s = `It's ${{ v }}`;</script>"},
+			expected: "<script>const s = `It's $" + e + "`;</script>",
+		},
+		{
+			name:     "rendered JS file",
+			files:    fstest.Files{"index.html": "<script>const s = `{{ render \"p.js\" }}`;</script>", "p.js": "{{ v }}"},
+			expected: "<script>const s = `\"" + e + "\"`;</script>",
+		},
+		{
+			name:     "rendered JSON file",
+			files:    fstest.Files{"index.html": "<script>const s = `{{ render \"p.json\" }}`;</script>", "p.json": "{{ v }}"},
+			expected: "<script>const s = `\"" + e + "\"`;</script>",
+		},
+		{
+			name:     "macro",
+			files:    fstest.Files{"index.js": "{% macro M(s string) %}{{ s }}{% end %}const s = `{{ M(v) }}`;"},
+			expected: "const s = `\"" + e + "\"`;",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			name := "index.html"
+			if _, ok := tt.files[name]; !ok {
+				name = "index.js"
+			}
+			vars := Vars{"v": v}
+			opts := &scriggo.BuildOptions{Globals: asDeclarations(vars)}
+			template, err := scriggo.BuildTemplate(tt.files, name, opts)
+			if err != nil {
+				t.Fatalf("unexpected build error: %s", err)
+			}
+			var b bytes.Buffer
+			err = template.Run(&b, vars, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+			if got := b.String(); got != tt.expected {
+				t.Fatalf("expecting %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
 var jsonContextTests = []struct {
 	src  string
 	res  string
@@ -415,6 +487,9 @@ var jsStringContextTests = []struct {
 	{`0.1`, "0.1", nil},
 	{`a`, `a`, Vars{"a": "a"}},
 	{`a`, `\u003c\u003e\"`, Vars{"a": "<>\""}},
+	{`"$"`, `\u0024`, nil},
+	{`"{}"`, `\u007b}`, nil},
+	{`a`, `\u0060\u0024\u007ba}\u0060`, Vars{"a": "`${a}`"}},
 }
 
 func TestJSStringContext(t *testing.T) {
