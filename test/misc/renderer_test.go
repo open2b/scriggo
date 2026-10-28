@@ -369,13 +369,14 @@ if ("{{ x }}") { } // DDD
 	}
 }
 
-// TestJSTemplateLiteralEscapes tests that strings shown in the JavaScript
-// and JSON contexts are escaped so that they cannot close or interpolate a
-// JavaScript template literal, also when they are shown through a rendered
-// file or a macro.
+// TestJSTemplateLiteralEscapes tests that values shown in a JavaScript
+// template literal are escaped so that they cannot close it or start a
+// substitution, also when they are shown through a rendered file or a macro.
 func TestJSTemplateLiteralEscapes(t *testing.T) {
 	const v = "`${a}`"
 	const e = `\u0060\u0024\u007ba}\u0060` // escaped v
+	// er is the escaped form of the JavaScript string literal with value v.
+	er := `\"` + strings.ReplaceAll(e, `\`, `\\`) + `\"`
 	tests := []struct {
 		name     string
 		files    fstest.Files
@@ -384,12 +385,12 @@ func TestJSTemplateLiteralEscapes(t *testing.T) {
 		{
 			name:     "script",
 			files:    fstest.Files{"index.html": "<script>const s = `{{ v }}`;</script>"},
-			expected: "<script>const s = `\"" + e + "\"`;</script>",
+			expected: "<script>const s = `" + e + "`;</script>",
 		},
 		{
 			name:     "JS file",
 			files:    fstest.Files{"index.js": "const s = `{{ v }}`;"},
-			expected: "const s = `\"" + e + "\"`;",
+			expected: "const s = `" + e + "`;",
 		},
 		{
 			name:     "dollar in template text",
@@ -399,17 +400,17 @@ func TestJSTemplateLiteralEscapes(t *testing.T) {
 		{
 			name:     "rendered JS file",
 			files:    fstest.Files{"index.html": "<script>const s = `{{ render \"p.js\" }}`;</script>", "p.js": "{{ v }}"},
-			expected: "<script>const s = `\"" + e + "\"`;</script>",
+			expected: "<script>const s = `" + er + "`;</script>",
 		},
 		{
 			name:     "rendered JSON file",
 			files:    fstest.Files{"index.html": "<script>const s = `{{ render \"p.json\" }}`;</script>", "p.json": "{{ v }}"},
-			expected: "<script>const s = `\"" + e + "\"`;</script>",
+			expected: "<script>const s = `" + er + "`;</script>",
 		},
 		{
 			name:     "macro",
 			files:    fstest.Files{"index.js": "{% macro M(s string) %}{{ s }}{% end %}const s = `{{ M(v) }}`;"},
-			expected: "const s = `\"" + e + "\"`;",
+			expected: "const s = `" + er + "`;",
 		},
 	}
 	for _, tt := range tests {
@@ -553,6 +554,44 @@ func TestRenderInStringAndAttributeContexts(t *testing.T) {
 				if got := b.String(); got != tt.expected {
 					t.Fatalf("%s: expecting %q, got %q", name, tt.expected, got)
 				}
+			}
+		})
+	}
+}
+
+// TestJSTemplateLiteralAndRegExpContexts tests the values shown in
+// template literal substitutions, in regular expressions and after them.
+func TestJSTemplateLiteralAndRegExpContexts(t *testing.T) {
+	tests := []struct {
+		name     string
+		src      string
+		v        string
+		expected string
+	}{
+		{"substitution", "<script>const s = `${ {{ v }} }`;</script>", "a", "<script>const s = `${ \"a\" }`;</script>"},
+		{"after a template literal", "<script>const s = `It's` + {{ v }};</script>", "a", "<script>const s = `It's` + \"a\";</script>"},
+		{"after a regular expression", "<script>const s = /'/.test(t) ? {{ v }} : 0;</script>", "a", "<script>const s = /'/.test(t) ? \"a\" : 0;</script>"},
+		{"after a macro", "{% macro M js %}a{% end %}<script>/'/.test(t); const s = {{ v }};</script>", "a", "<script>/'/.test(t); const s = \"a\";</script>"},
+		{"regular expression", "<script>const r = /^{{ v }}$/;</script>", "a.b/c", "<script>const r = /^a\\.b\\/c$/;</script>"},
+		{"empty regular expression", "<script>const r = /{{ v }}/;</script>", "", "<script>const r = /(?:)/;</script>"},
+		{"regular expression class", "<script>const r = /[{{ v }}]/;</script>", "a-]", "<script>const r = /[a\\u002d\\]]/;</script>"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vars := Vars{"v": tt.v}
+			opts := &scriggo.BuildOptions{Globals: asDeclarations(vars)}
+			fsys := fstest.Files{"index.html": tt.src}
+			template, err := scriggo.BuildTemplate(fsys, "index.html", opts)
+			if err != nil {
+				t.Fatalf("unexpected build error: %s", err)
+			}
+			var b bytes.Buffer
+			err = template.Run(&b, vars, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+			if got := b.String(); got != tt.expected {
+				t.Fatalf("expecting %q, got %q", tt.expected, got)
 			}
 		})
 	}

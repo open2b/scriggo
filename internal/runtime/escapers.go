@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"strings"
+	"unicode/utf8"
 )
 
 const hexchars = "0123456789abcdef"
@@ -337,6 +338,119 @@ func jsStringEscape(w strWriter, s string) error {
 		} else {
 			last = i + 1
 		}
+	}
+	if last != len(s) {
+		_, err := w.WriteString(s[last:])
+		return err
+	}
+	return nil
+}
+
+// jsRegExpEscapes contains the runes that must be escaped when placed within
+// a JavaScript regular expression literal, in addition to the runes U+2028
+// and U+2029. The escapes are also valid in regular expressions with the 'u'
+// and 'v' flags, and the escaped punctuators include those that are reserved
+// when doubled in a class with the 'v' flag.
+var jsRegExpEscapes = []string{
+	0:    `\u0000`,
+	1:    `\u0001`,
+	2:    `\u0002`,
+	3:    `\u0003`,
+	4:    `\u0004`,
+	5:    `\u0005`,
+	6:    `\u0006`,
+	7:    `\u0007`,
+	8:    `\u0008`,
+	9:    `\u0009`,
+	10:   `\u000a`,
+	11:   `\u000b`,
+	12:   `\u000c`,
+	13:   `\u000d`,
+	14:   `\u000e`,
+	15:   `\u000f`,
+	16:   `\u0010`,
+	17:   `\u0011`,
+	18:   `\u0012`,
+	19:   `\u0013`,
+	20:   `\u0014`,
+	21:   `\u0015`,
+	22:   `\u0016`,
+	23:   `\u0017`,
+	24:   `\u0018`,
+	25:   `\u0019`,
+	26:   `\u001a`,
+	27:   `\u001b`,
+	28:   `\u001c`,
+	29:   `\u001d`,
+	30:   `\u001e`,
+	31:   `\u001f`,
+	'"':  `\u0022`,
+	'&':  `\u0026`,
+	'\'': `\u0027`,
+	'-':  `\u002d`,
+	'<':  `\u003c`,
+	'>':  `\u003e`,
+	'`':  `\u0060`,
+	'$':  `\$`,
+	'(':  `\(`,
+	')':  `\)`,
+	'*':  `\*`,
+	'+':  `\+`,
+	'.':  `\.`,
+	'/':  `\/`,
+	'?':  `\?`,
+	'[':  `\[`,
+	'\\': `\\`,
+	']':  `\]`,
+	'^':  `\^`,
+	'{':  `\{`,
+	'|':  `\|`,
+	'}':  `\}`,
+	'!':  `\u0021`,
+	'#':  `\u0023`,
+	'%':  `\u0025`,
+	',':  `\u002c`,
+	':':  `\u003a`,
+	';':  `\u003b`,
+	'=':  `\u003d`,
+	'@':  `\u0040`,
+	'~':  `\u007e`,
+}
+
+// jsRegExpEscape escapes the string s so it can be placed within a
+// JavaScript regular expression literal, where it matches s literally, and
+// writes it to w. If s is empty, it writes "(?:)" so that the regular
+// expression literal cannot become a comment.
+func jsRegExpEscape(w strWriter, s string) error {
+	if s == "" {
+		_, err := w.WriteString("(?:)")
+		return err
+	}
+	last := 0
+	for i, c := range s {
+		var esc string
+		switch {
+		case int(c) < len(jsRegExpEscapes):
+			esc = jsRegExpEscapes[c]
+		case c == '\u2028':
+			esc = `\u2028`
+		case c == '\u2029':
+			esc = `\u2029`
+		}
+		if esc == "" {
+			continue
+		}
+		if last != i {
+			_, err := w.WriteString(s[last:i])
+			if err != nil {
+				return err
+			}
+		}
+		_, err := w.WriteString(esc)
+		if err != nil {
+			return err
+		}
+		last = i + utf8.RuneLen(c)
 	}
 	if last != len(s) {
 		_, err := w.WriteString(s[last:])
