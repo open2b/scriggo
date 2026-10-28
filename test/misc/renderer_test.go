@@ -650,6 +650,9 @@ func TestStatementBranchContexts(t *testing.T) {
 		{"raw in a macro", "index.js", "{% macro M %}{% raw %}'{% end raw %}{% end %}var s = '{{ v }}';", "var s = 'a';", ""},
 		{"fallthrough", "index.html", "<script>{% switch 1 %}{% case 1 %}var s = {{ v }}{% fallthrough %}{% case 2 %};{% end %}</script>", "<script>var s = \"a\";</script>", ""},
 		{"loop re-entry", "index.html", "<script>var a = 1;{% for x in []int{1, 2} %}/'/.test(x) + '{{ v }}'; a{% end %}</script>", "", "index.html:1:45: syntax error: '/' could start a division or a regular expression"},
+		{"type in a branch", "index.html", "<script {% if false %}type=\"module\"{% end %}>var s = {{ v }};</script>", "<script >var s = \"a\";</script>", ""},
+		{"type value across branches", "index.html", "<script {% if true %}type=\"text/plain{% else %}type=\"module{% end %}\">var s = {{ v }};</script>", "<script type=\"text/plain\">var s = \"a\";</script>", ""},
+		{"different element types", "index.html", "<script {% if false %}type=\"text/plain\"{% end %}>var s = {{ v }};</script>", "", "index.html:1:43: syntax error: if branches end in different contexts"},
 		{"different contexts", "index.html", "<script>{% if false %}'{% end %} var r = {{ v }};</script>", "", "index.html:1:27: syntax error: if branches end in different contexts"},
 	}
 	for _, tt := range tests {

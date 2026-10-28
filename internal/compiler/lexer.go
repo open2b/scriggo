@@ -219,8 +219,9 @@ func (s scanState) clone() scanState {
 
 // lexState is the state of the scan at a position.
 type lexState struct {
-	ctx   ast.Context
-	state scanState
+	ctx    ast.Context
+	tagCtx ast.Context // context of the content of the current tag
+	state  scanState
 }
 
 // joinLexStates returns the state at the end of a statement whose branches
@@ -229,7 +230,7 @@ type lexState struct {
 // state has them unknown.
 func joinLexStates(a, b lexState) (lexState, bool) {
 	sa, sb := a.state, b.state
-	if a.ctx != b.ctx || sa.quote != sb.quote || sa.jsComment != sb.jsComment ||
+	if a.ctx != b.ctx || a.tagCtx != b.tagCtx || sa.quote != sb.quote || sa.jsComment != sb.jsComment ||
 		sa.jsClass != sb.jsClass || !slices.Equal(sa.jsBraces, sb.jsBraces) {
 		return lexState{}, false
 	}
@@ -241,7 +242,7 @@ func joinLexStates(a, b lexState) (lexState, bool) {
 		sa.jsLineCode = false
 		sa.jsLineCodeUnknown = true
 	}
-	return lexState{ctx: a.ctx, state: sa.clone()}, true
+	return lexState{ctx: a.ctx, tagCtx: a.tagCtx, state: sa.clone()}, true
 }
 
 // blockKind is the kind of a block statement.
@@ -268,12 +269,13 @@ type lexBlock struct {
 
 // snapshot returns the current state of the scan.
 func (l *lexer) snapshot() lexState {
-	return lexState{ctx: l.ctx, state: l.state.clone()}
+	return lexState{ctx: l.ctx, tagCtx: l.tag.ctx, state: l.state.clone()}
 }
 
 // restore restores the state of the scan to s.
 func (l *lexer) restore(s lexState) {
 	l.ctx = s.ctx
+	l.tag.ctx = s.tagCtx
 	l.state = s.state.clone()
 }
 
