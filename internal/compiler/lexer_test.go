@@ -390,12 +390,17 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<script type="text/{# c #}plain">s{{a}}</script>{{a}}`: {ast.ContextText, ast.ContextQuotedAttr, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		`<style type="{{a}}">s{{a}}t</style>{{a}}`:              {ast.ContextText, ast.ContextQuotedAttr, ast.ContextQuotedAttr, ast.ContextQuotedAttr, ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 
-		// JavaScript module
-		`<style type="module">s{{a}}t</style>{{a}}`:   {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-		`<style type='module'>s{{a}}t</style>{{a}}`:   {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-		`<style type=module>s{{a}}t</style>{{a}}`:     {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-		`<style type="Module">s{{a}}t</style>{{a}}`:   {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-		`<style type=" module ">s{{a}}t</style>{{a}}`: {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		// JavaScript module and other JavaScript types.
+		`<script type="module">s{{a}}t</script>{{a}}`:                         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type='module'>s{{a}}t</script>{{a}}`:                         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type=module>s{{a}}t</script>{{a}}`:                           {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="Module">s{{a}}t</script>{{a}}`:                         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type=" module ">s{{a}}t</script>{{a}}`:                       {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="application/javascript">s{{a}}t</script>{{a}}`:         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="text/ecmascript">s{{a}}t</script>{{a}}`:                {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="text/javascript; charset=utf-8">s{{a}}t</script>{{a}}`: {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="TEXT/X-JAVASCRIPT">s{{a}}t</script>{{a}}`:              {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="application/json">s{{a}}t</script>{{a}}`:               {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 
 		// Strings that end with an escaped backslash.
 		`<script>'\''{{a}}</script>`:                            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},

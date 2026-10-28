@@ -181,10 +181,8 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 	}
 }
 
-var jsMimeType = []byte("text/javascript")
 var jsonLDMimeType = []byte("application/ld+json")
 var cssMimeType = []byte("text/css")
-var moduleType = []byte("module")
 
 type jsCommentState uint8
 
@@ -745,15 +743,11 @@ func (l *lexer) scan() {
 						// content is scanned as if the attribute were missing.
 						switch l.tag.name {
 						case "script":
-							typ := l.src[l.tag.index:p]
-							if bytes.Equal(typ, moduleType) {
-								break
-							}
-							typ = bytes.TrimSpace(typ)
-							if len(typ) > 0 {
+							typ := bytes.TrimSpace(l.src[l.tag.index:p])
+							if len(typ) > 0 && !isJSMimeType(typ) {
 								if bytes.EqualFold(typ, jsonLDMimeType) {
 									l.tag.ctx = ast.ContextJSON
-								} else if !bytes.EqualFold(typ, jsMimeType) {
+								} else {
 									l.tag.ctx = fileContext
 								}
 							}
@@ -1266,6 +1260,37 @@ func isEndStyle(s []byte) bool {
 	return len(s) >= 8 && s[0] == '<' && s[1] == '/' && (s[7] == '>' || isSpace(s[7])) &&
 		(s[2] == 's' || s[2] == 'S') && (s[3] == 't' || s[3] == 'T') && (s[4] == 'y' || s[4] == 'Y') &&
 		(s[5] == 'l' || s[5] == 'L') && (s[6] == 'e' || s[6] == 'E')
+}
+
+// jsMimeTypes contains the types, in lower case and without parameters, of
+// the script elements whose content is executed as JavaScript. They are the
+// same types as in Go's html/template, except the JSON types.
+var jsMimeTypes = map[string]bool{
+	"application/ecmascript":   true,
+	"application/javascript":   true,
+	"application/x-ecmascript": true,
+	"application/x-javascript": true,
+	"module":                   true,
+	"text/ecmascript":          true,
+	"text/javascript":          true,
+	"text/javascript1.0":       true,
+	"text/javascript1.1":       true,
+	"text/javascript1.2":       true,
+	"text/javascript1.3":       true,
+	"text/javascript1.4":       true,
+	"text/javascript1.5":       true,
+	"text/jscript":             true,
+	"text/livescript":          true,
+	"text/x-ecmascript":        true,
+	"text/x-javascript":        true,
+}
+
+// isJSMimeType reports whether typ, the value of the type attribute of a
+// script element, is a JavaScript type. Parameters, case and spaces are
+// ignored.
+func isJSMimeType(typ []byte) bool {
+	typ, _, _ = bytes.Cut(typ, []byte(";"))
+	return jsMimeTypes[strings.ToLower(string(bytes.TrimSpace(typ)))]
 }
 
 // isEndScript reports whether s is the start or end of "script" tag.
