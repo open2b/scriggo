@@ -825,6 +825,8 @@ var blockContextTests = []struct {
 	{"<script {% if a %}type=\"text/plain\"{% end %}>{{ v }}</script>", ":1:39: syntax error: if branches end in different contexts"},
 	{"<script {% if a %}type=\"text/plain\"{% else %}type=\"module\"{% end %}>{{ v }}</script>", ":1:62: syntax error: if branches end in different contexts"},
 	{"<script {% for x in xs %}type=\"text/plain\" {% end %}>{{ v }}</script>", ":1:47: syntax error: for branches end in different contexts"},
+	{"<script>{% if a %}{% show itea; using %}b{% end using %}{% end %} {{ v }}</script>", ""},
+	{"<script>{% if a %}{% show itea; using %}b{% end using %}\"{% end %} {{ v }}</script>", ":1:61: syntax error: if branches end in different contexts"},
 	{"<script>{% if a %}'{% end %} {{ v }}</script>", ":1:23: syntax error: if branches end in different contexts"},
 	{"<script>{% if a %}'b{% else %}\"c{% end %}</script>", ":1:36: syntax error: if branches end in different contexts"},
 	{"<script>{% if a %}{% else if b %}'{% else %}{% end %}</script>", ":1:38: syntax error: if branches end in different contexts"},

@@ -1473,6 +1473,8 @@ func (l *lexer) lexCode(end tokenTyp) error {
 	var first = l.totals + 1
 	// afterElse reports whether the first token is the else keyword.
 	var afterElse bool
+	// afterEnd reports whether the first token is the end keyword.
+	var afterEnd bool
 	// macroOrUsing indicates if it has lexed the macro keyword or the using keyword.
 	var macroOrUsing bool
 	// ident stores the index and the text of the last lexed identifier after a macro or a using keyword.
@@ -1875,6 +1877,7 @@ LOOP:
 						macroOrUsing = true
 					}
 					afterElse = typ == tokenElse
+					afterEnd = typ == tokenEnd
 					if err := l.scanBlockStatement(typ, false, l.column-len(txt)); err != nil {
 						return err
 					}
@@ -1882,7 +1885,9 @@ LOOP:
 					if err := l.scanBlockStatement(typ, true, l.column-len(txt)); err != nil {
 						return err
 					}
-				} else if typ == tokenUsing {
+				} else if typ == tokenUsing && !afterEnd {
+					// A using keyword after end, as in {% end using %}, does
+					// not start a using statement.
 					macroOrUsing = true
 					if err := l.scanBlockStatement(typ, false, l.column-len(txt)); err != nil {
 						return err
