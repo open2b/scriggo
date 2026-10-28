@@ -82,6 +82,7 @@ type lexer struct {
 	column   int           // current column starting from 1
 	ctx      ast.Context   // current context used during the scan
 	contexts []ast.Context // contexts of blocks nested in a macro or using statement.
+	state    scanState     // scan state, in addition to the context
 	tag      struct {      // current tag
 		name  string      // name
 		attr  string      // current attribute name
@@ -189,6 +190,13 @@ const (
 	jsCommentBlock
 )
 
+// scanState is the state of the scan that, in addition to the context, is
+// needed to determine the context of the text that follows.
+type scanState struct {
+	quote     byte           // quote of the current attribute value or string
+	jsComment jsCommentState // current JavaScript comment
+}
+
 // scan scans the text by placing the tokens on the tokens channel. If an
 // error occurs, it puts the error in err, closes the channel and returns.
 func (l *lexer) scan() {
@@ -212,9 +220,7 @@ func (l *lexer) scan() {
 		lin := l.line   // token line
 		col := l.column // token column
 
-		var quote = byte(0)
 		var emittedURL bool
-		var jsComment jsCommentState
 
 		fileContext := l.ctx
 
@@ -400,13 +406,13 @@ func (l *lexer) scan() {
 						if l.tag.attr != "" && p < len(l.src) {
 							// Start attribute value.
 							if c := l.src[p]; c == '"' || c == '\'' {
-								quote = c
+								l.state.quote = c
 								p++
 								l.column++
 							}
 							if containsURL(l.tag.name, l.tag.attr) {
 								l.emitAtLineColumn(lin, col, tokenText, p)
-								if quote == 0 {
+								if l.state.quote == 0 {
 									l.ctx = ast.ContextUnquotedAttr
 								} else {
 									l.ctx = ast.ContextQuotedAttr
@@ -418,7 +424,7 @@ func (l *lexer) scan() {
 								col = l.column
 							} else {
 								l.tag.index = p
-								if quote == 0 {
+								if l.state.quote == 0 {
 									l.ctx = ast.ContextUnquotedAttr
 								} else {
 									l.ctx = ast.ContextQuotedAttr
@@ -430,10 +436,10 @@ func (l *lexer) scan() {
 				}
 
 			case ast.ContextQuotedAttr, ast.ContextUnquotedAttr:
-				if l.ctx == ast.ContextQuotedAttr && c == quote ||
+				if l.ctx == ast.ContextQuotedAttr && c == l.state.quote ||
 					l.ctx == ast.ContextUnquotedAttr && (c == '>' || isASCIISpace(c)) {
 					// End attribute.
-					quote = 0
+					l.state.quote = 0
 					if emittedURL {
 						if p > 0 {
 							l.emitAtLineColumn(lin, col, tokenText, p)
@@ -482,23 +488,23 @@ func (l *lexer) scan() {
 					l.column += 7
 				} else if c == '"' || c == '\'' {
 					l.ctx = ast.ContextCSSString
-					quote = c
+					l.state.quote = c
 				}
 
 			case ast.ContextCSSString:
 				switch c {
 				case '\\':
-					if p+1 < len(l.src) && (l.src[p+1] == quote || l.src[p+1] == '\\') {
+					if p+1 < len(l.src) && (l.src[p+1] == l.state.quote || l.src[p+1] == '\\') {
 						p++
 						l.column++
 					}
-				case quote:
+				case l.state.quote:
 					l.ctx = ast.ContextCSS
-					quote = 0
+					l.state.quote = 0
 				case '<':
 					if isHTML && isEndStyle(l.src[p:]) {
 						l.ctx = fileContext
-						quote = 0
+						l.state.quote = 0
 						p += 7
 						l.column += 7
 					}
@@ -508,49 +514,49 @@ func (l *lexer) scan() {
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
 					l.ctx = fileContext
-					jsComment = jsCommentNone
+					l.state.jsComment = jsCommentNone
 					p += 8
 					l.column += 8
-				} else if jsComment == jsCommentLine {
+				} else if l.state.jsComment == jsCommentLine {
 					if c == '\n' || c == '\r' {
-						jsComment = jsCommentNone
+						l.state.jsComment = jsCommentNone
 					}
-				} else if jsComment == jsCommentBlock {
+				} else if l.state.jsComment == jsCommentBlock {
 					if c == '*' && p+1 < len(l.src) && l.src[p+1] == '/' {
-						jsComment = jsCommentNone
+						l.state.jsComment = jsCommentNone
 						p++
 						l.column++
 					}
 				} else if c == '/' && p+1 < len(l.src) {
 					switch l.src[p+1] {
 					case '/':
-						jsComment = jsCommentLine
+						l.state.jsComment = jsCommentLine
 						p++
 						l.column++
 					case '*':
-						jsComment = jsCommentBlock
+						l.state.jsComment = jsCommentBlock
 						p++
 						l.column++
 					}
 				} else if c == '"' || c == '\'' {
 					l.ctx = ast.ContextJSString
-					quote = c
+					l.state.quote = c
 				}
 
 			case ast.ContextJSString:
 				switch c {
 				case '\\':
-					if p+1 < len(l.src) && (l.src[p+1] == quote || l.src[p+1] == '\\') {
+					if p+1 < len(l.src) && (l.src[p+1] == l.state.quote || l.src[p+1] == '\\') {
 						p++
 						l.column++
 					}
-				case quote:
+				case l.state.quote:
 					l.ctx = ast.ContextJS
-					quote = 0
+					l.state.quote = 0
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
 						l.ctx = fileContext
-						quote = 0
+						l.state.quote = 0
 						p += 8
 						l.column += 8
 					}
@@ -564,7 +570,7 @@ func (l *lexer) scan() {
 					l.column += 8
 				} else if c == '"' {
 					l.ctx = ast.ContextJSONString
-					quote = '"'
+					l.state.quote = '"'
 				}
 
 			case ast.ContextJSONString:
@@ -576,11 +582,11 @@ func (l *lexer) scan() {
 					}
 				case '"':
 					l.ctx = ast.ContextJSON
-					quote = 0
+					l.state.quote = 0
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
 						l.ctx = fileContext
-						quote = 0
+						l.state.quote = 0
 						p += 8
 						l.column += 8
 					}
