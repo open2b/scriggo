@@ -434,6 +434,19 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		"<script>b = {{a}} / '{{a}}'</script>":        {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 		"<script>/b\n'{{a}}'</script>":                {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 		"<script>/b/</script>{{a}}":                   {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+
+		// HTML-like and hashbang comments.
+		"<script><!-- it's\n{{a}}</script>":           {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>  --> it's\n{{a}}</script>":          {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>a = 1\n--> it's\n{{a}}</script>":     {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>/* c */ --> it's\n{{a}}</script>":    {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>while (n-->0) r = /{{a}}/;</script>": {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
+		"<script>while (n-->0) s = '{{a}}';</script>": {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>{{a}} --> '{{a}}'</script>":          {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>--> it's\n{{a}}</script>":            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>#! it's\n{{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>'<!--' + {{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>`<!--` + {{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 	},
 	ast.ContextCSS: {
 		`a`:                             {ast.ContextText},
@@ -449,6 +462,7 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 	},
 	ast.ContextJS: {
 		`a`:                             {ast.ContextText},
+		"<!-- it's\n{{a}}":              {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
 		"`{{a}}`":                       {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 		"/{{a}}/":                       {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
 		"`It's` {{a}}":                  {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},

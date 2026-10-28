@@ -308,11 +308,17 @@ var jsStringEscapes = []string{
 
 // jsStringEscape escapes the string s so it can be placed within a JavaScript
 // and JSON string with single or double quotes, and write it to w.
+//
+// A '/' that follows a '*' is escaped, so that an escaped string shown in a
+// JavaScript comment cannot close it.
 func jsStringEscape(w strWriter, s string) error {
 	last := 0
 	for i, c := range s {
 		var esc string
 		switch {
+		case c == '/' && i > 0 && s[i-1] == '*':
+			// Prevent "*/" from closing a JavaScript comment.
+			esc = `\/`
 		case int(c) < len(jsStringEscapes):
 			esc = jsStringEscapes[c]
 		case c == '\u2028':

@@ -597,6 +597,42 @@ func TestJSTemplateLiteralAndRegExpContexts(t *testing.T) {
 	}
 }
 
+// TestJSCommentContexts tests the values shown in JavaScript comments and
+// after them.
+func TestJSCommentContexts(t *testing.T) {
+	tests := []struct {
+		name     string
+		src      string
+		v        string
+		expected string
+	}{
+		{"value in a block comment", "<script>/* {{ v }} */</script>", "a*/b", "<script>/* \"a*\\/b\" */</script>"},
+		{"value in a line comment", "<script>// {{ v }}\n</script>", "a\nb", "<script>// \"a\\nb\"\n</script>"},
+		{"decrement and comparison before a regular expression", "<script>while (n-->0) r = /{{ v }}/;</script>", "a/b", "<script>while (n-->0) r = /a\\/b/;</script>"},
+		{"decrement and comparison before a string", "<script>while (n-->0) s = '{{ v }}';</script>", "a", "<script>while (n-->0) s = 'a';</script>"},
+		{"after an HTML-like comment", "<script><!-- it's\nconst s = {{ v }};</script>", "a", "<script><!-- it's\nconst s = \"a\";</script>"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vars := Vars{"v": tt.v}
+			opts := &scriggo.BuildOptions{Globals: asDeclarations(vars)}
+			fsys := fstest.Files{"index.html": tt.src}
+			template, err := scriggo.BuildTemplate(fsys, "index.html", opts)
+			if err != nil {
+				t.Fatalf("unexpected build error: %s", err)
+			}
+			var b bytes.Buffer
+			err = template.Run(&b, vars, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+			if got := b.String(); got != tt.expected {
+				t.Fatalf("expecting %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
 var jsonContextTests = []struct {
 	src  string
 	res  string

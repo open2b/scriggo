@@ -71,6 +71,8 @@ func (l *lexer) Stop() {
 
 var cdataStart = []byte("<![CDATA[")
 var cdataEnd = []byte("]]>")
+var jsHTMLCommentStart = []byte("<!--")
+var jsHTMLCommentEnd = []byte("-->")
 
 var emptyMarker = []byte{}
 
@@ -198,6 +200,7 @@ type scanState struct {
 	jsDivision bool           // a JavaScript '/' is a division, not a regular expression
 	jsClass    bool           // in a class of a JavaScript regular expression
 	jsBraces   []int          // depth of the braces in JavaScript template literal substitutions
+	jsLineCode bool           // the current JavaScript line contains code before the current position
 }
 
 // scan scans the text by placing the tokens on the tokens channel. If an
@@ -272,6 +275,7 @@ func (l *lexer) scan() {
 					}
 					if l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone {
 						l.state.jsDivision = true
+						l.state.jsLineCode = true
 					}
 					lin = l.line
 					col = l.column
@@ -520,6 +524,7 @@ func (l *lexer) scan() {
 				}
 
 			case ast.ContextJS:
+				code := l.state.jsComment == jsCommentNone && !isASCIISpace(c)
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
 					l.ctx = fileContext
@@ -536,6 +541,13 @@ func (l *lexer) scan() {
 						p++
 						l.column++
 					}
+				} else if c == '<' && bytes.HasPrefix(l.src[p:], jsHTMLCommentStart) ||
+					c == '-' && !l.state.jsLineCode && bytes.HasPrefix(l.src[p:], jsHTMLCommentEnd) ||
+					c == '#' && p+1 < len(l.src) && l.src[p+1] == '!' {
+					// HTML-like comments and hashbang comments are treated as
+					// line comments. "-->" is a comment only at the beginning of
+					// a line, as in "n-->0" it is a decrement and a comparison.
+					l.state.jsComment = jsCommentLine
 				} else if c == '/' && p+1 < len(l.src) && l.src[p+1] == '/' {
 					l.state.jsComment = jsCommentLine
 					p++
@@ -581,6 +593,12 @@ func (l *lexer) scan() {
 					l.state.jsDivision = !l.state.jsDivision
 				} else if !isASCIISpace(c) {
 					l.state.jsDivision = isJSDivisionAfter(l.src[:p+1])
+				}
+				// "-->" starts a comment only at the beginning of a line.
+				if c == '\n' || c == '\r' {
+					l.state.jsLineCode = false
+				} else if code && l.state.jsComment == jsCommentNone {
+					l.state.jsLineCode = true
 				}
 
 			case ast.ContextJSString:
