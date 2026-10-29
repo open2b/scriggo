@@ -393,9 +393,9 @@ func TestJSTemplateLiteralEscapes(t *testing.T) {
 			expected: "const s = `" + e + "`;",
 		},
 		{
-			name:     "dollar in template text",
-			files:    fstest.Files{"index.html": "<script>const s = `It's ${{ v }}`;</script>"},
-			expected: "<script>const s = `It's $" + e + "`;</script>",
+			name:     "escaped dollar in template text",
+			files:    fstest.Files{"index.html": "<script>const s = `It's \\${{ v }}`;</script>"},
+			expected: "<script>const s = `It's \\$" + e + "`;</script>",
 		},
 		{
 			name:     "rendered JS file",
