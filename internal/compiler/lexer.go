@@ -266,6 +266,7 @@ type lexBlock struct {
 	body     lexState  // state at the beginning of the body, for macro and using blocks
 	inPlace  bool      // whether the content of a using body is shown in place
 	next     *lexState // state at the beginning of the next case, after a fallthrough
+	label    string    // label of the statement, if any
 }
 
 // snapshot returns the current state of the scan.
@@ -337,6 +338,29 @@ func (l *lexer) lastBlock(kinds ...blockKind) *lexBlock {
 		}
 	}
 	return nil
+}
+
+// nextIdentifier returns the identifier at the beginning of l.src, after
+// spaces, tabs and general comments, or an empty string if there is no
+// identifier.
+func (l *lexer) nextIdentifier() string {
+	s := bytes.TrimLeft(l.src, " \t")
+	for bytes.HasPrefix(s, []byte("/*")) {
+		i := bytes.Index(s[2:], []byte("*/"))
+		if i < 0 {
+			return ""
+		}
+		s = bytes.TrimLeft(s[i+4:], " \t")
+	}
+	n := 0
+	for n < len(s) {
+		r, size := utf8.DecodeRune(s[n:])
+		if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			break
+		}
+		n += size
+	}
+	return string(s[:n])
 }
 
 // endBody checks that the scan is in a state in which the content of the
@@ -431,13 +455,32 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 		if typ == tokenDefault {
 			b.implicit = false
 		}
-	case tokenBreak:
-		if b := l.lastBlock(blockFor, blockSwitch, blockSelect); b != nil {
-			return l.endBranch(b, col)
+	case tokenBreak, tokenContinue:
+		// A break or continue statement ends a branch of the innermost
+		// statement it can refer to. With a label, it also ends a branch of
+		// every statement up to the one with the label: Go exits the
+		// statement with the label, while Scriggo currently exits only the
+		// innermost one.
+		kinds := []blockKind{blockFor}
+		if typ == tokenBreak {
+			kinds = append(kinds, blockSwitch, blockSelect)
 		}
-	case tokenContinue:
-		if b := l.lastBlock(blockFor); b != nil {
-			return l.endBranch(b, col)
+		label := l.nextIdentifier()
+		for i := len(l.blocks) - 1; i >= 0; i-- {
+			b := &l.blocks[i]
+			if b.kind == blockMacro || b.kind == blockUsing {
+				// A statement cannot refer to a block outside the body.
+				break
+			}
+			if !slices.Contains(kinds, b.kind) {
+				continue
+			}
+			if err := l.endBranch(b, col); err != nil {
+				return err
+			}
+			if label == "" || b.label == label {
+				break
+			}
 		}
 	case tokenReturn:
 		// A return statement ends the content of a macro or using body.
@@ -1580,6 +1623,9 @@ func (l *lexer) lexCode(end tokenTyp) error {
 	var first = l.totals + 1
 	// afterElse reports whether the first token is the else keyword.
 	var afterElse bool
+	// label is the label of the statement, if any, and firstIdent the first
+	// token if it is an identifier, which is a label if followed by a colon.
+	var label, firstIdent string
 	// afterEnd reports whether the first token is the end keyword.
 	var afterEnd bool
 	// afterShow reports whether the first token is the show keyword, and
@@ -1934,6 +1980,12 @@ LOOP:
 			} else {
 				l.emit(tokenColon, 1)
 				l.column++
+				if end == tokenEndStatement && firstIdent != "" && l.totals == first+1 {
+					// In a labeled statement, the first token is the one that
+					// follows the label and the colon.
+					label = firstIdent
+					first += 2
+				}
 			}
 			endLineAsSemicolon = false
 		case ',':
@@ -1998,7 +2050,9 @@ LOOP:
 			// If it has lexed the first token after '{%', or the using
 			// keyword, updates the state of the scan for block statements.
 			if end == tokenEndStatement {
-				if l.totals == first {
+				if l.totals == first && typ == tokenIdentifier {
+					firstIdent = txt
+				} else if l.totals == first {
 					if typ == tokenMacro {
 						macroOrUsing = true
 					}
@@ -2008,8 +2062,12 @@ LOOP:
 					if afterShow {
 						beforeShow = l.state.clone()
 					}
+					n := len(l.blocks)
 					if err := l.scanBlockStatement(typ, false, l.column-len(txt)); err != nil {
 						return err
+					}
+					if label != "" && len(l.blocks) > n {
+						l.blocks[len(l.blocks)-1].label = label
 					}
 				} else if afterElse && l.totals == first+1 && typ == tokenIf {
 					if err := l.scanBlockStatement(typ, true, l.column-len(txt)); err != nil {
