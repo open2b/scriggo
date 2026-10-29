@@ -348,8 +348,6 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<script>'{{a}}'{{a}}</script>`:                {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 		`<script>// it's bad\n{{a}}</script>`:          {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 		`<script>/* it's bad */{{a}}</script>`:         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
-		`<script>'</script>'{{a}}</script>`:            {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
-		`<script>"</script>"{{a}}</script>`:            {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
 		`<script async></script>{{ "a" }}`:             {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 
 		`<script type="application/ld+json">s{{a}}t</script>{{a}}`:     {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
@@ -430,7 +428,6 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		"<script>`${{a}}`</script>":                   {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 		"<script>`It's` {{a}}</script>":               {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 		"<script>`http://b` {{a}}</script>":           {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
-		"<script>`a</script>{{a}}":                    {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		"<script>/'/.test(b); {{a}}</script>":         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 		"<script>/{{a}}/</script>":                    {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
 		"<script>b = /[/]{{a}}/</script>":             {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
@@ -488,10 +485,10 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`'\\'{{a}}`:                     {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
 		`"\\"{{a}}`:                     {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
 		`{{a}}`:                         {ast.ContextJS, ast.ContextJS, ast.ContextJS},
-		"<script></script>":             {ast.ContextText},
-		"<style></style>":               {ast.ContextText},
-		"<script>s{{a}}t</script>{{a}}": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp},
-		"<style>s{{a}}t</style>{{a}}":   {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp},
+		"<script></script>/":            {ast.ContextText},
+		"<style></style>/":              {ast.ContextText},
+		"<script>{{a}}t</script>{{a}}/": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
+		"<style>s{{a}}t</style>{{a}}/":  {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
 	},
 	ast.ContextJSString: {
 		`a`:       {ast.ContextText},
@@ -870,6 +867,46 @@ var blockContextTests = []struct {
 func TestLexerBlockContexts(t *testing.T) {
 	for _, test := range blockContextTests {
 		lex := scanTemplate([]byte(test.src), ast.FormatHTML, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+var unclosedJSTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<script>// a</script>", ""},
+	{ast.FormatHTML, "<script>a // b</script>{{a}}", ""},
+	{ast.FormatHTML, "<script>\"</script>\"{{a}}</script>", ":1:10: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "<script>'</script>'{{a}}</script>", ":1:10: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "<script>`a</script>{{a}}", ":1:11: syntax error: unclosed JavaScript template literal at the end of the script"},
+	{ast.FormatHTML, "<script>`${ a </script>", ":1:15: syntax error: unclosed JavaScript template literal at the end of the script"},
+	{ast.FormatHTML, "<script>if (a) /'/.test(b); var c = {{ v }};</script>", ":1:45: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "<script>/a</script>", ":1:11: syntax error: unclosed JavaScript regular expression at the end of the script"},
+	{ast.FormatHTML, "<script>/* a</script>", ":1:13: syntax error: unclosed JavaScript comment at the end of the script"},
+	{ast.FormatHTML, "<script>var n = 1. / 2</script>", ""},
+	{ast.FormatHTML, "<script>'a", ":1:11: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "<script>a", ""},
+	{ast.FormatMarkdown, "Put your code in a `<script>` element.", ""},
+	{ast.FormatMarkdown, "```html\n<script src=\"app.js\">\n```\n", ""},
+	{ast.FormatJS, "a // b", ""},
+	{ast.FormatJS, "'a", ":1:3: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatJS, "`a", ":1:3: syntax error: unclosed JavaScript template literal at the end of the script"},
+	{ast.FormatJS, "/* a", ":1:5: syntax error: unclosed JavaScript comment at the end of the script"},
+}
+
+func TestLexerUnclosedJS(t *testing.T) {
+	for _, test := range unclosedJSTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
 		for range lex.Tokens() {
 		}
 		var err string

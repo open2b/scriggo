@@ -474,6 +474,33 @@ func (l *lexer) endJSOperand() {
 	l.state.jsLineCodeUnknown = false
 }
 
+// unclosedJSError returns an error if a JavaScript string, template literal,
+// regular expression or block comment is not closed at the current
+// position, the end of a script. A line comment does not need to be
+// closed. Otherwise it returns nil.
+func (l *lexer) unclosedJSError() error {
+	var what string
+	switch l.ctx {
+	case ast.ContextJSString:
+		what = "string"
+		if l.state.quote == '`' {
+			what = "template literal"
+		}
+	case ast.ContextJSRegExp:
+		what = "regular expression"
+	case ast.ContextJS:
+		if l.state.jsComment == jsCommentBlock {
+			what = "comment"
+		} else if len(l.state.jsBraces) > 0 {
+			what = "template literal"
+		}
+	}
+	if what == "" {
+		return nil
+	}
+	return l.errorf("unclosed JavaScript %s at the end of the script", what)
+}
+
 // markdownLexState returns s with the context of a Markdown code block
 // replaced with the Markdown context.
 func markdownLexState(s lexState) lexState {
@@ -839,6 +866,10 @@ func (l *lexer) scan() {
 				code := l.state.jsComment == jsCommentNone && !isASCIISpace(c)
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
+					if err := l.unclosedJSError(); err != nil {
+						l.err = err
+						break LOOP
+					}
 					l.ctx = fileContext
 					l.state = scanState{}
 					p += 8
@@ -958,10 +989,8 @@ func (l *lexer) scan() {
 					}
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
-						l.ctx = fileContext
-						l.state = scanState{}
-						p += 8
-						l.column += 8
+						l.err = l.unclosedJSError()
+						break LOOP
 					}
 				}
 
@@ -991,10 +1020,8 @@ func (l *lexer) scan() {
 					l.state.jsDivision = false
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
-						l.ctx = fileContext
-						l.state = scanState{}
-						p += 8
-						l.column += 8
+						l.err = l.unclosedJSError()
+						break LOOP
 					}
 				}
 
@@ -1052,6 +1079,14 @@ func (l *lexer) scan() {
 				l.column++
 			}
 
+		}
+
+		if l.err == nil && (fileContext == ast.ContextHTML || fileContext == ast.ContextJS) {
+			// An HTML or JavaScript file cannot end in a JavaScript string,
+			// template literal, regular expression or block comment. It is
+			// not checked for Markdown, where the lexer does not recognize
+			// code spans and code blocks.
+			l.err = l.unclosedJSError()
 		}
 
 		if l.err == nil {
@@ -1382,6 +1417,10 @@ func isJSDivisionAfter(s []byte) bool {
 	c := s[len(s)-1]
 	if c == ')' || c == ']' {
 		return true
+	}
+	if c == '.' {
+		// A '.' preceded by a digit ends a number, as in "1.".
+		return len(s) > 1 && isDecDigit(s[len(s)-2])
 	}
 	return isJSIdentifierPart(c) && !endsWithRegExpPrecederKeyword(s)
 }
