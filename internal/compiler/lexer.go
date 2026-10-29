@@ -201,6 +201,7 @@ type scanState struct {
 	jsClass    bool           // in a class of a JavaScript regular expression
 	jsBraces   []int          // depth of the braces in JavaScript template literal substitutions
 	jsLineCode bool           // the current JavaScript line contains code before the current position
+	jsClassic  bool           // the JavaScript code is in a classic script, in which "<!--" starts a comment
 
 	// jsDivisionUnknown and jsLineCodeUnknown report whether jsDivision and
 	// jsLineCode are unknown, because they differ in the branches of a
@@ -240,6 +241,7 @@ func joinLexStates(a, b lexState) (lexState, bool) {
 		sa.jsLineCode = false
 		sa.jsLineCodeUnknown = true
 	}
+	sa.jsClassic = sa.jsClassic && sb.jsClassic
 	return lexState{ctx: a.ctx, tagCtx: a.tagCtx, state: sa.clone()}, true
 }
 
@@ -807,6 +809,7 @@ func (l *lexer) scan() {
 					l.tag.name, p = l.scanTag(p)
 					if l.tag.name != "" {
 						l.ctx = ast.ContextTag
+						l.state.jsClassic = l.tag.name == "script"
 						switch l.tag.name {
 						case "script":
 							l.tag.ctx = ast.ContextJS
@@ -823,7 +826,7 @@ func (l *lexer) scan() {
 					l.ctx = l.tag.ctx
 					// The content of the element, such as a script, is
 					// scanned starting from an empty state.
-					l.state = scanState{}
+					l.state = scanState{jsClassic: l.state.jsClassic}
 					l.tag.name = ""
 					l.tag.ctx = fileContext
 					if c == '/' {
@@ -881,13 +884,18 @@ func (l *lexer) scan() {
 						p = 0
 						lin = l.line
 						col = l.column
-					} else if l.tag.attr == "type" && !l.tag.dynamic {
+					} else if l.tag.attr == "type" && l.tag.dynamic {
 						// If the type is not known at compile time, the
-						// content is scanned as if the attribute were missing.
+						// content is scanned as if the attribute were missing,
+						// but a script could be a module.
+						l.state.jsClassic = false
+					} else if l.tag.attr == "type" {
 						switch l.tag.name {
 						case "script":
 							typ := bytes.TrimSpace(l.src[l.tag.index:p])
-							if len(typ) > 0 && !isJSMimeType(typ) {
+							if bytes.EqualFold(typ, []byte("module")) {
+								l.state.jsClassic = false
+							} else if len(typ) > 0 && !isJSMimeType(typ) {
 								if bytes.EqualFold(typ, jsonLDMimeType) {
 									l.tag.ctx = ast.ContextJSON
 								} else {
@@ -969,12 +977,19 @@ func (l *lexer) scan() {
 						l.column++
 					}
 				} else if c == '/' && l.state.jsDivisionUnknown && p+1 < len(l.src) && l.src[p+1] != '/' && l.src[p+1] != '*' ||
-					c == '-' && l.state.jsLineCodeUnknown && bytes.HasPrefix(l.src[p:], jsHTMLCommentEnd) {
+					c == '-' && l.state.jsLineCodeUnknown && bytes.HasPrefix(l.src[p:], jsHTMLCommentEnd) ||
+					c == '<' && !l.state.jsClassic && fileContext != ast.ContextMarkdown && bytes.HasPrefix(l.src[p:], jsHTMLCommentStart) {
 					// It is not known whether '/' starts a regular expression
 					// or "-->" starts a comment, for example because the
-					// branches of a statement end in different states.
+					// branches of a statement end in different states, or
+					// whether "<!--" starts a comment, as it does only in a
+					// classic script and not in a module. "<!--" is not
+					// checked in Markdown, where code spans and code blocks
+					// are not recognized.
 					if c == '/' {
 						l.err = l.errorf("'/' could start a division or a regular expression")
+					} else if c == '<' {
+						l.err = l.errorf("'<!--' could start a comment or be an operator")
 					} else {
 						l.err = l.errorf("'-->' could start a comment or be an operator")
 					}
