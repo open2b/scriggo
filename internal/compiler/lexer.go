@@ -251,7 +251,8 @@ const (
 	blockFor
 	blockSwitch
 	blockSelect
-	blockMacro // macro and using statements
+	blockMacro
+	blockUsing
 	blockRaw
 )
 
@@ -262,6 +263,8 @@ type lexBlock struct {
 	end      *lexState // joined state at the end of the branches scanned so far
 	implicit bool      // whether the block can be executed without executing any branch
 	cases    bool      // whether a case has been scanned, for switch and select blocks
+	body     lexState  // state at the beginning of the body, for macro and using blocks
+	inPlace  bool      // whether the content of a using body is shown in place
 	next     *lexState // state at the beginning of the next case, after a fallthrough
 }
 
@@ -286,10 +289,14 @@ func (l *lexer) beginBlock(kind blockKind) {
 		// iterations, and a switch statement without default do not
 		// execute any branch.
 		b.implicit = true
-	case blockMacro:
+	case blockMacro, blockUsing:
 		// The body of a macro or using statement is scanned starting from
-		// an empty state.
+		// an empty state, except for a using body whose content is shown
+		// in place, whose state is set by lexCode. lexCode also updates
+		// the state at the beginning of the body at the end of the
+		// statement, after the type of the macro or using statement.
 		l.state = scanState{}
+		b.body = l.snapshot()
 	}
 	if kind == blockFor {
 		// From the second iteration on, the body starts in the state at the
@@ -351,8 +358,10 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 		l.beginBlock(blockSwitch)
 	case tokenSelect:
 		l.beginBlock(blockSelect)
-	case tokenMacro, tokenUsing:
+	case tokenMacro:
 		l.beginBlock(blockMacro)
+	case tokenUsing:
+		l.beginBlock(blockUsing)
 	case tokenRaw:
 		l.beginBlock(blockRaw)
 	case tokenElse:
@@ -421,8 +430,22 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 		b := l.blocks[n-1]
 		l.blocks = l.blocks[:n-1]
 		switch b.kind {
-		case blockMacro:
-			l.restore(b.start)
+		case blockMacro, blockUsing:
+			// The content of the body is shown where the macro is called or
+			// where itea is shown, so it must end in the state in which it
+			// starts. Markdown code blocks are considered Markdown: a macro
+			// or using body cannot start in a code block, so a body that ends
+			// in a code block can only change how the following text is laid
+			// out, not how it is escaped.
+			if _, ok := joinLexStates(markdownLexState(b.body), markdownLexState(l.snapshot())); !ok {
+				return l.errorAtColumnf(col, "%s body ends in a different context", b.kind)
+			}
+			// If the content is shown in place, in the context of the
+			// statement, the scan continues from the state at the end of the
+			// body. Otherwise, the content is shown as a value.
+			if !b.inPlace || b.body.ctx != b.start.ctx {
+				l.restore(b.start)
+			}
 		case blockRaw:
 		default:
 			if err := l.endBranch(&b, col); err != nil {
@@ -451,6 +474,15 @@ func (l *lexer) endJSOperand() {
 	l.state.jsLineCodeUnknown = false
 }
 
+// markdownLexState returns s with the context of a Markdown code block
+// replaced with the Markdown context.
+func markdownLexState(s lexState) lexState {
+	if s.ctx == ast.ContextTabCodeBlock || s.ctx == ast.ContextSpacesCodeBlock {
+		s.ctx = ast.ContextMarkdown
+	}
+	return s
+}
+
 // errorAtColumnf is like errorf but reports the error at the column col of
 // the current line.
 func (l *lexer) errorAtColumnf(col int, format string, a ...any) *SyntaxError {
@@ -472,8 +504,12 @@ func (k blockKind) String() string {
 		return "select"
 	case blockMacro:
 		return "macro"
+	case blockUsing:
+		return "using"
+	case blockRaw:
+		return "raw"
 	}
-	return "raw"
+	panic("invalid block kind")
 }
 
 // scan scans the text by placing the tokens on the tokens channel. If an
@@ -1479,6 +1515,11 @@ func (l *lexer) lexCode(end tokenTyp) error {
 	var afterElse bool
 	// afterEnd reports whether the first token is the end keyword.
 	var afterEnd bool
+	// afterShow reports whether the first token is the show keyword, and
+	// showItea whether it is followed by the itea identifier.
+	var afterShow, showItea bool
+	// beforeShow is the scan state before the show keyword.
+	var beforeShow scanState
 	// macroOrUsing indicates if it has lexed the macro keyword or the using keyword.
 	var macroOrUsing bool
 	// ident stores the index and the text of the last lexed identifier after a macro or a using keyword.
@@ -1651,6 +1692,13 @@ LOOP:
 									l.ctx = ast.Context(i)
 									break
 								}
+							}
+						}
+						// Store the state at the beginning of the body of a
+						// macro or using statement.
+						if n := len(l.blocks); macroOrUsing && n > 0 {
+							if b := &l.blocks[n-1]; b.kind == blockMacro || b.kind == blockUsing {
+								b.body = l.snapshot()
 							}
 						}
 						return nil
@@ -1882,6 +1930,10 @@ LOOP:
 					}
 					afterElse = typ == tokenElse
 					afterEnd = typ == tokenEnd
+					afterShow = typ == tokenShow
+					if afterShow {
+						beforeShow = l.state.clone()
+					}
 					if err := l.scanBlockStatement(typ, false, l.column-len(txt)); err != nil {
 						return err
 					}
@@ -1889,12 +1941,24 @@ LOOP:
 					if err := l.scanBlockStatement(typ, true, l.column-len(txt)); err != nil {
 						return err
 					}
+				} else if afterShow && l.totals == first+1 && typ == tokenIdentifier && txt == "itea" {
+					showItea = true
 				} else if typ == tokenUsing && !afterEnd {
 					// A using keyword after end, as in {% end using %}, does
 					// not start a using statement.
 					macroOrUsing = true
 					if err := l.scanBlockStatement(typ, false, l.column-len(txt)); err != nil {
 						return err
+					}
+					// The semicolon between itea and using is not counted
+					// if it is inserted at a newline.
+					if showItea && (l.totals == first+2 || l.totals == first+3) {
+						// In {% show itea; using %}, the content is shown in
+						// place, so the body is scanned starting from the
+						// state before the show keyword.
+						b := &l.blocks[len(l.blocks)-1]
+						b.inPlace = true
+						l.state = beforeShow.clone()
 					}
 				} else if macroOrUsing && typ == tokenIdentifier && l.totals != first+1 {
 					ident.index = l.totals
