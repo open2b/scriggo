@@ -490,7 +490,6 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 	},
 	ast.ContextJS: {
 		`a`:                             {ast.ContextText},
-		"<!-- it's\n{{a}}":              {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
 		"`{{a}}`":                       {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 		"/{{a}}/":                       {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
 		"`It's` {{a}}":                  {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
@@ -941,6 +940,40 @@ var unclosedJSTests = []struct {
 
 func TestLexerUnclosedJS(t *testing.T) {
 	for _, test := range unclosedJSTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+var htmlLikeCommentTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<script><!-- it's\n</script>", ""},
+	{ast.FormatHTML, "<script type=\"text/javascript\"><!--\n</script>", ""},
+	{ast.FormatHTML, "<script {% if a %}type=\"text/javascript\"{% end %}><!--\n</script>", ""},
+	{ast.FormatHTML, "<script type=\"module\"></script><script><!--\n</script>", ""},
+	{ast.FormatHTML, "<script type=\"module\">a < !--b; '<!--'</script>", ""},
+	{ast.FormatMarkdown, "Add `<script type=\"module\" src=\"app.js\">` to the page.\n\n```html\n<!-- not here -->\n```\n", ""},
+	{ast.FormatHTML, "<script type=\"module\"><!--\n</script>", ":1:23: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script type=\" Module \">a <!--b\n</script>", ":1:27: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script type=\"{{ t }}\"><!--\n</script>", ":1:24: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script {% if a %}type=\"module\"{% end %}><!--\n</script>", ":1:42: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "{% macro M js %}<!--\n{% end %}", ":1:17: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatJS, "<!-- it's\n{{a}}", ":1:1: syntax error: '<!--' could start a comment or be an operator"},
+}
+
+func TestLexerHTMLLikeComments(t *testing.T) {
+	for _, test := range htmlLikeCommentTests {
 		lex := scanTemplate([]byte(test.src), test.format, false)
 		for range lex.Tokens() {
 		}
