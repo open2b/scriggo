@@ -463,6 +463,18 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		"<script>b = c.typeofd / '{{a}}'</script>":       {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 		"<script>b = c.typeof / '{{a}}'</script>":        {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 		"<script>b = [...typeof /'/]; {{a}}</script>":    {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+
+		// Unicode spaces and line terminators.
+		"<script>b =\u00a0/'/; {{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b =\ufeff/'/; {{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>return\u00a0/'/.test(b) + {{a}}</script>": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b =\u00a0typeof /'/; {{a}}</script>":      {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = c\u000b/ d; '{{a}}'</script>":         {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>// c\u2028'{{a}}'</script>":               {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>// c\u2029`{{a}}`</script>":               {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>/b\u2028'{{a}}'</script>":                 {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>a\u2028--> c'\n{{a}}</script>":            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = \u00e8 / '{{a}}'</script>":            {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 	},
 	ast.ContextCSS: {
 		`a`:                             {ast.ContextText},
