@@ -528,7 +528,7 @@ func TestRenderInStringAndAttributeContexts(t *testing.T) {
 		{"unquoted attribute", "index.html", `<a title={X}>x</a>`, "p.html", `"><i>`, `<a title=&#34;&gt;&lt;i&gt;>x</a>`},
 		{"URL attribute", "index.html", `<a href="{X}">x</a>`, "p.html", `"><i>`, `<a href="%22%3e%3ci%3e">x</a>`},
 		{"tag", "index.html", `<a {X}>x</a>`, "p.html", `"><i>`, "<a \uFFFD\uFFFD<i\uFFFD>x</a>"},
-		{"JS string", "index.html", `<script>var s = '{X}';</script>`, "p.js", `it's`, `<script>var s = 'it\u0027s';</script>`},
+		{"JS string", "index.html", `<script>var s = '{X}';</script>`, "p.js", `"it's"`, `<script>var s = '\"it\u0027s\"';</script>`},
 		{"CSS string", "index.html", `<style>a::before { content: "{X}"; }</style>`, "p.css", `a"b`, `<style>a::before { content: "a\22 b"; }</style>`},
 		{"JSON string", "index.html", `<script type="application/ld+json">{"a": "{X}"}</script>`, "p.json", `a"b`, `<script type="application/ld+json">{"a": "a\"b"}</script>`},
 		{"Markdown code block", "index.md", "text\n\n    x {X}\n", "p.md", "a\nb", "text\n\n    x a\n    b\n"},
