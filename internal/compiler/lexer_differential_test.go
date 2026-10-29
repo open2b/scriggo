@@ -43,6 +43,7 @@ var differentialFragments = []string{
 	"'\\\\'", "\"\\\\\"", "// it's\n", "/* it's */", "<!-- it's\n",
 	"{% if c %}'a'{% else %}\"b\"{% end %}", "{% if c %}a{% else %}(b){% end %}",
 	"{% for x in xs %}a;{% end %}",
+	"a\u00a0", "x =\u00a0", "typeof\u00a0", "a\u000b", "// it's\u2028",
 }
 
 // differentialSuffixes contain the shown value, and are appended to the

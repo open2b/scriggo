@@ -942,7 +942,12 @@ func (l *lexer) scan() {
 				}
 
 			case ast.ContextJS:
-				code := l.state.jsComment == jsCommentNone && !isASCIISpace(c)
+				if c >= utf8.RuneSelf && !isStartChar(c) {
+					// Continuation byte of a character already scanned.
+					break
+				}
+				lineTerminator := isJSLineTerminator(l.src[p:])
+				code := l.state.jsComment == jsCommentNone && !isJSSpace(l.src[p:])
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
 					if err := l.unclosedJSError(); err != nil {
@@ -954,7 +959,7 @@ func (l *lexer) scan() {
 					p += 8
 					l.column += 8
 				} else if l.state.jsComment == jsCommentLine {
-					if c == '\n' || c == '\r' {
+					if lineTerminator {
 						l.state.jsComment = jsCommentNone
 					}
 				} else if l.state.jsComment == jsCommentBlock {
@@ -1024,11 +1029,11 @@ func (l *lexer) scan() {
 					// "++" and "--" are followed by a division, "+++" and
 					// "---" by a regular expression, and so on.
 					l.state.jsDivision = !l.state.jsDivision
-				} else if !isASCIISpace(c) {
+				} else if code {
 					l.state.jsDivision = isJSDivisionAfter(l.src[:p+1])
 				}
 				// "-->" starts a comment only at the beginning of a line.
-				if c == '\n' || c == '\r' {
+				if lineTerminator {
 					l.state.jsLineCode = false
 					l.state.jsLineCodeUnknown = false
 				} else if code && l.state.jsComment == jsCommentNone {
@@ -1094,11 +1099,13 @@ func (l *lexer) scan() {
 						l.ctx = ast.ContextJS
 						l.endJSOperand()
 					}
-				case '\n', '\r':
+				case '\n', '\r', 0xE2:
 					// A regular expression cannot span lines.
-					l.ctx = ast.ContextJS
-					l.state.jsClass = false
-					l.state.jsDivision = false
+					if isJSLineTerminator(l.src[p:]) {
+						l.ctx = ast.ContextJS
+						l.state.jsClass = false
+						l.state.jsDivision = false
+					}
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
 						l.err = l.unclosedJSError()
@@ -1490,6 +1497,26 @@ func isJSIdentifierPart(c byte) bool {
 	return c == '_' || c == '$' || isDecDigit(c) || isAlpha(c) || c >= 0x80
 }
 
+// isJSSpace reports whether s starts with a JavaScript white space or line
+// terminator.
+func isJSSpace(s []byte) bool {
+	r, _ := utf8.DecodeRune(s)
+	return unicode.IsSpace(r) && r != '\u0085' || r == '\uFEFF'
+}
+
+// isJSLineTerminator reports whether s starts with a JavaScript line
+// terminator.
+func isJSLineTerminator(s []byte) bool {
+	switch s[0] {
+	case '\n', '\r':
+		return true
+	case 0xE2:
+		r, _ := utf8.DecodeRune(s)
+		return r == '\u2028' || r == '\u2029'
+	}
+	return false
+}
+
 // isJSDivisionAfter reports whether a '/' that follows the JavaScript code s
 // is a division operator, and not the start of a regular expression. s ends
 // with a non-space character that is not a '+' or '-' following the same
@@ -1514,6 +1541,15 @@ func endsWithRegExpPrecederKeyword(s []byte) bool {
 	const maxLen = len("instanceof")
 	start := len(s)
 	for start > 0 && isJSIdentifierPart(s[start-1]) {
+		if s[start-1] >= utf8.RuneSelf {
+			// A non-ASCII space or line terminator ends the identifier,
+			// any other non-ASCII character is part of it.
+			_, size := utf8.DecodeLastRune(s[:start])
+			if isJSSpace(s[start-size : start]) {
+				break
+			}
+			return false
+		}
 		if len(s)-start == maxLen {
 			return false
 		}
