@@ -655,6 +655,10 @@ func TestStatementBranchContexts(t *testing.T) {
 		{"type value across branches", "index.html", "<script {% if true %}type=\"text/plain{% else %}type=\"module{% end %}\">var s = {{ v }};</script>", "<script type=\"text/plain\">var s = \"a\";</script>", ""},
 		{"different element types", "index.html", "<script {% if false %}type=\"text/plain\"{% end %}>var s = {{ v }};</script>", "", "index.html:1:43: syntax error: if branches end in different contexts"},
 		{"after end using", "index.html", "<script>var n = {% show itea; using %}1{% end using %} / 2; var s = {{ v }};</script>", "<script>var n = 1 / 2; var s = \"a\";</script>", ""},
+		{"macro body in a different context", "index.js", "{% macro M %}`{% end %}var a = {{ M() }}1`;", "", "index.js:1:18: syntax error: macro body ends in a different context"},
+		{"using body ending with an operator", "index.html", "<script>var a = {% show itea; using %}1 +{% end %} /'/.test(b); var s = {{ v }};</script>", "<script>var a = 1 + /'/.test(b); var s = \"a\";</script>", ""},
+		{"macro ending in a code block", "index.md", "{% macro M %}\n\n    go run .{% end %}", "", ""},
+		{"two blocks in a statement", "index.html", "{% macro M using %}a{% end %}{% end %}", "", "index.html:1:12: syntax error: unexpected using, expecting string, html, css, js, json, markdown or %}"},
 		{"different contexts", "index.html", "<script>{% if false %}'{% end %} var r = {{ v }};</script>", "", "index.html:1:27: syntax error: if branches end in different contexts"},
 	}
 	for _, tt := range tests {
