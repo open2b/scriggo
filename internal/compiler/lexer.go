@@ -1051,10 +1051,12 @@ func (l *lexer) scan() {
 							l.state.jsDivision = false
 							p++
 							l.column++
-						} else if l.src[p+2] != '{' {
-							// The text that follows the statement or the
-							// comment could start a substitution.
-							l.err = l.errorf("unexpected statement or comment after $ in %s", l.ctx)
+						} else {
+							// The show, statement or comment could render
+							// nothing, so the text that follows could start
+							// a substitution. A literal '$' can be written
+							// as \$.
+							l.err = l.errorf("unexpected show, statement or comment after $ in JavaScript template literal (write \\$ for a literal $)")
 							break LOOP
 						}
 					}
