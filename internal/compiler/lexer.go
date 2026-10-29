@@ -844,7 +844,7 @@ func (l *lexer) scan() {
 					p++
 					l.column++
 				} else if c == '/' {
-					if l.state.jsDivision && !endsWithRegExpPrecederKeyword(l.src[:p]) {
+					if l.state.jsDivision {
 						l.state.jsDivision = false
 					} else {
 						l.ctx = ast.ContextJSRegExp
@@ -1347,22 +1347,26 @@ func isJSDivisionAfter(s []byte) bool {
 	if c == ')' || c == ']' {
 		return true
 	}
-	return isJSIdentifierPart(c)
+	return isJSIdentifierPart(c) && !endsWithRegExpPrecederKeyword(s)
 }
 
-// endsWithRegExpPrecederKeyword reports whether the JavaScript code s, with
-// trailing spaces removed, ends with a keyword that can be followed by a
-// regular expression literal.
+// endsWithRegExpPrecederKeyword reports whether the JavaScript code s ends
+// with a keyword that can be followed by a regular expression literal. A
+// keyword preceded by '.' is a property name, as in "a.typeof", unless the
+// '.' ends a spread operator, as in "...typeof".
 func endsWithRegExpPrecederKeyword(s []byte) bool {
-	end := len(s)
-	for end > 0 && isASCIISpace(s[end-1]) {
-		end--
-	}
-	start := end
+	const maxLen = len("instanceof")
+	start := len(s)
 	for start > 0 && isJSIdentifierPart(s[start-1]) {
+		if len(s)-start == maxLen {
+			return false
+		}
 		start--
 	}
-	return regExpPrecederKeywords[string(s[start:end])]
+	if start > 0 && s[start-1] == '.' && !bytes.HasSuffix(s[:start], []byte("...")) {
+		return false
+	}
+	return regExpPrecederKeywords[string(s[start:])]
 }
 
 // isShowStatementOrCommentStart reports whether l.src[p:] starts with a

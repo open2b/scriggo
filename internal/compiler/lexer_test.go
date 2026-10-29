@@ -459,6 +459,13 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		"<script>#! it's\n{{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 		"<script>'<!--' + {{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 		"<script>`<!--` + {{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+
+		// Keywords that precede a regular expression.
+		"<script>b = typeof /* c */ /'/; {{a}}</script>": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = typeof // c\n/'/; {{a}}</script>":   {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = c.typeofd / '{{a}}'</script>":       {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = c.typeof / '{{a}}'</script>":        {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = [...typeof /'/]; {{a}}</script>":    {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 	},
 	ast.ContextCSS: {
 		`a`:                             {ast.ContextText},
