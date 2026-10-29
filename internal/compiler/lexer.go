@@ -267,6 +267,7 @@ type lexBlock struct {
 	inPlace  bool      // whether the content of a using body is shown in place
 	next     *lexState // state at the beginning of the next case, after a fallthrough
 	label    string    // label of the statement, if any
+	inElse   bool      // whether the else branch of a for statement is being scanned
 }
 
 // snapshot returns the current state of the scan.
@@ -430,6 +431,8 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 		l.restore(b.start)
 		if b.kind == blockIf {
 			b.implicit = false
+		} else {
+			b.inElse = true
 		}
 	case tokenCase, tokenDefault:
 		n := len(l.blocks)
@@ -473,6 +476,11 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 				break
 			}
 			if !slices.Contains(kinds, b.kind) {
+				continue
+			}
+			if b.inElse {
+				// The else branch of a for statement is not part of the loop,
+				// so the statement refers to an enclosing statement.
 				continue
 			}
 			if err := l.endBranch(b, col); err != nil {
