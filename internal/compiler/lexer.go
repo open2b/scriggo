@@ -327,9 +327,36 @@ func (l *lexer) endBranch(b *lexBlock, col int) error {
 // if there is no such block.
 func (l *lexer) lastBlock(kinds ...blockKind) *lexBlock {
 	for i := len(l.blocks) - 1; i >= 0; i-- {
-		if slices.Contains(kinds, l.blocks[i].kind) {
+		kind := l.blocks[i].kind
+		if slices.Contains(kinds, kind) {
 			return &l.blocks[i]
 		}
+		if kind == blockMacro || kind == blockUsing {
+			// A statement cannot refer to a block outside the body.
+			break
+		}
+	}
+	return nil
+}
+
+// endBody checks that the scan is in a state in which the content of the
+// macro or using body b can end. col is the column of the keyword of the
+// statement that ends the body, used to report errors.
+//
+// The content is shown where the macro is called or where itea is shown,
+// so it must end in the state in which it starts. Markdown code blocks are
+// considered Markdown: a macro or using body cannot start in a code block,
+// so a body that ends in a code block can only change how the following
+// text is laid out, not how it is escaped.
+//
+// If the content of a using body is shown in place, the states in which it
+// ends are joined, as for the branches of a statement.
+func (l *lexer) endBody(b *lexBlock, col int) error {
+	if _, ok := joinLexStates(markdownLexState(b.body), markdownLexState(l.snapshot())); !ok {
+		return l.errorAtColumnf(col, "%s body ends in a different context", b.kind)
+	}
+	if b.inPlace {
+		return l.endBranch(b, col)
 	}
 	return nil
 }
@@ -412,6 +439,11 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 		if b := l.lastBlock(blockFor); b != nil {
 			return l.endBranch(b, col)
 		}
+	case tokenReturn:
+		// A return statement ends the content of a macro or using body.
+		if b := l.lastBlock(blockMacro, blockUsing); b != nil {
+			return l.endBody(b, col)
+		}
 	case tokenFallthrough:
 		// The next case is scanned starting from the join of the state at
 		// the beginning of the switch statement and the current state.
@@ -431,20 +463,16 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 		l.blocks = l.blocks[:n-1]
 		switch b.kind {
 		case blockMacro, blockUsing:
-			// The content of the body is shown where the macro is called or
-			// where itea is shown, so it must end in the state in which it
-			// starts. Markdown code blocks are considered Markdown: a macro
-			// or using body cannot start in a code block, so a body that ends
-			// in a code block can only change how the following text is laid
-			// out, not how it is escaped.
-			if _, ok := joinLexStates(markdownLexState(b.body), markdownLexState(l.snapshot())); !ok {
-				return l.errorAtColumnf(col, "%s body ends in a different context", b.kind)
+			if err := l.endBody(&b, col); err != nil {
+				return err
 			}
 			// If the content is shown in place, in the context of the
-			// statement, the scan continues from the state at the end of the
-			// body. Otherwise, the content is shown as a value.
+			// statement, the scan continues from the joined state at the end
+			// of the body. Otherwise, the content is shown as a value.
 			if !b.inPlace || b.body.ctx != b.start.ctx {
 				l.restore(b.start)
+			} else {
+				l.restore(*b.end)
 			}
 		case blockRaw:
 		default:
@@ -1959,6 +1987,13 @@ LOOP:
 			if end == tokenEndStatements && typ == tokenShow && l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone {
 				l.state.jsDivisionUnknown = true
 				l.state.jsLineCodeUnknown = true
+			}
+			// A break, continue or return statement among other statements
+			// ends a branch or a body as in a single statement.
+			if end == tokenEndStatements && (typ == tokenBreak || typ == tokenContinue || typ == tokenReturn) {
+				if err := l.scanBlockStatement(typ, false, l.column-len(txt)); err != nil {
+					return err
+				}
 			}
 			// If it has lexed the first token after '{%', or the using
 			// keyword, updates the state of the scan for block statements.
