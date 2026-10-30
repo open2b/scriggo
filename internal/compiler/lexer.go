@@ -204,6 +204,11 @@ type scanState struct {
 	jsClassic  bool           // the JavaScript code is in a classic script, in which "<!--" starts a comment
 	typeAttr   bool           // the current tag has a type attribute
 
+	// attrNameChar reports whether the text of the current tag could end
+	// with a character of an attribute name, so that a following attribute
+	// name could be joined to it.
+	attrNameChar bool
+
 	// jsDivisionUnknown, jsLineCodeUnknown and typeAttrUnknown report whether
 	// jsDivision, jsLineCode and typeAttr are unknown, because they differ in
 	// the branches of a statement.
@@ -248,6 +253,7 @@ func joinLexStates(a, b lexState) (lexState, bool) {
 		sa.typeAttr = false
 		sa.typeAttrUnknown = true
 	}
+	sa.attrNameChar = sa.attrNameChar || sb.attrNameChar
 	return lexState{ctx: a.ctx, tagCtx: a.tagCtx, state: sa.clone()}, true
 }
 
@@ -407,9 +413,7 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 	}
 	switch typ {
 	case tokenShow:
-		if l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone {
-			l.endJSOperand()
-		}
+		l.endShow()
 	case tokenIf:
 		l.beginBlock(blockIf)
 	case tokenFor:
@@ -545,10 +549,35 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 				}
 				b.end = &end
 			}
+			if b.kind == blockFor && b.end.ctx == ast.ContextTag && b.end.state.attrNameChar {
+				// From the second iteration on, the body can join an attribute
+				// name to the one at the end of the previous iteration, and so
+				// form a type attribute.
+				b.end.state.typeAttr = false
+				b.end.state.typeAttrUnknown = true
+			}
 			l.restore(*b.end)
 		}
 	}
 	return nil
+}
+
+// endShow updates the state after a show.
+func (l *lexer) endShow() {
+	switch l.ctx {
+	case ast.ContextJS:
+		if l.state.jsComment == jsCommentNone {
+			l.endJSOperand()
+		}
+	case ast.ContextTag:
+		// The shown value could contain attribute names, such as "type", or
+		// continue the name of the previous attribute.
+		if !l.state.typeAttr || l.state.attrNameChar {
+			l.state.typeAttr = false
+			l.state.typeAttrUnknown = true
+		}
+		l.state.attrNameChar = true
+	}
 }
 
 // endJSOperand updates the state at the end of a JavaScript operand, such
@@ -701,9 +730,7 @@ func (l *lexer) scan() {
 						l.err = err
 						break LOOP
 					}
-					if l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone {
-						l.endJSOperand()
-					}
+					l.endShow()
 					lin = l.line
 					col = l.column
 					continue
@@ -827,6 +854,11 @@ func (l *lexer) scan() {
 				}
 
 			case ast.ContextTag:
+				// An attribute name that starts here could be joined to the
+				// text before it, if it ends with a show or with an attribute
+				// name followed by a statement or comment.
+				joined := l.state.attrNameChar
+				l.state.attrNameChar = false
 				if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
 					// End tag.
 					l.ctx = l.tag.ctx
@@ -840,11 +872,27 @@ func (l *lexer) scan() {
 						l.column++
 					}
 				} else if !isASCIISpace(c) {
+					if l.tag.name == "script" || l.tag.name == "style" {
+						// The content of these elements is scanned according
+						// to their type attribute, so attribute names must be
+						// known at compile time.
+						if c == '=' {
+							l.err = l.errorf("'=' could start an attribute name or value")
+							break LOOP
+						}
+						if joined && c != '/' {
+							l.err = l.errorf("attribute name could be joined to the previous one")
+							break LOOP
+						}
+					}
 					// Check if it is an attribute.
 					var next int
 					var value bool
 					if l.tag.attr, value, next = l.scanAttribute(p); next > p {
 						p = next
+						// An attribute name directly followed by a show,
+						// statement or comment could continue after it.
+						l.state.attrNameChar = !value && l.isShowStatementOrCommentStart(p) && !isASCIISpace(l.src[p-1])
 						if l.tag.attr == "type" {
 							if l.state.typeAttr {
 								// Browsers ignore a repeated attribute.
@@ -1349,41 +1397,27 @@ func (l *lexer) scanTag(p int) (string, int) {
 
 // scanAttribute scans an attribute from src starting from position p and
 // returns the attribute name, whether it has a value, and the next position
-// to scan.
+// to scan. As in HTML, the name ends at a space, '/', '>' or '=', unless '='
+// is its first character. It also ends at a show, statement or comment.
 //
 // For example, if l.src[p:] is
 //   - `src="a"` it returns "src", true and p+4
 //   - `src=a` it returns "src", true and p+4
 //   - `src>` it returns "src", false and p+3
 //   - `src img` it returns "src", false and p+4.
-//   - `,` it returns "", false and p.
+//   - `a"b=c` it returns `a"b`, true and p+4.
+//   - `/` it returns "", false and p.
 func (l *lexer) scanAttribute(p int) (string, bool, int) {
 	// Reads the attribute name.
 	s := p
 	for ; p < len(l.src); p++ {
 		c := l.src[p]
-		if c == '=' || c == '>' || c == '/' || isASCIISpace(c) {
+		if c == '=' && p > s || c == '>' || c == '/' || isASCIISpace(c) || l.isShowStatementOrCommentStart(p) {
 			break
 		}
-		const DEL = 0x7F
-		if c <= 0x1F || c == '"' || c == '\'' || c == DEL {
-			return "", false, p
-		}
-		if c >= 0x80 {
-			r, size := utf8.DecodeRune(l.src[p:])
-			if r == utf8.RuneError && size == 1 {
-				return "", false, p
-			}
-			if 0x7F <= r && r <= 0x9F || unicode.Is(unicode.Noncharacter_Code_Point, r) {
-				return "", false, p
-			}
+		if c >= utf8.RuneSelf {
+			_, size := utf8.DecodeRune(l.src[p:])
 			p += size - 1
-		}
-		if c == '{' && p+1 < len(l.src) {
-			switch l.src[p+1] {
-			case '{', '%', '#':
-				return "", false, p
-			}
 		}
 		l.column++
 	}
