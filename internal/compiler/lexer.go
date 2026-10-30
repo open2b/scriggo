@@ -6,6 +6,7 @@ package compiler
 
 import (
 	"bytes"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -71,22 +72,26 @@ func (l *lexer) Stop() {
 
 var cdataStart = []byte("<![CDATA[")
 var cdataEnd = []byte("]]>")
+var jsHTMLCommentStart = []byte("<!--")
+var jsHTMLCommentEnd = []byte("-->")
 
 var emptyMarker = []byte{}
 
 // lexer maintains the scanner status.
 type lexer struct {
-	text     []byte        // text on which the scans are performed
-	src      []byte        // slice of the text used during the scan
-	line     int           // current line starting from 1
-	column   int           // current column starting from 1
-	ctx      ast.Context   // current context used during the scan
-	contexts []ast.Context // contexts of blocks nested in a macro or using statement.
-	tag      struct {      // current tag
-		name  string      // name
-		attr  string      // current attribute name
-		index int         // index of first byte of the current attribute value in src
-		ctx   ast.Context // context of the tag's content
+	text   []byte      // text on which the scans are performed
+	src    []byte      // slice of the text used during the scan
+	line   int         // current line starting from 1
+	column int         // current column starting from 1
+	ctx    ast.Context // current context used during the scan
+	blocks []lexBlock  // blocks of the statements being scanned
+	state  scanState   // scan state, in addition to the context
+	tag    struct {    // current tag
+		name    string      // name
+		attr    string      // current attribute name
+		index   int         // index of first byte of the current attribute value in src
+		dynamic bool        // the current attribute value contains a show, a statement or a comment
+		ctx     ast.Context // context of the tag's content
 	}
 	rawMarker      []byte     // raw marker, not nil when a raw statement has been lexed
 	tokens         chan token // tokens, is closed at the end of the scan
@@ -176,10 +181,8 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 	}
 }
 
-var jsMimeType = []byte("text/javascript")
 var jsonLDMimeType = []byte("application/ld+json")
 var cssMimeType = []byte("text/css")
-var moduleType = []byte("module")
 
 type jsCommentState uint8
 
@@ -188,6 +191,469 @@ const (
 	jsCommentLine
 	jsCommentBlock
 )
+
+// scanState is the state of the scan that, in addition to the context, is
+// needed to determine the context of the text that follows.
+type scanState struct {
+	quote      byte           // quote of the current attribute value or string
+	jsComment  jsCommentState // current JavaScript comment
+	jsDivision bool           // a JavaScript '/' is a division, not a regular expression
+	jsClass    bool           // in a class of a JavaScript regular expression
+	jsBraces   []int          // depth of the braces in JavaScript template literal substitutions
+	jsLineCode bool           // the current JavaScript line contains code before the current position
+	jsClassic  bool           // the JavaScript code is in a classic script, in which "<!--" starts a comment
+	typeAttr   bool           // the current tag has a type attribute
+
+	// attrNameChar reports whether the text of the current tag could end
+	// with a character of an attribute name, so that a following attribute
+	// name could be joined to it.
+	attrNameChar bool
+
+	// jsDivisionUnknown, jsLineCodeUnknown and typeAttrUnknown report whether
+	// jsDivision, jsLineCode and typeAttr are unknown, because they differ in
+	// the branches of a statement.
+	jsDivisionUnknown bool
+	jsLineCodeUnknown bool
+	typeAttrUnknown   bool
+}
+
+// clone returns a copy of s.
+func (s scanState) clone() scanState {
+	s.jsBraces = slices.Clone(s.jsBraces)
+	return s
+}
+
+// lexState is the state of the scan at a position.
+type lexState struct {
+	ctx    ast.Context
+	tagCtx ast.Context // context of the content of the current tag
+	state  scanState
+}
+
+// joinLexStates returns the state at the end of a statement whose branches
+// end in the states a and b. It returns false if the states cannot be
+// joined. If they differ only in jsDivision or jsLineCode, the joined
+// state has them unknown.
+func joinLexStates(a, b lexState) (lexState, bool) {
+	sa, sb := a.state, b.state
+	if a.ctx != b.ctx || a.tagCtx != b.tagCtx || sa.quote != sb.quote || sa.jsComment != sb.jsComment ||
+		sa.jsClass != sb.jsClass || !slices.Equal(sa.jsBraces, sb.jsBraces) {
+		return lexState{}, false
+	}
+	if sa.jsDivision != sb.jsDivision || sb.jsDivisionUnknown {
+		sa.jsDivision = false
+		sa.jsDivisionUnknown = true
+	}
+	if sa.jsLineCode != sb.jsLineCode || sb.jsLineCodeUnknown {
+		sa.jsLineCode = false
+		sa.jsLineCodeUnknown = true
+	}
+	sa.jsClassic = sa.jsClassic && sb.jsClassic
+	if sa.typeAttr != sb.typeAttr || sb.typeAttrUnknown {
+		sa.typeAttr = false
+		sa.typeAttrUnknown = true
+	}
+	sa.attrNameChar = sa.attrNameChar || sb.attrNameChar
+	return lexState{ctx: a.ctx, tagCtx: a.tagCtx, state: sa.clone()}, true
+}
+
+// blockKind is the kind of a block statement.
+type blockKind uint8
+
+const (
+	blockIf blockKind = iota
+	blockFor
+	blockSwitch
+	blockSelect
+	blockMacro
+	blockUsing
+	blockRaw
+)
+
+// lexBlock represents a block statement being scanned.
+type lexBlock struct {
+	kind     blockKind
+	start    lexState  // state at the beginning of the block
+	end      *lexState // joined state at the end of the branches scanned so far
+	implicit bool      // whether the block can be executed without executing any branch
+	cases    bool      // whether a case has been scanned, for switch and select blocks
+	body     lexState  // state at the beginning of the body, for macro and using blocks
+	inPlace  bool      // whether the content of a using body is shown in place
+	next     *lexState // state at the beginning of the next case, after a fallthrough
+	label    string    // label of the statement, if any
+	inElse   bool      // whether the else branch of a for statement is being scanned
+}
+
+// snapshot returns the current state of the scan.
+func (l *lexer) snapshot() lexState {
+	return lexState{ctx: l.ctx, tagCtx: l.tag.ctx, state: l.state.clone()}
+}
+
+// restore restores the state of the scan to s.
+func (l *lexer) restore(s lexState) {
+	l.ctx = s.ctx
+	l.tag.ctx = s.tagCtx
+	l.state = s.state.clone()
+}
+
+// beginBlock begins a block of kind kind.
+func (l *lexer) beginBlock(kind blockKind) {
+	b := lexBlock{kind: kind, start: l.snapshot()}
+	switch kind {
+	case blockIf, blockFor, blockSwitch:
+		// An if statement without else, a for statement with no
+		// iterations, and a switch statement without default do not
+		// execute any branch.
+		b.implicit = true
+	case blockMacro, blockUsing:
+		// The body of a macro or using statement is scanned starting from
+		// an empty state, except for a using body whose content is shown
+		// in place, whose state is set by lexCode. lexCode also updates
+		// the state at the beginning of the body at the end of the
+		// statement, after the type of the macro or using statement.
+		l.state = scanState{}
+		b.body = l.snapshot()
+	}
+	if kind == blockFor {
+		// From the second iteration on, the body starts in the state at the
+		// end of the previous one, which is not known yet.
+		l.state.jsDivisionUnknown = true
+		l.state.jsLineCodeUnknown = true
+	}
+	l.blocks = append(l.blocks, b)
+}
+
+// endBranch ends the current branch of the block b. col is the column of the
+// keyword of the statement that ends the branch, used to report errors.
+func (l *lexer) endBranch(b *lexBlock, col int) error {
+	cur := l.snapshot()
+	if b.end == nil {
+		b.end = &cur
+		return nil
+	}
+	end, ok := joinLexStates(*b.end, cur)
+	if !ok {
+		return l.errorAtColumnf(col, "%s branches end in different contexts", b.kind)
+	}
+	b.end = &end
+	return nil
+}
+
+// lastBlock returns the innermost block of one of the given kinds, or nil
+// if there is no such block.
+func (l *lexer) lastBlock(kinds ...blockKind) *lexBlock {
+	for i := len(l.blocks) - 1; i >= 0; i-- {
+		kind := l.blocks[i].kind
+		if slices.Contains(kinds, kind) {
+			return &l.blocks[i]
+		}
+		if kind == blockMacro || kind == blockUsing {
+			// A statement cannot refer to a block outside the body.
+			break
+		}
+	}
+	return nil
+}
+
+// nextIdentifier returns the identifier at the beginning of l.src, after
+// spaces, tabs and general comments, or an empty string if there is no
+// identifier.
+func (l *lexer) nextIdentifier() string {
+	s := bytes.TrimLeft(l.src, " \t")
+	for bytes.HasPrefix(s, []byte("/*")) {
+		i := bytes.Index(s[2:], []byte("*/"))
+		if i < 0 {
+			return ""
+		}
+		s = bytes.TrimLeft(s[i+4:], " \t")
+	}
+	n := 0
+	for n < len(s) {
+		r, size := utf8.DecodeRune(s[n:])
+		if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			break
+		}
+		n += size
+	}
+	return string(s[:n])
+}
+
+// endBody checks that the scan is in a state in which the content of the
+// macro or using body b can end. col is the column of the keyword of the
+// statement that ends the body, used to report errors.
+//
+// The content is shown where the macro is called or where itea is shown,
+// so it must end in the state in which it starts. Markdown code blocks are
+// considered Markdown: a macro or using body cannot start in a code block,
+// so a body that ends in a code block can only change how the following
+// text is laid out, not how it is escaped.
+//
+// If the content of a using body is shown in place, the states in which it
+// ends are joined, as for the branches of a statement.
+func (l *lexer) endBody(b *lexBlock, col int) error {
+	if _, ok := joinLexStates(markdownLexState(b.body), markdownLexState(l.snapshot())); !ok {
+		return l.errorAtColumnf(col, "%s body ends in a different context", b.kind)
+	}
+	if b.inPlace {
+		return l.endBranch(b, col)
+	}
+	return nil
+}
+
+// scanBlockStatement updates the state of the scan when the statement that
+// starts with the keyword typ is scanned. elseIf reports whether typ is
+// the 'if' keyword of an 'else if' statement. col is the column of the
+// keyword.
+func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
+	if elseIf {
+		if b := l.lastBlock(blockIf); b != nil {
+			b.implicit = true
+		}
+		return nil
+	}
+	switch typ {
+	case tokenShow:
+		l.endShow()
+	case tokenIf:
+		l.beginBlock(blockIf)
+	case tokenFor:
+		l.beginBlock(blockFor)
+	case tokenSwitch:
+		l.beginBlock(blockSwitch)
+	case tokenSelect:
+		l.beginBlock(blockSelect)
+	case tokenMacro:
+		l.beginBlock(blockMacro)
+	case tokenUsing:
+		l.beginBlock(blockUsing)
+	case tokenRaw:
+		l.beginBlock(blockRaw)
+	case tokenElse:
+		n := len(l.blocks)
+		if n == 0 {
+			return nil
+		}
+		b := &l.blocks[n-1]
+		if b.kind != blockIf && b.kind != blockFor {
+			return nil
+		}
+		if err := l.endBranch(b, col); err != nil {
+			return err
+		}
+		l.restore(b.start)
+		if b.kind == blockIf {
+			b.implicit = false
+		} else {
+			b.inElse = true
+		}
+	case tokenCase, tokenDefault:
+		n := len(l.blocks)
+		if n == 0 {
+			return nil
+		}
+		b := &l.blocks[n-1]
+		if b.kind != blockSwitch && b.kind != blockSelect {
+			return nil
+		}
+		start := b.start
+		if b.next != nil {
+			// The previous case ends with a fallthrough statement.
+			start = *b.next
+			b.next = nil
+		} else if b.cases {
+			if err := l.endBranch(b, col); err != nil {
+				return err
+			}
+		}
+		b.cases = true
+		l.restore(start)
+		if typ == tokenDefault {
+			b.implicit = false
+		}
+	case tokenBreak, tokenContinue:
+		// A break or continue statement ends a branch of the innermost
+		// statement it can refer to. With a label, it also ends a branch of
+		// every statement up to the one with the label: Go exits the
+		// statement with the label, while Scriggo currently exits only the
+		// innermost one.
+		kinds := []blockKind{blockFor}
+		if typ == tokenBreak {
+			kinds = append(kinds, blockSwitch, blockSelect)
+		}
+		label := l.nextIdentifier()
+		for i := len(l.blocks) - 1; i >= 0; i-- {
+			b := &l.blocks[i]
+			if b.kind == blockMacro || b.kind == blockUsing {
+				// A statement cannot refer to a block outside the body.
+				break
+			}
+			if !slices.Contains(kinds, b.kind) {
+				continue
+			}
+			if b.inElse {
+				// The else branch of a for statement is not part of the loop,
+				// so the statement refers to an enclosing statement.
+				continue
+			}
+			if err := l.endBranch(b, col); err != nil {
+				return err
+			}
+			if label == "" || b.label == label {
+				break
+			}
+		}
+	case tokenReturn:
+		// A return statement ends the content of a macro or using body.
+		if b := l.lastBlock(blockMacro, blockUsing); b != nil {
+			return l.endBody(b, col)
+		}
+	case tokenFallthrough:
+		// The next case is scanned starting from the join of the state at
+		// the beginning of the switch statement and the current state.
+		if b := l.lastBlock(blockSwitch); b != nil {
+			next, ok := joinLexStates(b.start, l.snapshot())
+			if !ok {
+				return l.errorAtColumnf(col, "%s branches end in different contexts", b.kind)
+			}
+			b.next = &next
+		}
+	case tokenEnd:
+		n := len(l.blocks)
+		if n == 0 {
+			return nil
+		}
+		b := l.blocks[n-1]
+		l.blocks = l.blocks[:n-1]
+		switch b.kind {
+		case blockMacro, blockUsing:
+			if err := l.endBody(&b, col); err != nil {
+				return err
+			}
+			// If the content is shown in place, in the context of the
+			// statement, the scan continues from the joined state at the end
+			// of the body. Otherwise, the content is shown as a value.
+			if !b.inPlace || b.body.ctx != b.start.ctx {
+				l.restore(b.start)
+			} else {
+				l.restore(*b.end)
+			}
+		case blockRaw:
+		default:
+			if err := l.endBranch(&b, col); err != nil {
+				return err
+			}
+			if b.implicit {
+				end, ok := joinLexStates(*b.end, b.start)
+				if !ok {
+					return l.errorAtColumnf(col, "%s branches end in different contexts", b.kind)
+				}
+				b.end = &end
+			}
+			if b.kind == blockFor && b.end.ctx == ast.ContextTag && b.end.state.attrNameChar {
+				// From the second iteration on, the body can join an attribute
+				// name to the one at the end of the previous iteration, and so
+				// form a type attribute.
+				b.end.state.typeAttr = false
+				b.end.state.typeAttrUnknown = true
+			}
+			l.restore(*b.end)
+		}
+	}
+	return nil
+}
+
+// endShow updates the state after a show.
+func (l *lexer) endShow() {
+	switch l.ctx {
+	case ast.ContextJS:
+		if l.state.jsComment == jsCommentNone {
+			l.endJSOperand()
+		}
+	case ast.ContextTag:
+		// The shown value could contain attribute names, such as "type", or
+		// continue the name of the previous attribute.
+		if !l.state.typeAttr || l.state.attrNameChar {
+			l.state.typeAttr = false
+			l.state.typeAttrUnknown = true
+		}
+		l.state.attrNameChar = true
+	}
+}
+
+// endJSOperand updates the state at the end of a JavaScript operand, such
+// as a string, a template literal, a regular expression literal or a shown
+// value: a following '/' is a division, and the line contains code.
+func (l *lexer) endJSOperand() {
+	l.state.jsDivision = true
+	l.state.jsDivisionUnknown = false
+	l.state.jsLineCode = true
+	l.state.jsLineCodeUnknown = false
+}
+
+// unclosedJSError returns an error if a JavaScript string, template literal,
+// regular expression or block comment is not closed at the current
+// position, the end of a script. A line comment does not need to be
+// closed. Otherwise it returns nil.
+func (l *lexer) unclosedJSError() error {
+	var what string
+	switch l.ctx {
+	case ast.ContextJSString:
+		what = "string"
+		if l.state.quote == '`' {
+			what = "template literal"
+		}
+	case ast.ContextJSRegExp:
+		what = "regular expression"
+	case ast.ContextJS:
+		if l.state.jsComment == jsCommentBlock {
+			what = "comment"
+		} else if len(l.state.jsBraces) > 0 {
+			what = "template literal"
+		}
+	}
+	if what == "" {
+		return nil
+	}
+	return l.errorf("unclosed JavaScript %s at the end of the script", what)
+}
+
+// markdownLexState returns s with the context of a Markdown code block
+// replaced with the Markdown context.
+func markdownLexState(s lexState) lexState {
+	if s.ctx == ast.ContextTabCodeBlock || s.ctx == ast.ContextSpacesCodeBlock {
+		s.ctx = ast.ContextMarkdown
+	}
+	return s
+}
+
+// errorAtColumnf is like errorf but reports the error at the column col of
+// the current line.
+func (l *lexer) errorAtColumnf(col int, format string, a ...any) *SyntaxError {
+	err := l.errorf(format, a...)
+	err.pos.Column = col
+	return err
+}
+
+// String returns the keyword of the block kind.
+func (k blockKind) String() string {
+	switch k {
+	case blockIf:
+		return "if"
+	case blockFor:
+		return "for"
+	case blockSwitch:
+		return "switch"
+	case blockSelect:
+		return "select"
+	case blockMacro:
+		return "macro"
+	case blockUsing:
+		return "using"
+	case blockRaw:
+		return "raw"
+	}
+	panic("invalid block kind")
+}
 
 // scan scans the text by placing the tokens on the tokens channel. If an
 // error occurs, it puts the error in err, closes the channel and returns.
@@ -212,9 +678,7 @@ func (l *lexer) scan() {
 		lin := l.line   // token line
 		col := l.column // token column
 
-		var quote = byte(0)
 		var emittedURL bool
-		var jsComment jsCommentState
 
 		fileContext := l.ctx
 
@@ -247,6 +711,11 @@ func (l *lexer) scan() {
 			}
 
 			if c == '{' && p+1 < len(l.src) {
+				if (l.ctx == ast.ContextQuotedAttr || l.ctx == ast.ContextUnquotedAttr) && l.isShowStatementOrCommentStart(p) {
+					// The attribute value is not known at compile time, and
+					// l.tag.index will no longer be valid.
+					l.tag.dynamic = true
+				}
 				switch l.src[p+1] {
 				case '{':
 					if l.noParseShow {
@@ -261,6 +730,7 @@ func (l *lexer) scan() {
 						l.err = err
 						break LOOP
 					}
+					l.endShow()
 					lin = l.line
 					col = l.column
 					continue
@@ -301,6 +771,13 @@ func (l *lexer) scan() {
 				}
 			} else if c == '#' && p+1 < len(l.src) && l.src[p+1] == '}' {
 				l.err = l.errorf("unexpected #}")
+				break LOOP
+			} else if c == '\\' && l.isStringContext() && l.isShowStatementOrCommentStart(p+1) {
+				// The backslash would escape the first character rendered by
+				// the statement or comment that follows or, if it renders
+				// nothing, the character after it, which the lexer cannot
+				// determine here.
+				l.err = l.errorf("unfinished escape sequence in %s", l.ctx)
 				break LOOP
 			}
 
@@ -365,6 +842,7 @@ func (l *lexer) scan() {
 					l.tag.name, p = l.scanTag(p)
 					if l.tag.name != "" {
 						l.ctx = ast.ContextTag
+						l.state.jsClassic = l.tag.name == "script"
 						switch l.tag.name {
 						case "script":
 							l.tag.ctx = ast.ContextJS
@@ -376,9 +854,17 @@ func (l *lexer) scan() {
 				}
 
 			case ast.ContextTag:
+				// An attribute name that starts here could be joined to the
+				// text before it, if it ends with a show or with an attribute
+				// name followed by a statement or comment.
+				joined := l.state.attrNameChar
+				l.state.attrNameChar = false
 				if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
 					// End tag.
 					l.ctx = l.tag.ctx
+					// The content of the element, such as a script, is
+					// scanned starting from an empty state.
+					l.state = scanState{jsClassic: l.state.jsClassic}
 					l.tag.name = ""
 					l.tag.ctx = fileContext
 					if c == '/' {
@@ -386,20 +872,50 @@ func (l *lexer) scan() {
 						l.column++
 					}
 				} else if !isASCIISpace(c) {
+					if l.tag.name == "script" || l.tag.name == "style" {
+						// The content of these elements is scanned according
+						// to their type attribute, so attribute names must be
+						// known at compile time.
+						if c == '=' {
+							l.err = l.errorf("'=' could start an attribute name or value")
+							break LOOP
+						}
+						if joined && c != '/' {
+							l.err = l.errorf("attribute name could be joined to the previous one")
+							break LOOP
+						}
+					}
 					// Check if it is an attribute.
 					var next int
-					if l.tag.attr, next = l.scanAttribute(p); next > p {
+					var value bool
+					if l.tag.attr, value, next = l.scanAttribute(p); next > p {
 						p = next
-						if l.tag.attr != "" && p < len(l.src) {
+						// An attribute name directly followed by a show,
+						// statement or comment could continue after it.
+						l.state.attrNameChar = !value && l.isShowStatementOrCommentStart(p) && !isASCIISpace(l.src[p-1])
+						if l.tag.attr == "type" {
+							if l.state.typeAttr {
+								// Browsers ignore a repeated attribute.
+								l.tag.attr = ""
+							} else if l.state.typeAttrUnknown && value {
+								// The attribute is repeated only in some
+								// branches, so it is handled as if its value
+								// were not known at compile time.
+								l.tag.dynamic = true
+							}
+							l.state.typeAttr = true
+							l.state.typeAttrUnknown = false
+						}
+						if value {
 							// Start attribute value.
 							if c := l.src[p]; c == '"' || c == '\'' {
-								quote = c
+								l.state.quote = c
 								p++
 								l.column++
 							}
 							if containsURL(l.tag.name, l.tag.attr) {
 								l.emitAtLineColumn(lin, col, tokenText, p)
-								if quote == 0 {
+								if l.state.quote == 0 {
 									l.ctx = ast.ContextUnquotedAttr
 								} else {
 									l.ctx = ast.ContextQuotedAttr
@@ -411,22 +927,24 @@ func (l *lexer) scan() {
 								col = l.column
 							} else {
 								l.tag.index = p
-								if quote == 0 {
+								if l.state.quote == 0 {
 									l.ctx = ast.ContextUnquotedAttr
 								} else {
 									l.ctx = ast.ContextQuotedAttr
 								}
 							}
+						} else {
+							l.tag.attr = ""
 						}
 						continue
 					}
 				}
 
 			case ast.ContextQuotedAttr, ast.ContextUnquotedAttr:
-				if l.ctx == ast.ContextQuotedAttr && c == quote ||
+				if l.ctx == ast.ContextQuotedAttr && c == l.state.quote ||
 					l.ctx == ast.ContextUnquotedAttr && (c == '>' || isASCIISpace(c)) {
 					// End attribute.
-					quote = 0
+					l.state.quote = 0
 					if emittedURL {
 						if p > 0 {
 							l.emitAtLineColumn(lin, col, tokenText, p)
@@ -436,18 +954,21 @@ func (l *lexer) scan() {
 						p = 0
 						lin = l.line
 						col = l.column
+					} else if l.tag.attr == "type" && l.tag.dynamic {
+						// If the type is not known at compile time, the
+						// content is scanned as if the attribute were missing,
+						// but a script could be a module.
+						l.state.jsClassic = false
 					} else if l.tag.attr == "type" {
 						switch l.tag.name {
 						case "script":
-							typ := l.src[l.tag.index:p]
-							if bytes.Equal(typ, moduleType) {
-								break
-							}
-							typ = bytes.TrimSpace(typ)
-							if len(typ) > 0 {
+							typ := bytes.TrimSpace(l.src[l.tag.index:p])
+							if bytes.EqualFold(typ, []byte("module")) {
+								l.state.jsClassic = false
+							} else if len(typ) > 0 && !isJSMimeType(typ) {
 								if bytes.EqualFold(typ, jsonLDMimeType) {
 									l.tag.ctx = ast.ContextJSON
-								} else if !bytes.EqualFold(typ, jsMimeType) {
+								} else {
 									l.tag.ctx = fileContext
 								}
 							}
@@ -462,6 +983,7 @@ func (l *lexer) scan() {
 					l.ctx = ast.ContextTag
 					l.tag.attr = ""
 					l.tag.index = 0
+					l.tag.dynamic = false
 					if c == '>' {
 						continue
 					}
@@ -475,77 +997,204 @@ func (l *lexer) scan() {
 					l.column += 7
 				} else if c == '"' || c == '\'' {
 					l.ctx = ast.ContextCSSString
-					quote = c
+					l.state.quote = c
 				}
 
 			case ast.ContextCSSString:
 				switch c {
 				case '\\':
-					if p+1 < len(l.src) && l.src[p+1] == quote {
+					if p+1 < len(l.src) && (l.src[p+1] == l.state.quote || l.src[p+1] == '\\') {
 						p++
 						l.column++
 					}
-				case quote:
+				case l.state.quote:
 					l.ctx = ast.ContextCSS
-					quote = 0
+					l.state.quote = 0
 				case '<':
 					if isHTML && isEndStyle(l.src[p:]) {
 						l.ctx = fileContext
-						quote = 0
+						l.state.quote = 0
 						p += 7
 						l.column += 7
 					}
 				}
 
 			case ast.ContextJS:
+				if c >= utf8.RuneSelf && !isStartChar(c) {
+					// Continuation byte of a character already scanned.
+					break
+				}
+				lineTerminator := isJSLineTerminator(l.src[p:])
+				code := l.state.jsComment == jsCommentNone && !isJSSpace(l.src[p:])
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
+					if err := l.unclosedJSError(); err != nil {
+						l.err = err
+						break LOOP
+					}
 					l.ctx = fileContext
-					jsComment = jsCommentNone
+					l.state = scanState{}
 					p += 8
 					l.column += 8
-				} else if jsComment == jsCommentLine {
-					if c == '\n' || c == '\r' {
-						jsComment = jsCommentNone
+				} else if l.state.jsComment == jsCommentLine {
+					if lineTerminator {
+						l.state.jsComment = jsCommentNone
 					}
-				} else if jsComment == jsCommentBlock {
+				} else if l.state.jsComment == jsCommentBlock {
 					if c == '*' && p+1 < len(l.src) && l.src[p+1] == '/' {
-						jsComment = jsCommentNone
+						l.state.jsComment = jsCommentNone
 						p++
 						l.column++
 					}
-				} else if c == '/' && p+1 < len(l.src) {
-					switch l.src[p+1] {
-					case '/':
-						jsComment = jsCommentLine
-						p++
-						l.column++
-					case '*':
-						jsComment = jsCommentBlock
-						p++
-						l.column++
+				} else if c == '/' && l.state.jsDivisionUnknown && p+1 < len(l.src) && l.src[p+1] != '/' && l.src[p+1] != '*' ||
+					c == '-' && l.state.jsLineCodeUnknown && bytes.HasPrefix(l.src[p:], jsHTMLCommentEnd) ||
+					c == '<' && !l.state.jsClassic && fileContext != ast.ContextMarkdown && bytes.HasPrefix(l.src[p:], jsHTMLCommentStart) {
+					// It is not known whether '/' starts a regular expression
+					// or "-->" starts a comment, for example because the
+					// branches of a statement end in different states, or
+					// whether "<!--" starts a comment, as it does only in a
+					// classic script and not in a module. "<!--" is not
+					// checked in Markdown, where code spans and code blocks
+					// are not recognized.
+					if c == '/' {
+						l.err = l.errorf("'/' could start a division or a regular expression")
+					} else if c == '<' {
+						l.err = l.errorf("'<!--' could start a comment or be an operator")
+					} else {
+						l.err = l.errorf("'-->' could start a comment or be an operator")
+					}
+					break LOOP
+				} else if c == '<' && bytes.HasPrefix(l.src[p:], jsHTMLCommentStart) ||
+					c == '-' && !l.state.jsLineCode && bytes.HasPrefix(l.src[p:], jsHTMLCommentEnd) ||
+					c == '#' && p+1 < len(l.src) && l.src[p+1] == '!' {
+					// HTML-like comments and hashbang comments are treated as
+					// line comments. "-->" is a comment only at the beginning of
+					// a line, as in "n-->0" it is a decrement and a comparison.
+					l.state.jsComment = jsCommentLine
+				} else if c == '/' && p+1 < len(l.src) && l.src[p+1] == '/' {
+					l.state.jsComment = jsCommentLine
+					p++
+					l.column++
+				} else if c == '/' && p+1 < len(l.src) && l.src[p+1] == '*' {
+					l.state.jsComment = jsCommentBlock
+					p++
+					l.column++
+				} else if c == '/' {
+					if l.state.jsDivision {
+						l.state.jsDivision = false
+					} else {
+						l.ctx = ast.ContextJSRegExp
+						l.state.jsClass = false
 					}
 				} else if c == '"' || c == '\'' {
 					l.ctx = ast.ContextJSString
-					quote = c
+					l.state.quote = c
+				} else if c == '`' {
+					// Template literal.
+					l.ctx = ast.ContextJSString
+					l.state.quote = c
+				} else if c == '{' {
+					if n := len(l.state.jsBraces); n > 0 {
+						l.state.jsBraces[n-1]++
+					}
+					l.state.jsDivision = false
+				} else if c == '}' {
+					if n := len(l.state.jsBraces); n > 0 {
+						if l.state.jsBraces[n-1] == 0 {
+							// End of a template literal substitution.
+							l.state.jsBraces = l.state.jsBraces[:n-1]
+							l.ctx = ast.ContextJSString
+							l.state.quote = '`'
+						} else {
+							l.state.jsBraces[n-1]--
+						}
+					}
+					l.state.jsDivision = false
+				} else if (c == '+' || c == '-') && p > 0 && l.src[p-1] == c {
+					// "++" and "--" are followed by a division, "+++" and
+					// "---" by a regular expression, and so on.
+					l.state.jsDivision = !l.state.jsDivision
+				} else if code {
+					l.state.jsDivision = isJSDivisionAfter(l.src[:p+1])
+				}
+				// "-->" starts a comment only at the beginning of a line.
+				if lineTerminator {
+					l.state.jsLineCode = false
+					l.state.jsLineCodeUnknown = false
+				} else if code && l.state.jsComment == jsCommentNone {
+					l.state.jsLineCode = true
+					l.state.jsLineCodeUnknown = false
+					l.state.jsDivisionUnknown = false
 				}
 
 			case ast.ContextJSString:
 				switch c {
 				case '\\':
-					if p+1 < len(l.src) && l.src[p+1] == quote {
+					if p+1 < len(l.src) && (l.src[p+1] == l.state.quote || l.src[p+1] == '\\' ||
+						l.state.quote == '`' && l.src[p+1] == '$') {
 						p++
 						l.column++
 					}
-				case quote:
+				case l.state.quote:
 					l.ctx = ast.ContextJS
-					quote = 0
+					l.state.quote = 0
+					l.endJSOperand()
+				case '$':
+					if l.state.quote == '`' && p+1 < len(l.src) && l.src[p+1] == '{' {
+						if !l.isShowStatementOrCommentStart(p + 1) {
+							// Start of a template literal substitution.
+							l.state.jsBraces = append(l.state.jsBraces, 0)
+							l.ctx = ast.ContextJS
+							l.state.quote = 0
+							l.state.jsDivision = false
+							p++
+							l.column++
+						} else {
+							// The show, statement or comment could render
+							// nothing, so the text that follows could start
+							// a substitution. A literal '$' can be written
+							// as \$.
+							l.err = l.errorf("unexpected show, statement or comment after $ in JavaScript template literal (write \\$ for a literal $)")
+							break LOOP
+						}
+					}
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
-						l.ctx = fileContext
-						quote = 0
-						p += 8
-						l.column += 8
+						l.err = l.unclosedJSError()
+						break LOOP
+					}
+				}
+
+			case ast.ContextJSRegExp:
+				switch c {
+				case '\\':
+					if p+1 < len(l.src) {
+						switch l.src[p+1] {
+						case '/', '\\', '[', ']':
+							p++
+							l.column++
+						}
+					}
+				case '[':
+					l.state.jsClass = true
+				case ']':
+					l.state.jsClass = false
+				case '/':
+					if !l.state.jsClass {
+						l.ctx = ast.ContextJS
+						l.endJSOperand()
+					}
+				case '\n', '\r', 0xE2:
+					// A regular expression cannot span lines.
+					if isJSLineTerminator(l.src[p:]) {
+						l.ctx = ast.ContextJS
+						l.state.jsClass = false
+						l.state.jsDivision = false
+					}
+				case '<':
+					if isHTML && isEndScript(l.src[p:]) {
+						l.err = l.unclosedJSError()
+						break LOOP
 					}
 				}
 
@@ -557,23 +1206,23 @@ func (l *lexer) scan() {
 					l.column += 8
 				} else if c == '"' {
 					l.ctx = ast.ContextJSONString
-					quote = '"'
+					l.state.quote = '"'
 				}
 
 			case ast.ContextJSONString:
 				switch c {
 				case '\\':
-					if p+1 < len(l.src) && l.src[p+1] == '"' {
+					if p+1 < len(l.src) && (l.src[p+1] == '"' || l.src[p+1] == '\\') {
 						p++
 						l.column++
 					}
 				case '"':
 					l.ctx = ast.ContextJSON
-					quote = 0
+					l.state.quote = 0
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
 						l.ctx = fileContext
-						quote = 0
+						l.state.quote = 0
 						p += 8
 						l.column += 8
 					}
@@ -603,6 +1252,14 @@ func (l *lexer) scan() {
 				l.column++
 			}
 
+		}
+
+		if l.err == nil && (fileContext == ast.ContextHTML || fileContext == ast.ContextJS) {
+			// An HTML or JavaScript file cannot end in a JavaScript string,
+			// template literal, regular expression or block comment. It is
+			// not checked for Markdown, where the lexer does not recognize
+			// code spans and code blocks.
+			l.err = l.unclosedJSError()
 		}
 
 		if l.err == nil {
@@ -739,46 +1396,33 @@ func (l *lexer) scanTag(p int) (string, int) {
 }
 
 // scanAttribute scans an attribute from src starting from position p and
-// returns the attribute name and the next position to scan.
+// returns the attribute name, whether it has a value, and the next position
+// to scan. As in HTML, the name ends at a space, '/', '>' or '=', unless '='
+// is its first character. It also ends at a show, statement or comment.
 //
 // For example, if l.src[p:] is
-//   - `src="a"` it returns "src" and p+4
-//   - `src=a` it returns "src" and p+4
-//   - `src>` it returns "" and p+3
-//   - `src img` it returns "" and p+4.
-//   - `,` it returns "" and p.
-func (l *lexer) scanAttribute(p int) (string, int) {
+//   - `src="a"` it returns "src", true and p+4
+//   - `src=a` it returns "src", true and p+4
+//   - `src>` it returns "src", false and p+3
+//   - `src img` it returns "src", false and p+4.
+//   - `a"b=c` it returns `a"b`, true and p+4.
+//   - `/` it returns "", false and p.
+func (l *lexer) scanAttribute(p int) (string, bool, int) {
 	// Reads the attribute name.
 	s := p
 	for ; p < len(l.src); p++ {
 		c := l.src[p]
-		if c == '=' || isASCIISpace(c) {
+		if c == '=' && p > s || c == '>' || c == '/' || isASCIISpace(c) || l.isShowStatementOrCommentStart(p) {
 			break
 		}
-		const DEL = 0x7F
-		if c <= 0x1F || c == '"' || c == '\'' || c == '>' || c == '/' || c == DEL {
-			return "", p
-		}
-		if c >= 0x80 {
-			r, size := utf8.DecodeRune(l.src[p:])
-			if r == utf8.RuneError && size == 1 {
-				return "", p
-			}
-			if 0x7F <= r && r <= 0x9F || unicode.Is(unicode.Noncharacter_Code_Point, r) {
-				return "", p
-			}
+		if c >= utf8.RuneSelf {
+			_, size := utf8.DecodeRune(l.src[p:])
 			p += size - 1
-		}
-		if c == '{' && p+1 < len(l.src) {
-			switch l.src[p+1] {
-			case '{', '%', '#':
-				return "", p
-			}
 		}
 		l.column++
 	}
 	if p == s || p == len(l.src) {
-		return "", p
+		return "", false, p
 	}
 	name := string(bytes.ToLower(l.src[s:p]))
 	// Reads '='.
@@ -794,13 +1438,13 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 				l.column++
 			}
 		} else {
-			return "", p
+			return name, false, p
 		}
 	}
 	// Reads the quote.
 	for ; p < len(l.src); p++ {
 		if c := l.src[p]; c == '>' {
-			return "", p
+			return name, false, p
 		} else if isASCIISpace(c) {
 			if c == '\n' {
 				l.newline()
@@ -812,9 +1456,9 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 		}
 	}
 	if p == len(l.src) {
-		return "", p
+		return "", false, p
 	}
-	return name, p
+	return name, true, p
 }
 
 var http = []byte("http://")
@@ -850,11 +1494,158 @@ func isEndStyle(s []byte) bool {
 		(s[5] == 'l' || s[5] == 'L') && (s[6] == 'e' || s[6] == 'E')
 }
 
+// jsMimeTypes contains the types, in lower case and without parameters, of
+// the script elements whose content is executed as JavaScript. They are the
+// same types as in Go's html/template, except the JSON types.
+var jsMimeTypes = map[string]bool{
+	"application/ecmascript":   true,
+	"application/javascript":   true,
+	"application/x-ecmascript": true,
+	"application/x-javascript": true,
+	"module":                   true,
+	"text/ecmascript":          true,
+	"text/javascript":          true,
+	"text/javascript1.0":       true,
+	"text/javascript1.1":       true,
+	"text/javascript1.2":       true,
+	"text/javascript1.3":       true,
+	"text/javascript1.4":       true,
+	"text/javascript1.5":       true,
+	"text/jscript":             true,
+	"text/livescript":          true,
+	"text/x-ecmascript":        true,
+	"text/x-javascript":        true,
+}
+
+// isJSMimeType reports whether typ, the value of the type attribute of a
+// script element, is a JavaScript type. Parameters, case and spaces are
+// ignored.
+func isJSMimeType(typ []byte) bool {
+	typ, _, _ = bytes.Cut(typ, []byte(";"))
+	return jsMimeTypes[strings.ToLower(string(bytes.TrimSpace(typ)))]
+}
+
 // isEndScript reports whether s is the start or end of "script" tag.
 func isEndScript(s []byte) bool {
 	return len(s) >= 9 && s[0] == '<' && s[1] == '/' && (s[8] == '>' || isSpace(s[8])) &&
 		(s[2] == 's' || s[2] == 'S') && (s[3] == 'c' || s[3] == 'C') && (s[4] == 'r' || s[4] == 'R') &&
 		(s[5] == 'i' || s[5] == 'I') && (s[6] == 'p' || s[6] == 'P') && (s[7] == 't' || s[7] == 'T')
+}
+
+// isStringContext reports whether the current context is a CSS, JavaScript
+// or JSON string, including a JavaScript template literal, or a JavaScript
+// regular expression.
+func (l *lexer) isStringContext() bool {
+	switch l.ctx {
+	case ast.ContextCSSString, ast.ContextJSString, ast.ContextJSONString, ast.ContextJSRegExp:
+		return true
+	}
+	return false
+}
+
+// regExpPrecederKeywords contains the JavaScript keywords that can be
+// followed by a regular expression literal.
+var regExpPrecederKeywords = map[string]bool{
+	"break":      true,
+	"case":       true,
+	"continue":   true,
+	"delete":     true,
+	"do":         true,
+	"else":       true,
+	"finally":    true,
+	"in":         true,
+	"instanceof": true,
+	"return":     true,
+	"throw":      true,
+	"try":        true,
+	"typeof":     true,
+	"void":       true,
+}
+
+// isJSIdentifierPart reports whether c can be part of a JavaScript
+// identifier or number. Bytes of non-ASCII characters are considered part
+// of an identifier.
+func isJSIdentifierPart(c byte) bool {
+	return c == '_' || c == '$' || isDecDigit(c) || isAlpha(c) || c >= 0x80
+}
+
+// isJSSpace reports whether s starts with a JavaScript white space or line
+// terminator.
+func isJSSpace(s []byte) bool {
+	r, _ := utf8.DecodeRune(s)
+	return unicode.IsSpace(r) && r != '\u0085' || r == '\uFEFF'
+}
+
+// isJSLineTerminator reports whether s starts with a JavaScript line
+// terminator.
+func isJSLineTerminator(s []byte) bool {
+	switch s[0] {
+	case '\n', '\r':
+		return true
+	case 0xE2:
+		r, _ := utf8.DecodeRune(s)
+		return r == '\u2028' || r == '\u2029'
+	}
+	return false
+}
+
+// isJSDivisionAfter reports whether a '/' that follows the JavaScript code s
+// is a division operator, and not the start of a regular expression. s ends
+// with a non-space character that is not a '+' or '-' following the same
+// character.
+func isJSDivisionAfter(s []byte) bool {
+	c := s[len(s)-1]
+	if c == ')' || c == ']' {
+		return true
+	}
+	if c == '.' {
+		// A '.' preceded by a digit ends a number, as in "1.".
+		return len(s) > 1 && isDecDigit(s[len(s)-2])
+	}
+	return isJSIdentifierPart(c) && !endsWithRegExpPrecederKeyword(s)
+}
+
+// endsWithRegExpPrecederKeyword reports whether the JavaScript code s ends
+// with a keyword that can be followed by a regular expression literal. A
+// keyword preceded by '.' is a property name, as in "a.typeof", unless the
+// '.' ends a spread operator, as in "...typeof".
+func endsWithRegExpPrecederKeyword(s []byte) bool {
+	const maxLen = len("instanceof")
+	start := len(s)
+	for start > 0 && isJSIdentifierPart(s[start-1]) {
+		if s[start-1] >= utf8.RuneSelf {
+			// A non-ASCII space or line terminator ends the identifier,
+			// any other non-ASCII character is part of it.
+			_, size := utf8.DecodeLastRune(s[:start])
+			if isJSSpace(s[start-size : start]) {
+				break
+			}
+			return false
+		}
+		if len(s)-start == maxLen {
+			return false
+		}
+		start--
+	}
+	if start > 0 && s[start-1] == '.' && !bytes.HasSuffix(s[:start], []byte("...")) {
+		return false
+	}
+	return regExpPrecederKeywords[string(s[start:])]
+}
+
+// isShowStatementOrCommentStart reports whether l.src[p:] starts with a
+// short show statement, a statement or a comment.
+func (l *lexer) isShowStatementOrCommentStart(p int) bool {
+	if p+1 >= len(l.src) || l.src[p] != '{' {
+		return false
+	}
+	switch l.src[p+1] {
+	case '{':
+		return !l.noParseShow
+	case '%', '#':
+		return true
+	}
+	return false
 }
 
 // lexShow emits tokens knowing that src starts with '{{'.
@@ -948,6 +1739,18 @@ func (l *lexer) lexCode(end tokenTyp) error {
 	}
 	// first is the index of the first token in code.
 	var first = l.totals + 1
+	// afterElse reports whether the first token is the else keyword.
+	var afterElse bool
+	// label is the label of the statement, if any, and firstIdent the first
+	// token if it is an identifier, which is a label if followed by a colon.
+	var label, firstIdent string
+	// afterEnd reports whether the first token is the end keyword.
+	var afterEnd bool
+	// afterShow reports whether the first token is the show keyword, and
+	// showItea whether it is followed by the itea identifier.
+	var afterShow, showItea bool
+	// beforeShow is the scan state before the show keyword.
+	var beforeShow scanState
 	// macroOrUsing indicates if it has lexed the macro keyword or the using keyword.
 	var macroOrUsing bool
 	// ident stores the index and the text of the last lexed identifier after a macro or a using keyword.
@@ -1122,6 +1925,13 @@ LOOP:
 								}
 							}
 						}
+						// Store the state at the beginning of the body of a
+						// macro or using statement.
+						if n := len(l.blocks); macroOrUsing && n > 0 {
+							if b := &l.blocks[n-1]; b.kind == blockMacro || b.kind == blockUsing {
+								b.body = l.snapshot()
+							}
+						}
 						return nil
 					case tokenRightBraces, tokenEndStatements:
 						return l.errorf("unexpected %%}, expecting %s", end)
@@ -1288,6 +2098,12 @@ LOOP:
 			} else {
 				l.emit(tokenColon, 1)
 				l.column++
+				if end == tokenEndStatement && firstIdent != "" && l.totals == first+1 {
+					// In a labeled statement, the first token is the one that
+					// follows the label and the colon.
+					label = firstIdent
+					first += 2
+				}
 			}
 			endLineAsSemicolon = false
 		case ',':
@@ -1336,26 +2152,64 @@ LOOP:
 				}
 				typ, txt = l.lexIdentifierOrKeyword(s)
 			}
-			// If it has lexed the first token after '{%', checks whether to store or restore the context.
+			// A show statement among other statements may not be executed,
+			// so it is not known whether a following '/' is a division.
+			if end == tokenEndStatements && typ == tokenShow && l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone {
+				l.state.jsDivisionUnknown = true
+				l.state.jsLineCodeUnknown = true
+			}
+			// A break, continue or return statement among other statements
+			// ends a branch or a body as in a single statement.
+			if end == tokenEndStatements && (typ == tokenBreak || typ == tokenContinue || typ == tokenReturn) {
+				if err := l.scanBlockStatement(typ, false, l.column-len(txt)); err != nil {
+					return err
+				}
+			}
+			// If it has lexed the first token after '{%', or the using
+			// keyword, updates the state of the scan for block statements.
 			if end == tokenEndStatement {
-				if l.totals == first {
-					switch typ {
-					case tokenMacro:
+				if l.totals == first && typ == tokenIdentifier {
+					firstIdent = txt
+				} else if l.totals == first {
+					if typ == tokenMacro {
 						macroOrUsing = true
-						l.contexts = append(l.contexts, l.ctx)
-					case tokenEnd:
-						if last := len(l.contexts) - 1; last >= 0 {
-							l.ctx = l.contexts[last]
-							l.contexts = l.contexts[:last]
-						}
-					case tokenIf, tokenFor, tokenSwitch, tokenSelect:
-						if len(l.contexts) > 0 {
-							l.contexts = append(l.contexts, l.ctx)
-						}
 					}
-				} else if typ == tokenUsing {
+					afterElse = typ == tokenElse
+					afterEnd = typ == tokenEnd
+					afterShow = typ == tokenShow
+					if afterShow {
+						beforeShow = l.state.clone()
+					}
+					n := len(l.blocks)
+					if err := l.scanBlockStatement(typ, false, l.column-len(txt)); err != nil {
+						return err
+					}
+					if label != "" && len(l.blocks) > n {
+						l.blocks[len(l.blocks)-1].label = label
+					}
+				} else if afterElse && l.totals == first+1 && typ == tokenIf {
+					if err := l.scanBlockStatement(typ, true, l.column-len(txt)); err != nil {
+						return err
+					}
+				} else if afterShow && l.totals == first+1 && typ == tokenIdentifier && txt == "itea" {
+					showItea = true
+				} else if typ == tokenUsing && !afterEnd {
+					// A using keyword after end, as in {% end using %}, does
+					// not start a using statement.
 					macroOrUsing = true
-					l.contexts = append(l.contexts, l.ctx)
+					if err := l.scanBlockStatement(typ, false, l.column-len(txt)); err != nil {
+						return err
+					}
+					// The semicolon between itea and using is not counted
+					// if it is inserted at a newline.
+					if showItea && (l.totals == first+2 || l.totals == first+3) {
+						// In {% show itea; using %}, the content is shown in
+						// place, so the body is scanned starting from the
+						// state before the show keyword.
+						b := &l.blocks[len(l.blocks)-1]
+						b.inPlace = true
+						l.state = beforeShow.clone()
+					}
 				} else if macroOrUsing && typ == tokenIdentifier && l.totals != first+1 {
 					ident.index = l.totals
 					ident.txt = txt
