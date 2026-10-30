@@ -400,6 +400,15 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<script type="TEXT/X-JAVASCRIPT">s{{a}}t</script>{{a}}`:              {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		`<script type="application/json">s{{a}}t</script>{{a}}`:               {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 
+		// Repeated type attributes, of which browsers use the first.
+		`<script type="text/javascript" type="text/plain">{{a}}</script>`:  {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script type="text/javascript" TYPE="text/plain">{{a}}</script>`:  {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script type type="text/plain">{{a}}</script>`:                    {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script type/ type="text/plain">{{a}}</script>`:                   {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script type="text/plain" type="text/javascript">{{a}}</script>`:  {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+		`<style type="text/css" type="text/plain">{{a}}</style>`:           {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
+		`<script {% if a %}type {% end %}type="text/plain">{{a}}</script>`: {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+
 		// Strings that end with an escaped backslash.
 		`<script>'\''{{a}}</script>`:                            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 		`<script>'\\'{{a}}</script>`:                            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
@@ -655,32 +664,35 @@ var scanTagTests = []struct {
 var scanAttributeTests = []struct {
 	src    string
 	attr   string
+	value  bool
 	quote  byte
 	p      int
 	line   int
 	column int
 }{
-	{"href=\"h", "href", '"', 5, 1, 6},
-	{"href='h", "href", '\'', 5, 1, 6},
-	{"src = \"h", "src", '"', 6, 1, 7},
-	{"src\n= \"h", "src", '"', 6, 2, 3},
-	{"src =\n\"h", "src", '"', 6, 2, 1},
-	{"src\t\t=\n\"h", "src", '"', 7, 2, 1},
-	{"a='h", "a", '\'', 2, 1, 3},
-	{"src=h", "src", 0, 4, 1, 5},
-	{"src=\n\th", "src", 0, 6, 2, 2},
-	{"src=/a/b", "src", 0, 4, 1, 5},
-	{"src=>", "", 0, 4, 1, 5},
-	{"src=/>", "src", 0, 4, 1, 5},
-	{"src", "", 0, 3, 1, 4},
-	{"src=", "", 0, 4, 1, 5},
-	{"src ", "", 0, 4, 1, 5},
-	{"s5c='h", "s5c", '\'', 4, 1, 5},
-	{"本='h", "本", '\'', 4, 1, 3},
-	{"a本-€本b='h", "a本-€本b", '\'', 13, 1, 8},
-	{"5c=\"", "5c", '"', 3, 1, 4},
-	{"x:a=b", "x:a", 0, 4, 1, 5},
-	{"data-x=y", "data-x", 0, 7, 1, 8},
+	{"href=\"h", "href", true, '"', 5, 1, 6},
+	{"href='h", "href", true, '\'', 5, 1, 6},
+	{"src = \"h", "src", true, '"', 6, 1, 7},
+	{"src\n= \"h", "src", true, '"', 6, 2, 3},
+	{"src =\n\"h", "src", true, '"', 6, 2, 1},
+	{"src\t\t=\n\"h", "src", true, '"', 7, 2, 1},
+	{"a='h", "a", true, '\'', 2, 1, 3},
+	{"src=h", "src", true, 0, 4, 1, 5},
+	{"src=\n\th", "src", true, 0, 6, 2, 2},
+	{"src=/a/b", "src", true, 0, 4, 1, 5},
+	{"src=>", "src", false, 0, 4, 1, 5},
+	{"src=/>", "src", true, 0, 4, 1, 5},
+	{"src>", "src", false, 0, 3, 1, 4},
+	{"src img", "src", false, 0, 4, 1, 5},
+	{"src", "", false, 0, 3, 1, 4},
+	{"src=", "", false, 0, 4, 1, 5},
+	{"src ", "", false, 0, 4, 1, 5},
+	{"s5c='h", "s5c", true, '\'', 4, 1, 5},
+	{"本='h", "本", true, '\'', 4, 1, 3},
+	{"a本-€本b='h", "a本-€本b", true, '\'', 13, 1, 8},
+	{"5c=\"", "5c", true, '"', 3, 1, 4},
+	{"x:a=b", "x:a", true, 0, 4, 1, 5},
+	{"data-x=y", "data-x", true, 0, 7, 1, 8},
 }
 
 func testLexerTypes(t *testing.T, test map[string][]tokenTyp, isTemplate bool, format ast.Format) {
@@ -964,10 +976,16 @@ var htmlLikeCommentTests = []struct {
 	{ast.FormatHTML, "<script type=\"module\"></script><script><!--\n</script>", ""},
 	{ast.FormatHTML, "<script type=\"module\">a < !--b; '<!--'</script>", ""},
 	{ast.FormatMarkdown, "Add `<script type=\"module\" src=\"app.js\">` to the page.\n\n```html\n<!-- not here -->\n```\n", ""},
+	{ast.FormatHTML, "<script type type=\"module\"><!--\n</script>", ""},
+	{ast.FormatHTML, "<script type=\"text/javascript\" type=\"module\"><!--\n</script>", ""},
+	{ast.FormatHTML, "<script type=\"module\" type=\"text/javascript\"><!--\n</script>", ":1:46: syntax error: '<!--' could start a comment or be an operator"},
 	{ast.FormatHTML, "<script type=\"module\"><!--\n</script>", ":1:23: syntax error: '<!--' could start a comment or be an operator"},
 	{ast.FormatHTML, "<script type=\" Module \">a <!--b\n</script>", ":1:27: syntax error: '<!--' could start a comment or be an operator"},
 	{ast.FormatHTML, "<script type=\"{{ t }}\"><!--\n</script>", ":1:24: syntax error: '<!--' could start a comment or be an operator"},
 	{ast.FormatHTML, "<script {% if a %}type=\"module\"{% end %}><!--\n</script>", ":1:42: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script {% if a %}type=\"text/javascript\"{% end %} type=\"module\"><!--\n</script>", ":1:65: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script {% for x in xs %}type=\"text/javascript\" {% end %}type=\"module\"><!--\n</script>", ":1:72: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script {% if a %}type {% end %}type=\"module\"><!--\n</script>", ":1:47: syntax error: '<!--' could start a comment or be an operator"},
 	{ast.FormatHTML, "{% macro M js %}<!--\n{% end %}", ":1:17: syntax error: '<!--' could start a comment or be an operator"},
 	{ast.FormatJS, "<!-- it's\n{{a}}", ":1:1: syntax error: '<!--' could start a comment or be an operator"},
 }
@@ -1091,11 +1109,14 @@ func TestLexerReadAttribute(t *testing.T) {
 			column: 1,
 			ctx:    ast.ContextHTML,
 		}
-		attr, p := l.scanAttribute(0)
+		attr, value, p := l.scanAttribute(0)
 		if attr != test.attr {
 			t.Errorf("source: %q, unexpected attribute %q, expecting %q\n", test.src, attr, test.attr)
 		}
-		if attr != "" && test.quote != 0 && l.src[p] != test.quote {
+		if value != test.value {
+			t.Errorf("source: %q, unexpected value %t, expecting %t\n", test.src, value, test.value)
+		}
+		if value && test.quote != 0 && l.src[p] != test.quote {
 			t.Errorf("source: %q, unexpected quote %q, expecting %q\n", test.src, string(l.src[p]), string(test.quote))
 		}
 		if p != test.p {

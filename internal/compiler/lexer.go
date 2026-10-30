@@ -202,12 +202,14 @@ type scanState struct {
 	jsBraces   []int          // depth of the braces in JavaScript template literal substitutions
 	jsLineCode bool           // the current JavaScript line contains code before the current position
 	jsClassic  bool           // the JavaScript code is in a classic script, in which "<!--" starts a comment
+	typeAttr   bool           // the current tag has a type attribute
 
-	// jsDivisionUnknown and jsLineCodeUnknown report whether jsDivision and
-	// jsLineCode are unknown, because they differ in the branches of a
-	// statement.
+	// jsDivisionUnknown, jsLineCodeUnknown and typeAttrUnknown report whether
+	// jsDivision, jsLineCode and typeAttr are unknown, because they differ in
+	// the branches of a statement.
 	jsDivisionUnknown bool
 	jsLineCodeUnknown bool
+	typeAttrUnknown   bool
 }
 
 // clone returns a copy of s.
@@ -242,6 +244,10 @@ func joinLexStates(a, b lexState) (lexState, bool) {
 		sa.jsLineCodeUnknown = true
 	}
 	sa.jsClassic = sa.jsClassic && sb.jsClassic
+	if sa.typeAttr != sb.typeAttr || sb.typeAttrUnknown {
+		sa.typeAttr = false
+		sa.typeAttrUnknown = true
+	}
 	return lexState{ctx: a.ctx, tagCtx: a.tagCtx, state: sa.clone()}, true
 }
 
@@ -836,9 +842,23 @@ func (l *lexer) scan() {
 				} else if !isASCIISpace(c) {
 					// Check if it is an attribute.
 					var next int
-					if l.tag.attr, next = l.scanAttribute(p); next > p {
+					var value bool
+					if l.tag.attr, value, next = l.scanAttribute(p); next > p {
 						p = next
-						if l.tag.attr != "" && p < len(l.src) {
+						if l.tag.attr == "type" {
+							if l.state.typeAttr {
+								// Browsers ignore a repeated attribute.
+								l.tag.attr = ""
+							} else if l.state.typeAttrUnknown && value {
+								// The attribute is repeated only in some
+								// branches, so it is handled as if its value
+								// were not known at compile time.
+								l.tag.dynamic = true
+							}
+							l.state.typeAttr = true
+							l.state.typeAttrUnknown = false
+						}
+						if value {
 							// Start attribute value.
 							if c := l.src[p]; c == '"' || c == '\'' {
 								l.state.quote = c
@@ -865,6 +885,8 @@ func (l *lexer) scan() {
 									l.ctx = ast.ContextQuotedAttr
 								}
 							}
+						} else {
+							l.tag.attr = ""
 						}
 						continue
 					}
@@ -1326,46 +1348,47 @@ func (l *lexer) scanTag(p int) (string, int) {
 }
 
 // scanAttribute scans an attribute from src starting from position p and
-// returns the attribute name and the next position to scan.
+// returns the attribute name, whether it has a value, and the next position
+// to scan.
 //
 // For example, if l.src[p:] is
-//   - `src="a"` it returns "src" and p+4
-//   - `src=a` it returns "src" and p+4
-//   - `src>` it returns "" and p+3
-//   - `src img` it returns "" and p+4.
-//   - `,` it returns "" and p.
-func (l *lexer) scanAttribute(p int) (string, int) {
+//   - `src="a"` it returns "src", true and p+4
+//   - `src=a` it returns "src", true and p+4
+//   - `src>` it returns "src", false and p+3
+//   - `src img` it returns "src", false and p+4.
+//   - `,` it returns "", false and p.
+func (l *lexer) scanAttribute(p int) (string, bool, int) {
 	// Reads the attribute name.
 	s := p
 	for ; p < len(l.src); p++ {
 		c := l.src[p]
-		if c == '=' || isASCIISpace(c) {
+		if c == '=' || c == '>' || c == '/' || isASCIISpace(c) {
 			break
 		}
 		const DEL = 0x7F
-		if c <= 0x1F || c == '"' || c == '\'' || c == '>' || c == '/' || c == DEL {
-			return "", p
+		if c <= 0x1F || c == '"' || c == '\'' || c == DEL {
+			return "", false, p
 		}
 		if c >= 0x80 {
 			r, size := utf8.DecodeRune(l.src[p:])
 			if r == utf8.RuneError && size == 1 {
-				return "", p
+				return "", false, p
 			}
 			if 0x7F <= r && r <= 0x9F || unicode.Is(unicode.Noncharacter_Code_Point, r) {
-				return "", p
+				return "", false, p
 			}
 			p += size - 1
 		}
 		if c == '{' && p+1 < len(l.src) {
 			switch l.src[p+1] {
 			case '{', '%', '#':
-				return "", p
+				return "", false, p
 			}
 		}
 		l.column++
 	}
 	if p == s || p == len(l.src) {
-		return "", p
+		return "", false, p
 	}
 	name := string(bytes.ToLower(l.src[s:p]))
 	// Reads '='.
@@ -1381,13 +1404,13 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 				l.column++
 			}
 		} else {
-			return "", p
+			return name, false, p
 		}
 	}
 	// Reads the quote.
 	for ; p < len(l.src); p++ {
 		if c := l.src[p]; c == '>' {
-			return "", p
+			return name, false, p
 		} else if isASCIISpace(c) {
 			if c == '\n' {
 				l.newline()
@@ -1399,9 +1422,9 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 		}
 	}
 	if p == len(l.src) {
-		return "", p
+		return "", false, p
 	}
-	return name, p
+	return name, true, p
 }
 
 var http = []byte("http://")
