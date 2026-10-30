@@ -409,6 +409,14 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<style type="text/css" type="text/plain">{{a}}</style>`:           {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
 		`<script {% if a %}type {% end %}type="text/plain">{{a}}</script>`: {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 
+		// Attribute names read as browsers do.
+		`<script x"type="text/plain">{{a}}</script>`:                               {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script {{ x }} type="text/plain">{{a}}</script>`:                         {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script type{# c #} type="text/plain">{{a}}</script>`:                     {ast.ContextText, ast.ContextTag, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script {% if a %}defer{% end %} type="text/plain">{{a}}</script>`:        {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+		`<script {% for x in xs %}e typ{% end %} type="text/plain">{{a}}</script>`: {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script {% for x in xs %}defer {% end %}type="text/plain">{{a}}</script>`: {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+
 		// Strings that end with an escaped backslash.
 		`<script>'\''{{a}}</script>`:                            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 		`<script>'\\'{{a}}</script>`:                            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
@@ -684,6 +692,8 @@ var scanAttributeTests = []struct {
 	{"src=/>", "src", true, 0, 4, 1, 5},
 	{"src>", "src", false, 0, 3, 1, 4},
 	{"src img", "src", false, 0, 4, 1, 5},
+	{"a\"b='h", "a\"b", true, '\'', 4, 1, 5},
+	{"=a b", "=a", false, 0, 3, 1, 4},
 	{"src", "", false, 0, 3, 1, 4},
 	{"src=", "", false, 0, 4, 1, 5},
 	{"src ", "", false, 0, 4, 1, 5},
@@ -986,6 +996,7 @@ var htmlLikeCommentTests = []struct {
 	{ast.FormatHTML, "<script {% if a %}type=\"text/javascript\"{% end %} type=\"module\"><!--\n</script>", ":1:65: syntax error: '<!--' could start a comment or be an operator"},
 	{ast.FormatHTML, "<script {% for x in xs %}type=\"text/javascript\" {% end %}type=\"module\"><!--\n</script>", ":1:72: syntax error: '<!--' could start a comment or be an operator"},
 	{ast.FormatHTML, "<script {% if a %}type {% end %}type=\"module\"><!--\n</script>", ":1:47: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script {{ x }} type=\"module\"><!--\n</script>", ":1:31: syntax error: '<!--' could start a comment or be an operator"},
 	{ast.FormatHTML, "{% macro M js %}<!--\n{% end %}", ":1:17: syntax error: '<!--' could start a comment or be an operator"},
 	{ast.FormatJS, "<!-- it's\n{{a}}", ":1:1: syntax error: '<!--' could start a comment or be an operator"},
 }
@@ -993,6 +1004,38 @@ var htmlLikeCommentTests = []struct {
 func TestLexerHTMLLikeComments(t *testing.T) {
 	for _, test := range htmlLikeCommentTests {
 		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+var tagAttributeTests = []struct {
+	src string
+	err string
+}{
+	{"<div {{ k }}=\"v\">", ""},
+	{"<div {% if a %}x{% end %}y>", ""},
+	{"<script {{ attrs }}></script>", ""},
+	{"<script nonce=\"{{ n }}\"></script>", ""},
+	{"<script {% if a %}async{% else %}defer{% end %} type=\"text/plain\"></script>", ""},
+	{"<script {% if a %}x{% end %}type=\"text/plain\"></script>", ":1:29: syntax error: attribute name could be joined to the previous one"},
+	{"<script {{ x }}type=\"text/plain\"></script>", ":1:16: syntax error: attribute name could be joined to the previous one"},
+	{"<script {{ k }}=\"v\"></script>", ":1:16: syntax error: '=' could start an attribute name or value"},
+	{"<script type {% if a %}=\"text/plain\"{% end %}></script>", ":1:24: syntax error: '=' could start an attribute name or value"},
+	{"<script a=\"1\" =\"2\"></script>", ":1:15: syntax error: '=' could start an attribute name or value"},
+	{"<style {{ k }}=\"v\"></style>", ":1:15: syntax error: '=' could start an attribute name or value"},
+}
+
+func TestLexerTagAttributes(t *testing.T) {
+	for _, test := range tagAttributeTests {
+		lex := scanTemplate([]byte(test.src), ast.FormatHTML, false)
 		for range lex.Tokens() {
 		}
 		var err string
