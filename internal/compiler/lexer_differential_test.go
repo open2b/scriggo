@@ -52,11 +52,21 @@ var differentialSuffixes = []string{
 	"{{ v }}", "'{{ v }}'", "\"{{ v }}\"", "`{{ v }}`", "/{{ v }}/", "`${ {{ v }} }`",
 }
 
+// differentialDivisionError is the syntax error that Scriggo reports when it
+// is not known whether a '/' starts a division or a regular expression.
+const differentialDivisionError = "'/' could start a division or a regular expression"
+
 // differentialScriggoErrors are the syntax errors that Scriggo reports, by
 // prudence, for templates that Go's html/template accepts or rejects.
 var differentialScriggoErrors = []string{
-	"'/' could start a division or a regular expression",
+	differentialDivisionError,
 }
+
+// differentialBraceFragments are the fragments that end with a '}' that can
+// end a block or an expression, such as an object literal. After them, Go's
+// html/template treats a '/' as the start of a regular expression, while
+// Scriggo reports an error. They do not occur in the other fragments.
+var differentialBraceFragments = []string{"{}", "{ a }"}
 
 // differentialUnclosedError is the syntax error that Scriggo reports when a
 // script ends in a string, a template literal, a regular expression or a
@@ -147,6 +157,7 @@ func TestLexerJSContextsAgainstHTMLTemplate(t *testing.T) {
 
 	compared := map[ast.Context]int{}
 	prudentErrors := 0
+	braceErrors := 0
 	for _, src := range sources {
 		lex := scanTemplate([]byte(src), ast.FormatHTML, false)
 		var ctx ast.Context
@@ -165,10 +176,16 @@ func TestLexerJSContextsAgainstHTMLTemplate(t *testing.T) {
 		switch {
 		case lex.err != nil:
 			// Scriggo can report an error also where Go's html/template does
-			// not, but only by prudence. If the script ends in a string, a
-			// regular expression or a comment, both report an error.
+			// not, but only by prudence, or because Go's html/template
+			// guesses the meaning of a '/' after a '}'. If the script ends in
+			// a string, a regular expression or a comment, both report an
+			// error.
 			if goErr == nil {
-				prudentErrors++
+				if isDifferentialBraceError(src, lex.err) {
+					braceErrors++
+				} else {
+					prudentErrors++
+				}
 			}
 			var tmplErr *template.Error
 			if strings.Contains(lex.err.Error(), differentialUnclosedError) {
@@ -205,6 +222,26 @@ func TestLexerJSContextsAgainstHTMLTemplate(t *testing.T) {
 	if prudentErrors > 10 {
 		t.Errorf("expecting at most 10 errors where Go's html/template reports none, got %d", prudentErrors)
 	}
+	if braceErrors == 0 || braceErrors > 150 {
+		t.Errorf("expecting from 1 to 150 errors for a '/' after a '}', got %d", braceErrors)
+	}
+}
+
+// isDifferentialBraceError reports whether the error err, which Scriggo
+// reports for the source src, is caused by a '/' after the '}' of a fragment
+// in differentialBraceFragments: the error does not occur if the fragments
+// are replaced with an identifier.
+func isDifferentialBraceError(src string, err error) bool {
+	if !strings.Contains(err.Error(), differentialDivisionError) {
+		return false
+	}
+	for _, f := range differentialBraceFragments {
+		src = strings.ReplaceAll(src, f, "a")
+	}
+	lex := scanTemplate([]byte(src), ast.FormatHTML, false)
+	for range lex.Tokens() {
+	}
+	return lex.err == nil || !strings.Contains(lex.err.Error(), differentialDivisionError)
 }
 
 // isDifferentialComment reports whether the fragment f is a comment.
