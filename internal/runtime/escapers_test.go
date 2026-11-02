@@ -78,7 +78,9 @@ func TestJSStringEscape(t *testing.T) {
 		{"a/b", "a/b"},
 		{"a*/b", "a*\\/b"},
 		{"*//", "*\\//"},
-		{"/*", "/*"},
+		{"/*", "\\/*"},
+		{"/script", "\\/script"},
+		{"a//", "a//"},
 		{"$\u2028{", `\u0024\u2028\u007b`},
 	}
 	for _, tt := range tests {
@@ -89,6 +91,29 @@ func TestJSStringEscape(t *testing.T) {
 		}
 		if b.String() != tt.expected {
 			t.Errorf("src: %q: expecting %q, got %q", tt.src, tt.expected, b.String())
+		}
+	}
+}
+
+func TestCSSBytesEscape(t *testing.T) {
+	tests := []struct {
+		src      []byte
+		expected string
+	}{
+		{nil, ""},
+		{[]byte("a"), "YQ=="},
+		{[]byte{0xff, 0xff}, "\\//8="},
+		{[]byte{0xfe, 0xcb, 0x5a}, "\\/sta"},
+		{[]byte{0x01, 0xff, 0xff}, "Af//"},
+	}
+	for _, tt := range tests {
+		var b strings.Builder
+		err := cssBytesEscape(&b, tt.src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if b.String() != tt.expected {
+			t.Errorf("src: %v: expecting %q, got %q", tt.src, tt.expected, b.String())
 		}
 	}
 }

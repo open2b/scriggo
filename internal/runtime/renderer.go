@@ -414,7 +414,7 @@ func showInCSS(env *env, out io.Writer, value any) error {
 	case native.EnvStringer:
 		value = v.String(env)
 	case []byte:
-		return escapeBytes(w, v, false)
+		return cssBytesEscape(w, v)
 	case error:
 		value = v.Error()
 	}
@@ -453,7 +453,7 @@ func showInCSSString(env *env, out io.Writer, value any) error {
 		v := reflect.ValueOf(value)
 		if v.Type() == byteSliceType {
 			w := newStringWriter(out)
-			return escapeBytes(w, v.Interface().([]byte), false)
+			return cssBytesEscape(w, v.Interface().([]byte))
 		}
 		var err error
 		s, err = toString(env, value)

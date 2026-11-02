@@ -725,6 +725,43 @@ func TestTypeAttributeNotKnown(t *testing.T) {
 	}
 }
 
+// TestEndTagInShownValues tests that a value shown after a '<' in a script
+// or style element cannot complete it into an end tag of the element.
+func TestEndTagInShownValues(t *testing.T) {
+	tests := []struct {
+		name     string
+		src      string
+		expected string
+	}{
+		{"JS string", `<script>var h = "<{{ v }}>";</script>`, `<script>var h = "<\/script>";</script>`},
+		{"JS template literal", "<script>var h = `<{{ v }}>`;</script>", "<script>var h = `<\\/script>`;</script>"},
+		{"JSON-LD string", `<script type="application/ld+json">{"h": "<{{ v }}>"}</script>`, `<script type="application/ld+json">{"h": "<\/script>"}</script>`},
+		{"CSS string", `<style>a::before { content: "<{{ s }}>"; }</style>`, `<style>a::before { content: "<\2fstyle>"; }</style>`},
+		{"CSS string with bytes", `<style>a::before { content: "<{{ b }}>"; }</style>`, `<style>a::before { content: "<\/style/A>"; }</style>`},
+		{"CSS with bytes", `<style>a { b: <{{ b }}; }</style>`, `<style>a { b: <\/style/A; }</style>`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// The base64 encoding of b is "/style/A".
+			vars := Vars{"v": "/script", "s": "/style", "b": []byte{0xfe, 0xcb, 0x72, 0x95, 0xef, 0xc0}}
+			opts := &scriggo.BuildOptions{Globals: asDeclarations(vars)}
+			fsys := fstest.Files{"index.html": tt.src}
+			template, err := scriggo.BuildTemplate(fsys, "index.html", opts)
+			if err != nil {
+				t.Fatalf("unexpected build error: %s", err)
+			}
+			var b bytes.Buffer
+			err = template.Run(&b, vars, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+			if got := b.String(); got != tt.expected {
+				t.Fatalf("expecting %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
 var jsonContextTests = []struct {
 	src  string
 	res  string
