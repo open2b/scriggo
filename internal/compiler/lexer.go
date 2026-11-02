@@ -688,6 +688,10 @@ func (l *lexer) scan() {
 
 		isHTML := l.ctx == ast.ContextHTML || l.ctx == ast.ContextMarkdown
 
+		// ltShow reports whether the text before the last shows, in the
+		// content of a script or style element, ends with '<'.
+		var ltShow bool
+
 		if l.ctx == ast.ContextMarkdown {
 			p, l.ctx = l.scanCodeBlock(0)
 		}
@@ -696,6 +700,22 @@ func (l *lexer) scan() {
 		for p < len(l.src) {
 
 			c := l.src[p]
+
+			if ltShow && (c != '{' || !l.isShowStatementOrCommentStart(p) || l.src[p+1] != '{') {
+				// c follows the shows after a '<'. If they render nothing, a
+				// '/' or a statement or comment could start an end tag.
+				ltShow = false
+				if name := l.rawTextElement(); name != "" {
+					if c == '/' && l.couldBeEndTag(p+1, name) {
+						l.err = l.errorf("end tag could close a %s element", name)
+						break LOOP
+					}
+					if l.isShowStatementOrCommentStart(p) {
+						l.err = l.errorf("'<' followed by a statement or comment could start a %s end tag", name)
+						break LOOP
+					}
+				}
+			}
 
 			if l.ctx == ast.ContextMarkdown {
 				spacesOnlyLine = spacesOnlyLine && isSpace(c)
@@ -722,6 +742,10 @@ func (l *lexer) scan() {
 					if l.noParseShow {
 						break
 					}
+					// A '<' before the show could start an end tag with the
+					// text after it, if the show renders nothing. A '/' at
+					// the start of a shown value is escaped.
+					ltShow = l.rawTextElement() != "" && (p > 0 && l.src[p-1] == '<' || p == 0 && ltShow)
 					if p > 0 {
 						l.emitAtLineColumn(lin, col, tokenText, p)
 						p = 0
@@ -780,6 +804,23 @@ func (l *lexer) scan() {
 				// determine here.
 				l.err = l.errorf("unfinished escape sequence in %s", l.ctx)
 				break LOOP
+			} else if c == '<' && p+1 < len(l.src) {
+				// Browsers end a script or style element at its end tag, also
+				// in a string or a comment, so the end tag must be known at
+				// compile time. This is also checked in JavaScript, JSON and
+				// CSS files, which can be rendered in these elements.
+				if name := l.rawTextElement(); name != "" {
+					if l.src[p+1] == '/' && l.isDynamicEndTag(p+2, name) {
+						l.err = l.errorf("end tag could close a %s element (write <\\/ for a literal </)", name)
+						break LOOP
+					}
+					if l.isShowStatementOrCommentStart(p+1) && l.src[p+2] != '{' {
+						// A statement or comment after '<' could be followed
+						// by a '/' that starts an end tag.
+						l.err = l.errorf("'<' followed by a statement or comment could start a %s end tag", name)
+						break LOOP
+					}
+				}
 			}
 
 			switch l.ctx {
@@ -840,7 +881,24 @@ func (l *lexer) scan() {
 					// Start tag.
 					p++
 					l.column++
+					// A tag name that starts or continues with a show,
+					// statement or comment is not known at compile time.
+					if l.isShowStatementOrCommentStart(p) {
+						l.err = l.errorf("tag name could be script or style")
+						break LOOP
+					}
 					l.tag.name, p = l.scanTag(p)
+					if l.tag.name != "" && l.isShowStatementOrCommentStart(p) &&
+						(strings.HasPrefix("script", l.tag.name) || strings.HasPrefix("style", l.tag.name)) {
+						if l.tag.name == "script" || l.tag.name == "style" {
+							// The show, statement or comment could continue the
+							// name, as in <script{{ "x" }}>.
+							l.err = l.errorf("tag name could continue after %s (add a space after it)", l.tag.name)
+						} else {
+							l.err = l.errorf("tag name could be script or style")
+						}
+						break LOOP
+					}
 					if l.tag.name != "" {
 						l.ctx = ast.ContextTag
 						l.state.jsClassic = l.tag.name == "script"
@@ -1541,6 +1599,68 @@ func isEndScript(s []byte) bool {
 	return len(s) >= 9 && s[0] == '<' && s[1] == '/' && (s[8] == '>' || isSpace(s[8])) &&
 		(s[2] == 's' || s[2] == 'S') && (s[3] == 'c' || s[3] == 'C') && (s[4] == 'r' || s[4] == 'R') &&
 		(s[5] == 'i' || s[5] == 'I') && (s[6] == 'p' || s[6] == 'P') && (s[7] == 't' || s[7] == 'T')
+}
+
+// rawTextElement returns the name of the element, script or style, whose
+// content can be scanned in the current context, or an empty string if it
+// is not the content of a script or style element. In JavaScript, JSON and
+// CSS files, and in macros and using blocks with these types, it is the
+// element in which the content can be rendered.
+func (l *lexer) rawTextElement() string {
+	switch l.ctx {
+	case ast.ContextJS, ast.ContextJSString, ast.ContextJSRegExp, ast.ContextJSON, ast.ContextJSONString:
+		return "script"
+	case ast.ContextCSS, ast.ContextCSSString:
+		return "style"
+	}
+	return ""
+}
+
+// isDynamicEndTag reports whether l.src[p:], which follows "</", starts
+// with a prefix of name, in any case, followed by a show, statement or
+// comment, so that it could be an end tag of the element name when the
+// template is executed.
+func (l *lexer) isDynamicEndTag(p int, name string) bool {
+	for i := 0; ; i++ {
+		if l.isShowStatementOrCommentStart(p) {
+			return true
+		}
+		if i == len(name) || p == len(l.src) {
+			return false
+		}
+		c := l.src[p]
+		if 'A' <= c && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		if c != name[i] {
+			return false
+		}
+		p++
+	}
+}
+
+// couldBeEndTag reports whether l.src[p:], which follows "</", could be an
+// end tag of the element name: it starts with name, in any case, followed by
+// a character that ends a tag name or by the end of the source, or it is a
+// dynamic end tag as reported by isDynamicEndTag.
+func (l *lexer) couldBeEndTag(p int, name string) bool {
+	if l.isDynamicEndTag(p, name) {
+		return true
+	}
+	if len(l.src)-p < len(name) {
+		return false
+	}
+	for i := 0; i < len(name); i++ {
+		c := l.src[p+i]
+		if 'A' <= c && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		if c != name[i] {
+			return false
+		}
+	}
+	p += len(name)
+	return p == len(l.src) || l.src[p] == '>' || l.src[p] == '/' || isASCIISpace(l.src[p])
 }
 
 // isStringContext reports whether the current context is a CSS, JavaScript
