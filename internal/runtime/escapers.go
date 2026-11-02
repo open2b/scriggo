@@ -310,14 +310,17 @@ var jsStringEscapes = []string{
 // and JSON string with single or double quotes, and write it to w.
 //
 // A '/' that follows a '*' is escaped, so that an escaped string shown in a
-// JavaScript comment cannot close it.
+// JavaScript comment cannot close it. A '/' at the start of s is escaped,
+// so that it cannot complete a '<' before it into an end tag, as in
+// "<{{ v }}>" with v = "/script".
 func jsStringEscape(w strWriter, s string) error {
 	last := 0
 	for i, c := range s {
 		var esc string
 		switch {
-		case c == '/' && i > 0 && s[i-1] == '*':
-			// Prevent "*/" from closing a JavaScript comment.
+		case c == '/' && (i == 0 || s[i-1] == '*'):
+			// Prevent "*/" from closing a JavaScript comment, and "</" from
+			// starting an end tag.
 			esc = `\/`
 		case int(c) < len(jsStringEscapes):
 			esc = jsStringEscapes[c]
@@ -463,6 +466,21 @@ func jsRegExpEscape(w strWriter, s string) error {
 		return err
 	}
 	return nil
+}
+
+// cssBytesEscape writes the base64 encoding of b to w, so it can be placed in
+// CSS code or within a CSS string. A '/' at the start of the encoding is
+// escaped, so that it cannot complete a '<' before it into an end tag.
+func cssBytesEscape(w strWriter, b []byte) error {
+	s := base64.StdEncoding.EncodeToString(b)
+	if strings.HasPrefix(s, "/") {
+		_, err := w.WriteString(`\`)
+		if err != nil {
+			return err
+		}
+	}
+	_, err := w.WriteString(s)
+	return err
 }
 
 // jsonStringEscape escapes the string s so it can be placed within a JSON
