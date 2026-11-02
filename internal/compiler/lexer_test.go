@@ -935,6 +935,64 @@ func TestLexerBlockContexts(t *testing.T) {
 	}
 }
 
+// closingBraceTests contain sources with a '/' after a '}' that can end a
+// block, after which '/' starts a regular expression, or an expression, after
+// which '/' is a division.
+var closingBraceTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<script>var x = {}/\"/; var y = {{ v }};//\"</script>", ":1:19: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatJS, "var x = {}/\"/; var y = {{ v }};//\"", ":1:11: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var f = function() {}\n/\"/; var s = {{ v }}; // \"\n</script>", ":2:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var o = {a: 1}\n/\"/.test(b);</script>", ":2:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var C = class {}\n/'/;</script>", ":2:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>if (a) { b() }\n/c/.test(d);</script>", ":2:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{} /* c */ /d/</script>", ":1:20: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{}\n// c\n/d/</script>", ":3:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{} /b/</script>", ":1:12: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{} /b/</script>", ":1:12: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{}<!-- c\n/b/</script>", ":2:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{}{# c #}/b/</script>", ":1:18: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{}{%% x := 1 %%}/b/</script>", ":1:25: syntax error: '/' could start a division or a regular expression"},
+	// The '{' after "${" opens an object literal, so the '/' is a division,
+	// but in a substitution a '}' can also end a block, as in the next
+	// source, and the '/' is reported by prudence.
+	{ast.FormatHTML, "<script>`${ {b: 1} / 2 }`</script>", ":1:20: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>`${ (() => { if (a) {} /b/.test(c) })() }`</script>", ":1:32: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>`${ `${ {} / 2 }` }`</script>", ":1:20: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{% if a %}{}{% else %}b{% end %}/c/</script>", ":1:41: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{}{% if a %}{% end %}/b/</script>", ":1:30: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{% for x in xs %}{}{% end %}/b/</script>", ":1:37: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatMarkdown, "<script>{}/b/</script>", ":1:11: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>if (a) { b() } // c\n</script>", ""},
+	{ast.FormatHTML, "<script>if (a) { b() } /* c */ d / 2;</script>", ""},
+	{ast.FormatHTML, "<script>if (a) { b() }\nc = /d/;</script>", ""},
+	{ast.FormatHTML, "<script>if (a) { b() } (/c/).test(d);</script>", ""},
+	{ast.FormatHTML, "<script>var o = ({a: 1}) / 2;</script>", ""},
+	{ast.FormatHTML, "<script>var a = {}{{ v }} / 2;</script>", ""},
+	{ast.FormatHTML, "<script>var a = {}{% show v %} / 2;</script>", ""},
+	{ast.FormatHTML, "<script>`${a}` / 2;</script>", ""},
+	{ast.FormatHTML, "<script>`${ {b: 1} }` / 2;</script>", ""},
+	{ast.FormatHTML, "<script>`${ `${ {} }` / 2 }`</script>", ""},
+}
+
+func TestLexerClosingBrace(t *testing.T) {
+	for _, test := range closingBraceTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
 var unclosedJSTests = []struct {
 	format ast.Format
 	src    string

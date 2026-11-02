@@ -211,7 +211,8 @@ type scanState struct {
 
 	// jsDivisionUnknown, jsLineCodeUnknown and typeAttrUnknown report whether
 	// jsDivision, jsLineCode and typeAttr are unknown, because they differ in
-	// the branches of a statement.
+	// the branches of a statement. jsDivision is also unknown after a '}' that
+	// can end a block or an expression.
 	jsDivisionUnknown bool
 	jsLineCodeUnknown bool
 	typeAttrUnknown   bool
@@ -1026,6 +1027,9 @@ func (l *lexer) scan() {
 				}
 				lineTerminator := isJSLineTerminator(l.src[p:])
 				code := l.state.jsComment == jsCommentNone && !isJSSpace(l.src[p:])
+				// braceEnd reports whether c is a '}' that does not end a
+				// template literal substitution.
+				braceEnd := false
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
 					if err := l.unclosedJSError(); err != nil {
@@ -1051,11 +1055,12 @@ func (l *lexer) scan() {
 					c == '<' && !l.state.jsClassic && fileContext != ast.ContextMarkdown && bytes.HasPrefix(l.src[p:], jsHTMLCommentStart) {
 					// It is not known whether '/' starts a regular expression
 					// or "-->" starts a comment, for example because the
-					// branches of a statement end in different states, or
-					// whether "<!--" starts a comment, as it does only in a
-					// classic script and not in a module. "<!--" is not
-					// checked in Markdown, where code spans and code blocks
-					// are not recognized.
+					// branches of a statement end in different states or
+					// because '/' follows a '}' that can end a block or an
+					// expression, or whether "<!--" starts a comment, as it
+					// does only in a classic script and not in a module.
+					// "<!--" is not checked in Markdown, where code spans and
+					// code blocks are not recognized.
 					if c == '/' {
 						l.err = l.errorf("'/' could start a division or a regular expression")
 					} else if c == '<' {
@@ -1099,15 +1104,21 @@ func (l *lexer) scan() {
 					}
 					l.state.jsDivision = false
 				} else if c == '}' {
-					if n := len(l.state.jsBraces); n > 0 {
-						if l.state.jsBraces[n-1] == 0 {
-							// End of a template literal substitution.
-							l.state.jsBraces = l.state.jsBraces[:n-1]
-							l.ctx = ast.ContextJSString
-							l.state.quote = '`'
-						} else {
+					n := len(l.state.jsBraces)
+					if n > 0 && l.state.jsBraces[n-1] == 0 {
+						// End of a template literal substitution.
+						l.state.jsBraces = l.state.jsBraces[:n-1]
+						l.ctx = ast.ContextJSString
+						l.state.quote = '`'
+					} else {
+						if n > 0 {
 							l.state.jsBraces[n-1]--
 						}
+						// The '}' can end a block, after which a '/' starts a
+						// regular expression, or an expression, such as an
+						// object literal or a function expression, after
+						// which a '/' is a division.
+						braceEnd = true
 					}
 					l.state.jsDivision = false
 				} else if (c == '+' || c == '-') && p > 0 && l.src[p-1] == c {
@@ -1124,7 +1135,7 @@ func (l *lexer) scan() {
 				} else if code && l.state.jsComment == jsCommentNone {
 					l.state.jsLineCode = true
 					l.state.jsLineCodeUnknown = false
-					l.state.jsDivisionUnknown = false
+					l.state.jsDivisionUnknown = braceEnd
 				}
 
 			case ast.ContextJSString:
