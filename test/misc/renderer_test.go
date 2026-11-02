@@ -576,6 +576,11 @@ func TestJSTemplateLiteralAndRegExpContexts(t *testing.T) {
 		{"regular expression", "<script>const r = /^{{ v }}$/;</script>", "a.b/c", "<script>const r = /^a\\.b\\/c$/;</script>"},
 		{"empty regular expression", "<script>const r = /{{ v }}/;</script>", "", "<script>const r = /(?:)/;</script>"},
 		{"regular expression class", "<script>const r = /[{{ v }}]/;</script>", "a-]", "<script>const r = /[a\\u002d\\]]/;</script>"},
+		{"empty regular expression class", "<script>const r = /[{{ v }}]/;</script>", "", "<script>const r = /[]/;</script>"},
+		{"empty value in a class", "<script>const r = /[a{% show v %}]/v;</script>", "", "<script>const r = /[a]/v;</script>"},
+		{"empty value in a negated class", "<script>const r = /[^{{ v }}]/;</script>", "", "<script>const r = /[^]/;</script>"},
+		{"empty value before an escaped caret", "<script>const r = /[{{ v }}\\^a]/;</script>", "", "<script>const r = /[\\^a]/;</script>"},
+		{"empty value after a class", "<script>const r = /[a]{{ v }}/;</script>", "", "<script>const r = /[a](?:)/;</script>"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

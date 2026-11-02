@@ -98,7 +98,9 @@ func (r *renderer) Show(env *env, v any, context Context) error {
 	case ast.ContextSpacesCodeBlock:
 		err = showInMarkdownCodeBlock(env, r.out, v, true)
 	case ast.ContextJSRegExp:
-		err = showInJSRegExp(env, r.out, v)
+		err = showInJSRegExp(env, r.out, v, false)
+	case ast.ContextJSRegExpClass:
+		err = showInJSRegExp(env, r.out, v, true)
 	default:
 		panic("scriggo: unknown context")
 	}
@@ -872,11 +874,17 @@ func showInJSString(env *env, out io.Writer, value any) error {
 	return jsStringEscape(newStringWriter(out), s)
 }
 
-// showInJSRegExp shows value in JSRegExp context.
-func showInJSRegExp(env *env, out io.Writer, value any) error {
+// showInJSRegExp shows value in JSRegExp context or, if inClass is true, in
+// JSRegExpClass context.
+func showInJSRegExp(env *env, out io.Writer, value any, inClass bool) error {
 	s, err := jsStringValue(env, value)
 	if err != nil {
 		return err
+	}
+	if s == "" && inClass {
+		// An empty class is valid, while the empty group written by
+		// jsRegExpEscape would add its characters to the class.
+		return nil
 	}
 	return jsRegExpEscape(newStringWriter(out), s)
 }

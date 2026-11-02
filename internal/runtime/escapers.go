@@ -429,7 +429,8 @@ var jsRegExpEscapes = []string{
 // jsRegExpEscape escapes the string s so it can be placed within a
 // JavaScript regular expression literal, where it matches s literally, and
 // writes it to w. If s is empty, it writes "(?:)" so that the regular
-// expression literal cannot become a comment.
+// expression literal cannot become a comment. It must not be called with an
+// empty s in a class, where "(?:)" would match its characters.
 func jsRegExpEscape(w strWriter, s string) error {
 	if s == "" {
 		_, err := w.WriteString("(?:)")

@@ -448,6 +448,8 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		"<script>/'/.test(b); {{a}}</script>":         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 		"<script>/{{a}}/</script>":                    {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
 		"<script>b = /[/]{{a}}/</script>":             {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
+		"<script>b = /[{{a}}]/</script>":              {ast.ContextText, ast.ContextJSRegExpClass, ast.ContextJSRegExpClass, ast.ContextJSRegExpClass, ast.ContextText},
+		"<script>b = /[\\]{{a}}]/</script>":           {ast.ContextText, ast.ContextJSRegExpClass, ast.ContextJSRegExpClass, ast.ContextJSRegExpClass, ast.ContextText},
 		"<script>b = /\\/{{a}}/</script>":             {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
 		"<script>b = c / d; '{{a}}'</script>":         {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 		"<script>b = (c) / '{{a}}'</script>":          {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
@@ -509,6 +511,7 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`a`:                             {ast.ContextText},
 		"`{{a}}`":                       {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 		"/{{a}}/":                       {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
+		"/[{{a}}]/":                     {ast.ContextText, ast.ContextJSRegExpClass, ast.ContextJSRegExpClass, ast.ContextJSRegExpClass, ast.ContextText},
 		"`It's` {{a}}":                  {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
 		`'\\'{{a}}`:                     {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
 		`"\\"{{a}}`:                     {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
@@ -923,6 +926,43 @@ var blockContextTests = []struct {
 func TestLexerBlockContexts(t *testing.T) {
 	for _, test := range blockContextTests {
 		lex := scanTemplate([]byte(test.src), ast.FormatHTML, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+// regExpClassTests contain sources with a '^' in a class of a regular
+// expression. If it follows only shows, statements or comments after the
+// '[', and they render nothing, it would negate the class.
+var regExpClassTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<script>/[{{ v }}^]/</script>", ":1:18: syntax error: '^' could negate the class (write \\^ for a literal ^)"},
+	{ast.FormatHTML, "<script>/[{# c #}^]/</script>", ":1:18: syntax error: '^' could negate the class (write \\^ for a literal ^)"},
+	{ast.FormatHTML, "<script>/[{% if a %}x{% end %}^]/</script>", ":1:31: syntax error: '^' could negate the class (write \\^ for a literal ^)"},
+	{ast.FormatHTML, "<script>/[a][{{ v }}^]/v</script>", ":1:21: syntax error: '^' could negate the class (write \\^ for a literal ^)"},
+	{ast.FormatJS, "/[{{ v }}^]/", ":1:10: syntax error: '^' could negate the class (write \\^ for a literal ^)"},
+	{ast.FormatHTML, "<script>/[{% if a %}x{% else %}y{% end %}^]/</script>", ""},
+	{ast.FormatHTML, "<script>/[^{{ v }}]/</script>", ""},
+	{ast.FormatHTML, "<script>/[{{ v }}\\^]/</script>", ""},
+	{ast.FormatHTML, "<script>/[a{{ v }}^]/</script>", ""},
+	{ast.FormatHTML, "<script>/[{{ v }}]^/</script>", ""},
+	{ast.FormatHTML, "<script>/[{{ v }}][^a]/</script>", ""},
+	{ast.FormatHTML, "<script>/[{{ v }}a]/.test(b); /^c/.test(d);</script>", ""},
+}
+
+func TestLexerRegExpClass(t *testing.T) {
+	for _, test := range regExpClassTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
 		for range lex.Tokens() {
 		}
 		var err string
