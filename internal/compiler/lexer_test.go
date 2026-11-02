@@ -1106,6 +1106,87 @@ func TestLexerTagAttributes(t *testing.T) {
 	}
 }
 
+var tagNameTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<h{{ n }}>{{ v }}</h{{ n }}>", ""},
+	{ast.FormatHTML, "<div{% if a %} id=\"a\"{% end %}>", ""},
+	{ast.FormatHTML, "</{{ tag }}>", ""},
+	{ast.FormatHTML, "<{{ tag }}>", ":1:2: syntax error: tag name could be script or style"},
+	{ast.FormatHTML, "<{# c #}script>", ":1:2: syntax error: tag name could be script or style"},
+	{ast.FormatHTML, "<s{{ x }}>", ":1:3: syntax error: tag name could be script or style"},
+	{ast.FormatHTML, "<script{{ x }}>", ":1:8: syntax error: tag name could continue after script (add a space after it)"},
+	{ast.FormatHTML, "<script{% if a %} async{% end %}>", ":1:8: syntax error: tag name could continue after script (add a space after it)"},
+	{ast.FormatHTML, "<style{{ x }}>", ":1:7: syntax error: tag name could continue after style (add a space after it)"},
+	{ast.FormatHTML, "<STY{% if a %}LE{% end %}>", ":1:5: syntax error: tag name could be script or style"},
+	{ast.FormatMarkdown, "<{{ tag }}>", ":1:2: syntax error: tag name could be script or style"},
+
+	// End tags in the content of script and style elements.
+	{ast.FormatHTML, "<script></{{ t }}></script>", ":1:9: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>var s = \"</{{ t }}>\";</script>", ":1:18: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>var s = `</SCRIPT{{ x }}>`;</script>", ":1:18: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>// </scr{# c #}ipt>\n</script>", ":1:12: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>/</{{ t }}/;</script>", ":1:10: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script type=\"application/ld+json\">{\"a\": \"</{{ t }}>\"}</script>", ":1:43: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<style>a::before { content: \"</{{ t }}>\"; }</style>", ":1:30: syntax error: end tag could close a style element (write <\\/ for a literal </)"},
+	{ast.FormatMarkdown, "<script></{{ t }}></script>", ":1:9: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>var s = \"<\\/{{ t }}>\";</script>", ""},
+	{ast.FormatHTML, "<script>var s = \"</scripts{{ x }}>\";</script>", ""},
+	{ast.FormatHTML, "<script>var s = \"</style{{ x }}>\";</script>", ""},
+	{ast.FormatHTML, "<script type=\"text/plain\"></{{ t }}></script>", ""},
+	{ast.FormatHTML, "<p></{{ tag }}></p>", ""},
+	{ast.FormatHTML, "<style></{{ t }}></style>", ":1:8: syntax error: end tag could close a style element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<style>a::before { content: \"</STYLE{{ x }}>\"; }</style>", ":1:30: syntax error: end tag could close a style element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script type=\"application/ld+json\"></{{ t }}></script>", ":1:36: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>/* </{{ t }} */</script>", ":1:12: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>var s = \"</{% if a %}script{% end %}>\";</script>", ":1:18: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script type=\"{{ t }}\">var s = \"</{{ x }}>\";</script>", ":1:33: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "{% macro M js %}var s = \"</{{ t }}>\";{% end %}", ":1:26: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "{% show itea; using js %}var s = \"</{{ t }}>\";{% end %}", ":1:35: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>var s = \"</scx{{ x }}>\";</script>", ""},
+
+	// JavaScript, JSON and CSS files, which can be rendered in script and
+	// style elements.
+	{ast.FormatJS, "var s = \"</{{ t }}>\";", ":1:10: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatJSON, "{\"a\": \"</{{ t }}>\"}", ":1:8: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatCSS, "a::before { content: \"</{{ t }}>\"; }", ":1:23: syntax error: end tag could close a style element (write <\\/ for a literal </)"},
+	{ast.FormatText, "</{{ t }}>", ""},
+
+	// A '<' followed by shows, statements or comments.
+	{ast.FormatHTML, "<script>var h = \"<{# c #}/script>\";</script>", ":1:18: syntax error: '<' followed by a statement or comment could start a script end tag"},
+	{ast.FormatHTML, "<script>var h = \"<{% if a %}{% end %}/script>\";</script>", ":1:18: syntax error: '<' followed by a statement or comment could start a script end tag"},
+	{ast.FormatHTML, "<script>var h = \"<{{ e }}/script>\";</script>", ":1:26: syntax error: end tag could close a script element"},
+	{ast.FormatHTML, "<script>var h = \"<{{ e }}/SCRIPT>\";</script>", ":1:26: syntax error: end tag could close a script element"},
+	{ast.FormatHTML, "<script>var h = \"<{{ e }}/SCRIPT\";</script>", ""},
+	{ast.FormatHTML, "<script>var h = \"<{{ a }}{{ b }}/scr{{ c }}ipt>\";</script>", ":1:33: syntax error: end tag could close a script element"},
+	{ast.FormatHTML, "<script>var h = \"<{{ a }}{% if b %}{% end %}/b>\";</script>", ":1:26: syntax error: '<' followed by a statement or comment could start a script end tag"},
+	{ast.FormatCSS, "a::before { content: \"<{{ e }}/style>\"; }", ":1:31: syntax error: end tag could close a style element"},
+	{ast.FormatJS, "var a = 1 <{# c #} 2;", ":1:11: syntax error: '<' followed by a statement or comment could start a script end tag"},
+	{ast.FormatCSS, "a::before { content: \"<{% if b %}b{% end %}>\"; }", ":1:23: syntax error: '<' followed by a statement or comment could start a style end tag"},
+	{ast.FormatHTML, "<script>var h = \"<{{ tag }}>\";</script>", ""},
+	{ast.FormatHTML, "<script>var h = \"<{{ e }}/b>\";</script>", ""},
+	{ast.FormatHTML, "<script>var h = \"<{{ e }} /script>\";</script>", ""},
+	{ast.FormatHTML, "<script>if (a <{{ n }}) {}</script>", ""},
+	{ast.FormatHTML, "<p><{{ e }}/script></p>", ":1:5: syntax error: tag name could be script or style"},
+}
+
+func TestLexerTagNames(t *testing.T) {
+	for _, test := range tagNameTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
 func TestLexerMacroOrUsingContexts(t *testing.T) {
 CONTEXTS:
 	for source, contexts := range macroAndUsingContextTests {
