@@ -85,6 +85,7 @@ type lexer struct {
 	column int         // current column starting from 1
 	ctx    ast.Context // current context used during the scan
 	blocks []lexBlock  // blocks of the statements being scanned
+	code   *codeBlocks // braces of the code of the {%% %%} statement being scanned
 	state  scanState   // scan state, in addition to the context
 	tag    struct {    // current tag
 		name    string      // name
@@ -176,6 +177,9 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 		case tokenEnd:
 			l.rawMarker = nil
 		}
+	}
+	if l.code != nil {
+		l.code.scan(typ)
 	}
 	if length > 0 {
 		l.lastTokenType = typ
@@ -296,6 +300,154 @@ type lexBlock struct {
 	inElse   bool      // whether the else branch of a for statement is being scanned
 }
 
+// codeOwner is the statement or expression that owns a brace in the code of
+// a {%% %%} statement.
+type codeOwner uint8
+
+const (
+	ownerOther  codeOwner = iota // block of another statement, composite literal or type
+	ownerFor                     // for statement
+	ownerSwitch                  // switch or select statement
+	ownerFunc                    // function literal
+)
+
+// codeBlocks tracks the braces in the code of a {%% %%} statement, so that
+// a break, continue or return statement in a for statement, switch or select
+// statement, or function literal of the code is not taken as a statement
+// that ends a branch of a template statement or a macro or using body.
+//
+// The owner of a brace is approximated. A brace can be attributed to a for,
+// switch or select statement or a function literal it is not part of only if
+// it is a brace of a composite literal, as in "[]func(){}", which cannot
+// contain statements outside function literals. When in doubt, a statement
+// is attributed to the template, so that at worst the lexer reports a false
+// error.
+type codeBlocks struct {
+	braces  []codeOwner   // owners of the unclosed braces
+	parens  int           // number of unclosed parentheses and brackets
+	pending []codePending // keywords waiting for their braces
+	last    tokenTyp      // type of the last token
+}
+
+// codePending is a for, switch, select or func keyword waiting for its
+// braces.
+type codePending struct {
+	owner  codeOwner
+	braces int  // number of unclosed braces at the keyword
+	parens int  // number of unclosed parentheses and brackets at the keyword
+	closed bool // whether a brace owned by a for, switch or select is closed
+}
+
+// scan updates b with the token of type typ.
+func (b *codeBlocks) scan(typ tokenTyp) {
+	last := b.last
+	b.last = typ
+	if n := len(b.pending); n > 0 {
+		p := b.pending[n-1]
+		if p.braces == len(b.braces) && p.parens == b.parens {
+			if p.owner == ownerFunc {
+				// The signature of a function literal ends at its body.
+				switch typ {
+				case tokenIdentifier, tokenPeriod, tokenMultiplication, tokenLeftParenthesis,
+					tokenLeftBracket, tokenLeftBrace, tokenChan, tokenArrow, tokenMap, tokenFunc,
+					tokenStruct, tokenInterface:
+				default:
+					b.pending = b.pending[:n-1]
+				}
+			} else if p.closed && (typ == tokenSemicolon || typ == tokenElse) {
+				// A for, switch or select statement ends at a semicolon
+				// after its body. Its header can contain semicolons, as in
+				// "for i := 0; i < n; i++ {", so the semicolon must follow a
+				// closed brace. In "switch s := []int{1}; s[0] {", the brace
+				// of the composite literal ends the statement early, so its
+				// body is attributed to the template. The else branch of a
+				// for statement is not part of the loop.
+				b.pending = b.pending[:n-1]
+			}
+		}
+	}
+	switch typ {
+	case tokenFor:
+		b.pending = append(b.pending, codePending{owner: ownerFor, braces: len(b.braces), parens: b.parens})
+	case tokenSwitch, tokenSelect:
+		b.pending = append(b.pending, codePending{owner: ownerSwitch, braces: len(b.braces), parens: b.parens})
+	case tokenFunc:
+		b.pending = append(b.pending, codePending{owner: ownerFunc, braces: len(b.braces), parens: b.parens})
+	case tokenLeftParenthesis, tokenLeftBracket:
+		b.parens++
+	case tokenRightParenthesis, tokenRightBracket:
+		b.parens--
+		b.dropPending()
+	case tokenLeftBrace:
+		// A for, switch or select statement owns all the braces at the level
+		// of its keyword, including those of the composite literals in its
+		// header, which cannot contain statements outside function literals.
+		// A brace after struct or interface is part of a type.
+		owner := ownerOther
+		if n := len(b.pending); n > 0 && last != tokenStruct && last != tokenInterface {
+			if p := b.pending[n-1]; p.braces == len(b.braces) && p.parens == b.parens {
+				owner = p.owner
+				if owner == ownerFunc {
+					// In "func() func() {", the brace is the body of the
+					// first function, and the signature of both ends.
+					for n > 0 && b.pending[n-1] == p {
+						n--
+					}
+					b.pending = b.pending[:n]
+				}
+			}
+		}
+		b.braces = append(b.braces, owner)
+	case tokenRightBrace:
+		owner := ownerOther
+		if n := len(b.braces); n > 0 {
+			owner = b.braces[n-1]
+			b.braces = b.braces[:n-1]
+		}
+		b.dropPending()
+		if n := len(b.pending); n > 0 {
+			p := &b.pending[n-1]
+			if p.owner == owner && p.owner != ownerFunc && p.braces == len(b.braces) && p.parens == b.parens {
+				p.closed = true
+			}
+		}
+	}
+}
+
+// dropPending drops the pending keywords inside parentheses, brackets or
+// braces that are closed.
+func (b *codeBlocks) dropPending() {
+	n := len(b.pending)
+	for n > 0 && (b.pending[n-1].braces > len(b.braces) || b.pending[n-1].parens > b.parens) {
+		n--
+	}
+	b.pending = b.pending[:n]
+}
+
+// captures reports whether a statement of type typ, a break, continue or
+// return statement, refers to a statement of the code. labeled reports
+// whether a break or continue statement has a label.
+func (b *codeBlocks) captures(typ tokenTyp, labeled bool) bool {
+	for _, owner := range b.braces {
+		switch owner {
+		case ownerFunc:
+			return true
+		case ownerFor:
+			// A label can refer to a template statement, so a statement with
+			// a label is attributed to the template, even if the label is in
+			// the code.
+			if !labeled && (typ == tokenBreak || typ == tokenContinue) {
+				return true
+			}
+		case ownerSwitch:
+			if !labeled && typ == tokenBreak {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // snapshot returns the current state of the scan.
 func (l *lexer) snapshot() lexState {
 	return lexState{ctx: l.ctx, tagCtx: l.tag.ctx, state: l.state.clone()}
@@ -368,16 +520,16 @@ func (l *lexer) lastBlock(kinds ...blockKind) *lexBlock {
 }
 
 // nextIdentifier returns the identifier at the beginning of l.src, after
-// spaces, tabs and general comments, or an empty string if there is no
-// identifier.
+// spaces, tabs, carriage returns and general comments, or an empty string if
+// there is no identifier.
 func (l *lexer) nextIdentifier() string {
-	s := bytes.TrimLeft(l.src, " \t")
+	s := bytes.TrimLeft(l.src, " \t\r")
 	for bytes.HasPrefix(s, []byte("/*")) {
 		i := bytes.Index(s[2:], []byte("*/"))
 		if i < 0 {
 			return ""
 		}
-		s = bytes.TrimLeft(s[i+4:], " \t")
+		s = bytes.TrimLeft(s[i+4:], " \t\r")
 	}
 	n := 0
 	for n < len(s) {
@@ -1836,7 +1988,9 @@ func (l *lexer) lexStatement() error {
 func (l *lexer) lexStatements() error {
 	l.emit(tokenStartStatements, 3)
 	l.column += 3
+	l.code = &codeBlocks{}
 	err := l.lexCode(tokenEndStatements)
+	l.code = nil
 	if err != nil {
 		return err
 	}
@@ -2315,8 +2469,10 @@ LOOP:
 				l.state.jsLineCodeUnknown = true
 			}
 			// A break, continue or return statement among other statements
-			// ends a branch or a body as in a single statement.
-			if end == tokenEndStatements && (typ == tokenBreak || typ == tokenContinue || typ == tokenReturn) {
+			// ends a branch or a body as in a single statement, unless it
+			// refers to a statement of the code.
+			if end == tokenEndStatements && (typ == tokenBreak || typ == tokenContinue || typ == tokenReturn) &&
+				!l.code.captures(typ, typ != tokenReturn && l.nextIdentifier() != "") {
 				if err := l.scanBlockStatement(typ, false, l.column-len(txt)); err != nil {
 					return err
 				}
