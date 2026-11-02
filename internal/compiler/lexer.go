@@ -95,6 +95,9 @@ type lexer struct {
 		ctx     ast.Context // context of the tag's content
 	}
 	rawMarker      []byte     // raw marker, not nil when a raw statement has been lexed
+	inRaw          bool       // whether the content of a raw statement is being scanned
+	rawEnd         int        // index in src of the end of the raw content, if inRaw is true
+	rawMarkdown    bool       // whether the raw content starts in Markdown, if inRaw is true
 	tokens         chan token // tokens, is closed at the end of the scan
 	lastTokenType  tokenTyp   // type of the last non-empty emitted token
 	totals         int        // total number of emitted tokens, excluding automatically inserted semicolons
@@ -883,6 +886,12 @@ func (l *lexer) scan() {
 			if l.ctx == ast.ContextMarkdown {
 				spacesOnlyLine = spacesOnlyLine && isSpace(c)
 				if c == '\\' {
+					if l.inRaw && p+1 == l.rawEnd {
+						// The backslash would escape the first character
+						// rendered after the raw content.
+						l.err = l.errorf("unfinished escape sequence in %s", l.ctx)
+						break LOOP
+					}
 					p++
 					l.column++
 					if p < len(l.src) && l.src[p] != '\n' && l.src[p] != 'h' {
@@ -894,7 +903,9 @@ func (l *lexer) scan() {
 				}
 			}
 
-			if c == '{' && p+1 < len(l.src) {
+			// In the content of a raw statement, shows, statements and
+			// comments are text.
+			if c == '{' && p+1 < len(l.src) && !(l.inRaw && p < l.rawEnd) {
 				if (l.ctx == ast.ContextQuotedAttr || l.ctx == ast.ContextUnquotedAttr) && l.isShowStatementOrCommentStart(p) {
 					// The attribute value is not known at compile time, and
 					// l.tag.index will no longer be valid.
@@ -926,6 +937,27 @@ func (l *lexer) scan() {
 					col = l.column
 					continue
 				case '%':
+					if l.inRaw {
+						// End of the raw content. It must end in a context in
+						// which it can start, or in a Markdown code block,
+						// because the URLs in it are not emitted. If it
+						// starts in Markdown, it must end in Markdown, because
+						// the lexer does not recognize code spans and fenced
+						// code blocks, so a tag shown in them, as in
+						// `<script>`, would change the context.
+						l.inRaw = false
+						ok := false
+						switch l.ctx {
+						case ast.ContextMarkdown, ast.ContextTabCodeBlock, ast.ContextSpacesCodeBlock:
+							ok = true
+						case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJS, ast.ContextJSON:
+							ok = !l.rawMarkdown
+						}
+						if !ok {
+							l.err = l.errorf("raw content cannot end in %s", l.ctx)
+							break LOOP
+						}
+					}
 					if p > 0 {
 						l.emitAtLineColumn(lin, col, tokenText, p)
 						p = 0
@@ -943,7 +975,19 @@ func (l *lexer) scan() {
 					lin = l.line
 					col = l.column
 					if l.rawMarker != nil {
-						p = l.skipRawContent()
+						if l.ctx <= ast.ContextMarkdown {
+							// The raw content is rendered as is, so it is
+							// scanned as text.
+							l.inRaw = true
+							l.rawMarkdown = l.ctx == ast.ContextMarkdown
+							l.rawEnd = endRawIndex(l.src, l.rawMarker)
+							if l.rawEnd == -1 {
+								l.rawEnd = len(l.src)
+							}
+						} else {
+							// The parser reports an error.
+							p = l.skipRawContent()
+						}
 					}
 					continue
 				case '#':
@@ -960,7 +1004,7 @@ func (l *lexer) scan() {
 					col = l.column
 					continue
 				}
-			} else if c == '#' && p+1 < len(l.src) && l.src[p+1] == '}' {
+			} else if c == '#' && p+1 < len(l.src) && l.src[p+1] == '}' && !l.inRaw {
 				l.err = l.errorf("unexpected #}")
 				break LOOP
 			} else if c == '\\' && l.isStringContext() && l.isShowStatementOrCommentStart(p+1) {
@@ -992,7 +1036,9 @@ func (l *lexer) scan() {
 			switch l.ctx {
 
 			case ast.ContextMarkdown:
-				if emittedURL {
+				// The content of a raw statement is a single text token, so
+				// no URL is emitted in it.
+				if emittedURL && !l.inRaw {
 					if isMarkdownEndURL(l.src[p:]) {
 						if p > 0 {
 							l.emitAtLineColumn(lin, col, tokenText, p)
@@ -1003,7 +1049,7 @@ func (l *lexer) scan() {
 						lin = l.line
 						col = l.column
 					}
-				} else if (p == 0 || !isAlpha(l.src[p-1])) && isMarkdownStartURL(l.src[p:]) {
+				} else if !l.inRaw && (p == 0 || !isAlpha(l.src[p-1])) && isMarkdownStartURL(l.src[p:]) {
 					if p > 0 {
 						l.emitAtLineColumn(lin, col, tokenText, p)
 					}
@@ -1033,6 +1079,12 @@ func (l *lexer) scan() {
 								t = len(l.src)
 							} else {
 								t = p + i + 2
+							}
+							if l.inRaw && t > l.rawEnd {
+								// The section continues after the raw
+								// content, where the lexer scans the text as
+								// HTML, and so escapes the shows as HTML.
+								t = l.rawEnd
 							}
 							for ; p < t; p++ {
 								if c = l.src[p]; c == '\n' {
@@ -1138,7 +1190,9 @@ func (l *lexer) scan() {
 								p++
 								l.column++
 							}
-							if containsURL(l.tag.name, l.tag.attr) {
+							// No URL is emitted in the content of a raw
+							// statement, which is a single text token.
+							if containsURL(l.tag.name, l.tag.attr) && !l.inRaw {
 								l.emitAtLineColumn(lin, col, tokenText, p)
 								if l.state.quote == 0 {
 									l.ctx = ast.ContextUnquotedAttr
@@ -1170,7 +1224,7 @@ func (l *lexer) scan() {
 					l.ctx == ast.ContextUnquotedAttr && (c == '>' || isASCIISpace(c)) {
 					// End attribute.
 					l.state.quote = 0
-					if emittedURL {
+					if emittedURL && !l.inRaw {
 						if p > 0 {
 							l.emitAtLineColumn(lin, col, tokenText, p)
 						}
@@ -1942,9 +1996,10 @@ func endsWithRegExpPrecederKeyword(s []byte) bool {
 }
 
 // isShowStatementOrCommentStart reports whether l.src[p:] starts with a
-// short show statement, a statement or a comment.
+// short show statement, a statement or a comment. In the content of a raw
+// statement, they are text.
 func (l *lexer) isShowStatementOrCommentStart(p int) bool {
-	if p+1 >= len(l.src) || l.src[p] != '{' {
+	if p+1 >= len(l.src) || l.src[p] != '{' || l.inRaw && p < l.rawEnd {
 		return false
 	}
 	switch l.src[p+1] {

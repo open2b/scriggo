@@ -954,6 +954,57 @@ func TestLexerBlockContexts(t *testing.T) {
 	}
 }
 
+// rawTests contain sources with raw statements. The content of a raw
+// statement is rendered as is, so it is scanned as text.
+var rawTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<script>{% raw %}var a = \"{{ b }}\";{% end raw %}var c = {{ d }};</script>", ""},
+	{ast.FormatHTML, "{% raw %}<a href=\"{{ b }}\">c</a>{% end raw %}<a href=\"{{ d }}\">e</a>", ""},
+	{ast.FormatHTML, "{% raw %}<script>{% end raw %}var a = {{ b }};</script>", ""},
+	{ast.FormatHTML, "{% raw code %}{# a #} {% end raw %} #}{% end raw code %}{{ b }}", ""},
+	{ast.FormatHTML, "{% raw %}<![CDATA[{% end raw %}{{ a }}]]>", ""},
+	{ast.FormatMarkdown, "{% raw %}\n    {{ a }}\n{% end raw %}{{ b }}", ""},
+	{ast.FormatMarkdown, "{% raw %}\n    {{ a }}{% end raw %}{{ b }}", ""},
+	{ast.FormatMarkdown, "{% raw %}<script>a</script>{% end raw %}{{ b }}", ""},
+	{ast.FormatMarkdown, "<script>{% raw %}var a = 1;{% end raw %}</script>{{ b }}", ""},
+	{ast.FormatMarkdown, "{% raw %}https://a{% end raw %}{{ b }}", ""},
+	{ast.FormatJS, "{% raw %}var a = `${ {% end raw %}{{ b }} }`;", ""},
+	{ast.FormatHTML, "<script>{% raw %}var a = \"{% end raw %}\"; var b = {{ c }}; // \"</script>", ":1:27: syntax error: raw content cannot end in JavaScript string"},
+	{ast.FormatHTML, "{% raw %}<a href=\"{% end raw %}{{ b }}\">c</a>", ":1:19: syntax error: raw content cannot end in quoted attribute"},
+	{ast.FormatHTML, "{% raw %}<div {% end raw %}>", ":1:15: syntax error: raw content cannot end in tag"},
+	{ast.FormatHTML, "<script>{% raw %}var a = /{% end raw %}/;</script>", ":1:27: syntax error: raw content cannot end in JavaScript regular expression"},
+	{ast.FormatHTML, "<script>{% raw %}var a = `{% end raw %}`;</script>", ":1:27: syntax error: raw content cannot end in JavaScript string"},
+	{ast.FormatHTML, "<script>{% raw %}var a = `${% end raw %}{b}`;</script>", ":1:27: syntax error: unexpected show, statement or comment after $ in JavaScript template literal (write \\$ for a literal $)"},
+	{ast.FormatHTML, "<script>{% raw %}var a = '\\{% end raw %}';</script>", ":1:27: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, "<script>{% raw %}</scr{% end raw %}ipt>", ":1:18: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>{% raw %}<{% end raw %}/script>", ":1:18: syntax error: '<' followed by a statement or comment could start a script end tag"},
+	{ast.FormatCSS, "{% raw %}a { content: \"{% end raw %}\" }", ":1:24: syntax error: raw content cannot end in CSS string"},
+	{ast.FormatJS, "{% raw %}var a = '{% end raw %}';", ":1:19: syntax error: raw content cannot end in JavaScript string"},
+	{ast.FormatHTML, "<script>{% raw %}'{% end raw %}", ":1:19: syntax error: raw content cannot end in JavaScript string"},
+	{ast.FormatMarkdown, "Example: `{% raw %}<script>{% end raw %}` and {{ b }}", ":1:28: syntax error: raw content cannot end in JavaScript"},
+	{ast.FormatMarkdown, "{% raw %}\n```html\n<script>\n{% end raw %}```\n{{ b }}", ":4:1: syntax error: raw content cannot end in JavaScript"},
+	{ast.FormatMarkdown, "{% raw %}<style>{% end raw %}", ":1:17: syntax error: raw content cannot end in CSS"},
+	{ast.FormatMarkdown, "{% raw %}a\\{% end raw %}{{ b }}", ":1:11: syntax error: unfinished escape sequence in Markdown"},
+}
+
+func TestLexerRaw(t *testing.T) {
+	for _, test := range rawTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
 // regExpClassTests contain sources with a '^' in a class of a regular
 // expression. If it follows only shows, statements or comments after the
 // '[', and they render nothing, it would negate the class.
