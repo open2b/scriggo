@@ -231,7 +231,7 @@ func TestComplexNotPredeclared(t *testing.T) {
 
 func TestEncodeDecodeRenderContext(t *testing.T) {
 	test := func(inURL, isURLSet bool) {
-		for ctx := ast.ContextText; ctx <= ast.ContextSpacesCodeBlock; ctx++ {
+		for ctx := ast.ContextText; ctx <= ast.ContextJSRegExpClass; ctx++ {
 			gotCtx, gotInURL, gotIsURLSet := decodeRenderContext(encodeRenderContext(ctx, inURL, isURLSet))
 			if gotCtx != ctx {
 				t.Fatalf("expected context %d, got %d\n", ctx, gotCtx)

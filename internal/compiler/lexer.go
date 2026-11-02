@@ -136,6 +136,8 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 	ctx := l.ctx
 	if typ == tokenText {
 		ctx = ast.ContextText
+	} else if ctx == ast.ContextJSRegExp && l.state.jsClass {
+		ctx = ast.ContextJSRegExpClass
 	}
 	l.totals++
 	start := len(l.text) - len(l.src)
@@ -209,6 +211,13 @@ type scanState struct {
 	// name could be joined to it.
 	attrNameChar bool
 
+	// jsClassStart reports whether, in a class of a JavaScript regular
+	// expression, only shows, statements and comments follow the '['.
+	// jsClassDynamic reports whether at least one of them follows it. If
+	// they render nothing, a '^' after them would negate the class.
+	jsClassStart   bool
+	jsClassDynamic bool
+
 	// jsDivisionUnknown, jsLineCodeUnknown and typeAttrUnknown report whether
 	// jsDivision, jsLineCode and typeAttr are unknown, because they differ in
 	// the branches of a statement. jsDivision is also unknown after a '}' that
@@ -255,6 +264,8 @@ func joinLexStates(a, b lexState) (lexState, bool) {
 		sa.typeAttrUnknown = true
 	}
 	sa.attrNameChar = sa.attrNameChar || sb.attrNameChar
+	sa.jsClassStart = sa.jsClassStart || sb.jsClassStart
+	sa.jsClassDynamic = sa.jsClassDynamic || sb.jsClassDynamic
 	return lexState{ctx: a.ctx, tagCtx: a.tagCtx, state: sa.clone()}, true
 }
 
@@ -736,6 +747,9 @@ func (l *lexer) scan() {
 					// The attribute value is not known at compile time, and
 					// l.tag.index will no longer be valid.
 					l.tag.dynamic = true
+				}
+				if l.state.jsClassStart && l.isShowStatementOrCommentStart(p) {
+					l.state.jsClassDynamic = true
 				}
 				switch l.src[p+1] {
 				case '{':
@@ -1235,6 +1249,16 @@ func (l *lexer) scan() {
 				}
 
 			case ast.ContextJSRegExp:
+				if l.state.jsClassStart {
+					if c == '^' && l.state.jsClassDynamic {
+						// The shows, statements or comments before it could
+						// render nothing.
+						l.err = l.errorf("'^' could negate the class (write \\^ for a literal ^)")
+						break LOOP
+					}
+					l.state.jsClassStart = false
+					l.state.jsClassDynamic = false
+				}
 				switch c {
 				case '\\':
 					if p+1 < len(l.src) {
@@ -1246,6 +1270,7 @@ func (l *lexer) scan() {
 					}
 				case '[':
 					l.state.jsClass = true
+					l.state.jsClassStart = true
 				case ']':
 					l.state.jsClass = false
 				case '/':
