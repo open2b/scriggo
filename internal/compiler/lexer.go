@@ -201,6 +201,24 @@ const (
 	jsCommentBlock
 )
 
+// jsParen is the kind of a JavaScript parenthesis.
+type jsParen uint8
+
+const (
+	jsParenOther   jsParen = iota // a '/' after the ')' is a division
+	jsParenControl                // condition of an if, while, for or with statement
+	jsParenUnknown                // it is not known whether it is a condition
+)
+
+// jsName is the kind of a JavaScript identifier.
+type jsName uint8
+
+const (
+	jsNameAny      jsName = iota // it can be a keyword
+	jsNameProperty               // property name, as after '.', or private name
+	jsNameUnknown                // it is not known whether it is a property name
+)
+
 // scanState is the state of the scan that, in addition to the context, is
 // needed to determine the context of the text that follows.
 type scanState struct {
@@ -225,6 +243,48 @@ type scanState struct {
 	jsClassStart   bool
 	jsClassDynamic bool
 
+	// jsParens contains the kinds of the unclosed JavaScript parentheses,
+	// and jsNextParen the kind of a '(' that follows. After the ')' that
+	// closes the condition of an if, while, for or with statement, a '/'
+	// starts a regular expression. jsParensFloor is the number of the
+	// parentheses that are unclosed at the beginning of the body of the
+	// innermost for statement: from the second iteration on, a ')' that
+	// closes one of them can close a different parenthesis.
+	jsParens      []jsParen
+	jsNextParen   jsParen
+	jsParensFloor int
+
+	// jsParensDeep reports whether, below jsParens, there can be other
+	// unclosed parentheses of unknown kind, as after a for statement whose
+	// iterations open or close parentheses.
+	jsParensDeep bool
+
+	// jsIdentEnd reports whether the code before the current position can
+	// end with a character of an identifier, that an identifier after a
+	// show, statement or comment would continue.
+	jsIdentEnd bool
+
+	// cutSpaces reports whether the text since the beginning of the body of
+	// the innermost for statement only contains spaces, tabs, carriage
+	// returns and newlines. The parser can cut them, at the end of the lines
+	// of the statement and of the statements and comments that follow it, so
+	// from the second iteration on the body can continue the text at the end
+	// of the previous one. To keep it simple, they are all considered cut,
+	// except the spaces, tabs and carriage returns before the first other
+	// character, which the parser does not cut.
+	cutSpaces bool
+
+	// jsNextName is the kind of a JavaScript identifier that follows, and
+	// jsIdentName and jsIdentParen are the values of jsNextName and
+	// jsNextParen at the start of the identifier being scanned. A property
+	// name is not a keyword, and the '(' in "for await (" is the one of a
+	// for statement. jsIdentJoined reports whether the identifier being
+	// scanned can continue one before a show, statement or comment.
+	jsNextName    jsName
+	jsIdentName   jsName
+	jsIdentParen  jsParen
+	jsIdentJoined bool
+
 	// jsDivisionUnknown, jsLineCodeUnknown and typeAttrUnknown report whether
 	// jsDivision, jsLineCode and typeAttr are unknown, because they differ in
 	// the branches of a statement. jsDivision is also unknown after a '}' that
@@ -237,6 +297,7 @@ type scanState struct {
 // clone returns a copy of s.
 func (s scanState) clone() scanState {
 	s.jsBraces = slices.Clone(s.jsBraces)
+	s.jsParens = slices.Clone(s.jsParens)
 	return s
 }
 
@@ -273,7 +334,67 @@ func joinLexStates(a, b lexState) (lexState, bool) {
 	sa.attrNameChar = sa.attrNameChar || sb.attrNameChar
 	sa.jsClassStart = sa.jsClassStart || sb.jsClassStart
 	sa.jsClassDynamic = sa.jsClassDynamic || sb.jsClassDynamic
+	parens := joinJSParens(sa.jsParens, sb.jsParens)
+	sa.jsParensFloor = max(alignJSParensFloor(sa, len(parens)), alignJSParensFloor(sb, len(parens)))
+	sa.jsParens = parens
+	if sa.jsNextParen != sb.jsNextParen {
+		sa.jsNextParen = jsParenUnknown
+	}
+	sa.jsParensDeep = sa.jsParensDeep || sb.jsParensDeep
+	sa.jsIdentEnd = sa.jsIdentEnd || sb.jsIdentEnd
+	sa.cutSpaces = sa.cutSpaces || sb.cutSpaces
+	sa.jsIdentJoined = sa.jsIdentJoined || sb.jsIdentJoined
+	if sa.jsIdentParen != sb.jsIdentParen {
+		sa.jsIdentParen = jsParenUnknown
+	}
+	if sa.jsNextName != sb.jsNextName {
+		sa.jsNextName = jsNameUnknown
+	}
+	if sa.jsIdentName != sb.jsIdentName {
+		sa.jsIdentName = jsNameUnknown
+	}
 	return lexState{ctx: a.ctx, tagCtx: a.tagCtx, state: sa.clone()}, true
+}
+
+// joinJSParens returns the unclosed JavaScript parentheses at the end of a
+// statement whose branches end with the unclosed parentheses a and b. They
+// are compared starting from the innermost, the one that a ')' closes, and
+// a missing parenthesis is compared as jsParenOther, because a ')' with no
+// unclosed parenthesis is followed by a division. The parentheses that
+// differ have the kind jsParenUnknown.
+func joinJSParens(a, b []jsParen) []jsParen {
+	if slices.Equal(a, b) {
+		return a
+	}
+	n := max(len(a), len(b))
+	parens := make([]jsParen, n)
+	for i := 1; i <= n; i++ {
+		pa, pb := jsParenOther, jsParenOther
+		if i <= len(a) {
+			pa = a[len(a)-i]
+		}
+		if i <= len(b) {
+			pb = b[len(b)-i]
+		}
+		if pa != pb {
+			pa = jsParenUnknown
+		}
+		parens[n-i] = pa
+	}
+	return parens
+}
+
+// alignJSParensFloor returns the floor of the parentheses of s, aligned to n
+// joined parentheses. The parentheses are joined starting from the
+// innermost, so the floor is moved up by the number of the parentheses that
+// s does not have. These are below the floor too, if it is not zero: a ')'
+// that would close one of them has no parenthesis to close, and makes the
+// code invalid.
+func alignJSParensFloor(s scanState, n int) int {
+	if s.jsParensFloor == 0 {
+		return 0
+	}
+	return s.jsParensFloor + n - len(s.jsParens)
 }
 
 // blockKind is the kind of a block statement.
@@ -301,6 +422,7 @@ type lexBlock struct {
 	next     *lexState // state at the beginning of the next case, after a fallthrough
 	label    string    // label of the statement, if any
 	inElse   bool      // whether the else branch of a for statement is being scanned
+	parens   bool      // whether an iteration of a for statement changes the JavaScript parentheses
 }
 
 // codeOwner is the statement or expression that owns a brace in the code of
@@ -483,9 +605,23 @@ func (l *lexer) beginBlock(kind blockKind) {
 	}
 	if kind == blockFor {
 		// From the second iteration on, the body starts in the state at the
-		// end of the previous one, which is not known yet.
+		// end of the previous one, which is not known yet. A ')' that closes
+		// a parenthesis already unclosed here is of unknown kind, and an
+		// identifier at the beginning can continue one at the end. The kinds
+		// of a following '(' and identifier are assumed to be the same as
+		// here, and checked at the end of the iterations, or are unknown if
+		// they are not the usual ones, as after "if" or '.'.
 		l.state.jsDivisionUnknown = true
 		l.state.jsLineCodeUnknown = true
+		l.state.jsIdentEnd = true
+		l.state.cutSpaces = true
+		l.state.jsParensFloor = len(l.state.jsParens)
+		if l.state.jsNextParen != jsParenOther {
+			l.state.jsNextParen = jsParenUnknown
+		}
+		if l.state.jsNextName != jsNameAny {
+			l.state.jsNextName = jsNameUnknown
+		}
 	}
 	l.blocks = append(l.blocks, b)
 }
@@ -504,6 +640,29 @@ func (l *lexer) endBranch(b *lexBlock, col int) error {
 	}
 	b.end = &end
 	return nil
+}
+
+// endIteration ends a branch of the body of the for statement b, as
+// endBranch does. If next is true, the next iteration can follow, so it
+// checks that the state of the parentheses and of the property names is the
+// one in which the body has been scanned. col is the column of the keyword
+// of the statement that ends the branch, used to report errors.
+func (l *lexer) endIteration(b *lexBlock, next bool, col int) error {
+	start, end := b.start.state, l.state
+	if next && (start.jsNextParen == jsParenOther && end.jsNextParen != jsParenOther ||
+		start.jsNextName == jsNameAny && end.jsNextName != jsNameAny) {
+		return l.errorAtColumnf(col, "%s branches end in different contexts", b.kind)
+	}
+	if next && (!slices.Equal(start.jsParens, end.jsParens) || start.jsParensDeep != end.jsParensDeep) {
+		b.parens = true
+	}
+	// After the statement, the floor of the parentheses is the one of the
+	// enclosing for statement, if any.
+	floor := l.state.jsParensFloor
+	l.state.jsParensFloor = min(floor, start.jsParensFloor)
+	err := l.endBranch(b, col)
+	l.state.jsParensFloor = floor
+	return err
 }
 
 // lastBlock returns the innermost block of one of the given kinds, or nil
@@ -604,7 +763,13 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 		if b.kind != blockIf && b.kind != blockFor {
 			return nil
 		}
-		if err := l.endBranch(b, col); err != nil {
+		var err error
+		if b.kind == blockFor {
+			err = l.endIteration(b, true, col)
+		} else {
+			err = l.endBranch(b, col)
+		}
+		if err != nil {
 			return err
 		}
 		l.restore(b.start)
@@ -662,7 +827,13 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 				// so the statement refers to an enclosing statement.
 				continue
 			}
-			if err := l.endBranch(b, col); err != nil {
+			var err error
+			if b.kind == blockFor {
+				err = l.endIteration(b, typ == tokenContinue, col)
+			} else {
+				err = l.endBranch(b, col)
+			}
+			if err != nil {
 				return err
 			}
 			if label == "" || b.label == label {
@@ -706,7 +877,13 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 			}
 		case blockRaw:
 		default:
-			if err := l.endBranch(&b, col); err != nil {
+			var err error
+			if b.kind == blockFor && !b.inElse {
+				err = l.endIteration(&b, true, col)
+			} else {
+				err = l.endBranch(&b, col)
+			}
+			if err != nil {
 				return err
 			}
 			if b.implicit {
@@ -724,6 +901,13 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 				b.end.state.typeAttrUnknown = true
 			}
 			l.restore(*b.end)
+			if b.kind == blockFor && b.parens {
+				// The parentheses depend on the number of iterations.
+				for i := range l.state.jsParens {
+					l.state.jsParens[i] = jsParenUnknown
+				}
+				l.state.jsParensDeep = true
+			}
 		}
 	}
 	return nil
@@ -755,6 +939,10 @@ func (l *lexer) endJSOperand() {
 	l.state.jsDivisionUnknown = false
 	l.state.jsLineCode = true
 	l.state.jsLineCodeUnknown = false
+	l.state.jsNextParen = jsParenOther
+	l.state.jsNextName = jsNameAny
+	l.state.jsIdentEnd = false
+	l.state.cutSpaces = false
 }
 
 // unclosedJSError returns an error if a JavaScript string, template literal,
@@ -1033,6 +1221,19 @@ func (l *lexer) scan() {
 				}
 			}
 
+			// cut reports whether c can be cut by the parser at the beginning
+			// of the body of a for statement, as described for cutSpaces.
+			cut := false
+			if l.state.cutSpaces {
+				cut = c == ' ' || c == '\t' || c == '\r' || c == '\n'
+				if !cut && p > 0 && (l.src[p-1] == ' ' || l.src[p-1] == '\t' || l.src[p-1] == '\r') {
+					// The spaces before c are not cut, because c follows them
+					// before a newline.
+					l.state.jsIdentEnd = false
+				}
+				l.state.cutSpaces = cut
+			}
+
 			switch l.ctx {
 
 			case ast.ContextMarkdown:
@@ -1306,8 +1507,10 @@ func (l *lexer) scan() {
 				lineTerminator := isJSLineTerminator(l.src[p:])
 				code := l.state.jsComment == jsCommentNone && !isJSSpace(l.src[p:])
 				// braceEnd reports whether c is a '}' that does not end a
-				// template literal substitution.
+				// template literal substitution, and parenUnknown whether c
+				// is a ')' of a parenthesis of unknown kind.
 				braceEnd := false
+				parenUnknown := false
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
 					if err := l.unclosedJSError(); err != nil {
@@ -1399,6 +1602,28 @@ func (l *lexer) scan() {
 						braceEnd = true
 					}
 					l.state.jsDivision = false
+				} else if c == '(' {
+					l.state.jsParens = append(l.state.jsParens, l.state.jsNextParen)
+					l.state.jsDivision = false
+				} else if c == ')' {
+					// After the condition of an if, while, for or with
+					// statement, a '/' starts a regular expression.
+					paren := jsParenOther
+					if l.state.jsParensDeep {
+						paren = jsParenUnknown
+					}
+					if n := len(l.state.jsParens); n > 0 {
+						paren = l.state.jsParens[n-1]
+						l.state.jsParens = l.state.jsParens[:n-1]
+						if n <= l.state.jsParensFloor {
+							// From the second iteration of a for statement on,
+							// it can close a different parenthesis.
+							paren = jsParenUnknown
+							l.state.jsParensFloor = n - 1
+						}
+					}
+					l.state.jsDivision = paren == jsParenOther
+					parenUnknown = paren == jsParenUnknown
 				} else if (c == '+' || c == '-') && p > 0 && l.src[p-1] == c {
 					// "++" and "--" are followed by a division, "+++" and
 					// "---" by a regular expression, and so on.
@@ -1406,14 +1631,37 @@ func (l *lexer) scan() {
 				} else if code {
 					l.state.jsDivision = isJSDivisionAfter(l.src[:p+1])
 				}
+				if (!code || l.state.jsComment != jsCommentNone) && !cut {
+					l.state.jsIdentEnd = false
+				}
 				// "-->" starts a comment only at the beginning of a line.
-				if lineTerminator {
+				if lineTerminator && !cut {
 					l.state.jsLineCode = false
 					l.state.jsLineCodeUnknown = false
+				} else if lineTerminator {
 				} else if code && l.state.jsComment == jsCommentNone {
 					l.state.jsLineCode = true
 					l.state.jsLineCodeUnknown = false
-					l.state.jsDivisionUnknown = braceEnd
+					l.state.jsDivisionUnknown = braceEnd || parenUnknown
+					if isJSIdentifierPart(c) {
+						l.scanJSIdentifier(p)
+					} else {
+						l.state.jsNextParen = jsParenOther
+						l.state.jsNextName = jsNameAny
+						switch c {
+						case '.':
+							l.state.jsNextName = l.jsNameAfterDot(p)
+							if l.state.jsIdentEnd && (p == 0 || !endsWithJSIdentifierPart(l.src[:p])) {
+								// The '.' can be the decimal point of a number
+								// before a show, statement or comment.
+								l.state.jsDivisionUnknown = true
+							}
+						case '#':
+							// Private name.
+							l.state.jsNextName = jsNameProperty
+						}
+						l.state.jsIdentEnd = false
+					}
 				}
 
 			case ast.ContextJSString:
@@ -1911,12 +2159,16 @@ var regExpPrecederKeywords = map[string]bool{
 	"break":      true,
 	"case":       true,
 	"continue":   true,
+	"debugger":   true,
+	"default":    true,
 	"delete":     true,
 	"do":         true,
 	"else":       true,
+	"extends":    true,
 	"finally":    true,
 	"in":         true,
 	"instanceof": true,
+	"new":        true,
 	"return":     true,
 	"throw":      true,
 	"try":        true,
@@ -1953,25 +2205,159 @@ func isJSLineTerminator(s []byte) bool {
 
 // isJSDivisionAfter reports whether a '/' that follows the JavaScript code s
 // is a division operator, and not the start of a regular expression. s ends
-// with a non-space character that is not a '+' or '-' following the same
-// character.
+// with a non-space character that is not a '(', a ')', or a '+' or '-'
+// following the same character. An identifier is considered an operand: the
+// keywords are handled by scanJSIdentifier.
 func isJSDivisionAfter(s []byte) bool {
 	c := s[len(s)-1]
-	if c == ')' || c == ']' {
+	if c == ']' {
 		return true
 	}
 	if c == '.' {
 		// A '.' preceded by a digit ends a number, as in "1.".
 		return len(s) > 1 && isDecDigit(s[len(s)-2])
 	}
-	return isJSIdentifierPart(c) && !endsWithRegExpPrecederKeyword(s)
+	return isJSIdentifierPart(c)
 }
 
-// endsWithRegExpPrecederKeyword reports whether the JavaScript code s ends
-// with a keyword that can be followed by a regular expression literal. A
-// keyword preceded by '.' is a property name, as in "a.typeof", unless the
-// '.' ends a spread operator, as in "...typeof".
-func endsWithRegExpPrecederKeyword(s []byte) bool {
+// scanJSIdentifier updates the state after the character at l.src[p], that
+// is part of a JavaScript identifier, as if the identifier ended there.
+func (l *lexer) scanJSIdentifier(p int) {
+	s := &l.state
+	if p == 0 || !endsWithJSIdentifierPart(l.src[:p]) {
+		// Start of the identifier.
+		s.jsIdentName = s.jsNextName
+		s.jsIdentParen = s.jsNextParen
+		s.jsIdentJoined = s.jsIdentEnd
+	}
+	s.jsIdentEnd = true
+	s.jsNextName = jsNameAny
+	s.jsNextParen = jsParenOther
+	if s.jsIdentName == jsNameProperty && !s.jsIdentJoined {
+		return
+	}
+	if p+1 < len(l.src) && l.src[p+1] < utf8.RuneSelf && isJSIdentifierPart(l.src[p+1]) {
+		// The identifier continues with the next character, which updates
+		// the state again.
+		return
+	}
+	word := jsWordAtEnd(l.src[:p+1])
+	var preceder, ambiguous bool
+	next := jsParenOther
+	switch string(word) {
+	case "if", "while", "for", "with":
+		next = jsParenControl
+	case "await":
+		// A '(' after "for await" starts the head of the for statement.
+		if s.jsIdentParen != jsParenOther {
+			next = s.jsIdentParen
+		}
+		ambiguous = true
+	case "yield", "of":
+		ambiguous = true
+	default:
+		preceder = regExpPrecederKeywords[string(word)]
+	}
+	if s.jsIdentName == jsNameProperty {
+		// The identifier can only be a property name, or the end of an
+		// identifier that continues one before a show, statement or comment.
+		next, preceder, ambiguous = jsParenOther, false, false
+	}
+	keyword := preceder || ambiguous || next != jsParenOther
+	if s.jsIdentJoined && (keyword || isJSKeywordEnd(word)) || s.jsIdentName == jsNameUnknown && keyword {
+		// It is not known whether the identifier is a keyword: it can be a
+		// property name, or continue an identifier before a show, statement
+		// or comment, possibly ending a keyword.
+		if next != jsParenOther || s.jsIdentJoined {
+			next = jsParenUnknown
+		}
+		preceder = false
+		ambiguous = true
+	}
+	if preceder {
+		s.jsDivision = false
+	}
+	if ambiguous {
+		// await, yield and of can be keywords, after which a '/' starts a
+		// regular expression, or identifiers, after which it is a division.
+		s.jsDivisionUnknown = true
+	}
+	s.jsNextParen = next
+}
+
+// jsNameAfterDot returns the kind of a JavaScript identifier after the '.' at
+// l.src[p]. It is a property name, unless the '.' ends a spread operator or
+// is the decimal point of a decimal integer literal, as in "1.".
+func (l *lexer) jsNameAfterDot(p int) jsName {
+	s := l.src[:p]
+	if p >= 2 && s[p-1] == '.' && s[p-2] == '.' {
+		return jsNameAny
+	}
+	i := p
+	for i > 0 && (isDecDigit(s[i-1]) || s[i-1] == '_') {
+		i--
+	}
+	if i == p {
+		if l.state.jsIdentEnd && (p == 0 || !endsWithJSIdentifierPart(s)) {
+			// The '.' can follow a number or identifier before a show,
+			// statement or comment.
+			return jsNameUnknown
+		}
+		return jsNameProperty
+	}
+	if !isDecDigit(s[i]) || i > 0 && (isJSIdentifierPart(s[i-1]) || s[i-1] == '.') {
+		return jsNameProperty
+	}
+	if l.state.jsIdentJoined {
+		// The number can continue an identifier before a show, statement
+		// or comment.
+		return jsNameUnknown
+	}
+	if d := s[i:]; len(d) > 1 && d[0] == '0' && !bytes.ContainsAny(d, "89") {
+		// A legacy octal literal, as "07", has no decimal point.
+		return jsNameProperty
+	}
+	return jsNameAny
+}
+
+// jsKeywords contains the JavaScript keywords after which the kind of a '('
+// or of a '/' depends on the keyword.
+var jsKeywords = func() []string {
+	keywords := []string{"if", "while", "for", "with", "await", "yield", "of"}
+	for k := range regExpPrecederKeywords {
+		keywords = append(keywords, k)
+	}
+	return keywords
+}()
+
+// isJSKeywordEnd reports whether word is the end of a keyword in jsKeywords
+// that is longer than word.
+func isJSKeywordEnd(word []byte) bool {
+	if len(word) == 0 {
+		return false
+	}
+	for _, k := range jsKeywords {
+		if len(k) > len(word) && strings.HasSuffix(k, string(word)) {
+			return true
+		}
+	}
+	return false
+}
+
+// endsWithJSIdentifierPart reports whether the JavaScript code s ends with a
+// character that can be part of an identifier.
+func endsWithJSIdentifierPart(s []byte) bool {
+	c := s[len(s)-1]
+	if c < utf8.RuneSelf {
+		return isJSIdentifierPart(c)
+	}
+	_, size := utf8.DecodeLastRune(s)
+	return !isJSSpace(s[len(s)-size:])
+}
+
+// jsWordAtEnd returns the identifier at the end of the JavaScript code s, if
+// it is not longer than the longest keyword, otherwise it returns nil.
+func jsWordAtEnd(s []byte) []byte {
 	const maxLen = len("instanceof")
 	start := len(s)
 	for start > 0 && isJSIdentifierPart(s[start-1]) {
@@ -1982,17 +2368,14 @@ func endsWithRegExpPrecederKeyword(s []byte) bool {
 			if isJSSpace(s[start-size : start]) {
 				break
 			}
-			return false
+			return nil
 		}
 		if len(s)-start == maxLen {
-			return false
+			return nil
 		}
 		start--
 	}
-	if start > 0 && s[start-1] == '.' && !bytes.HasSuffix(s[:start], []byte("...")) {
-		return false
-	}
-	return regExpPrecederKeywords[string(s[start:])]
+	return s[start:]
 }
 
 // isShowStatementOrCommentStart reports whether l.src[p:] starts with a
