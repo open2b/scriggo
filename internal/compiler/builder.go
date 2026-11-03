@@ -43,7 +43,11 @@ var emptyInterfaceType = reflect.TypeFor[any]()
 
 type label runtime.Addr
 
-// encodeRenderContext encodes a runtime.Context.
+// encodeRenderContext encodes a runtime.Context. The low four bits hold the
+// context, bit 7 reports whether the value is in a URL, and bit 6 whether
+// that URL is a set of URLs. All 16 values of the low four bits are used, so
+// a new context will also need bit 4 or 5, which are free. Keep
+// decodeRenderContext, here and in the runtime package, in sync.
 func encodeRenderContext(ctx ast.Context, inURL, isURLSet bool) runtime.Context {
 	c := runtime.Context(ctx)
 	if inURL {

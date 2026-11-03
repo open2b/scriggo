@@ -297,7 +297,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					em.fb.enterStack()
 					em.emitCallNode(expr.(*ast.Call), false, false, ast.Format(ctx))
 					em.fb.exitStack()
-				} else if render, ok := expr.(*ast.Render); ok {
+				} else if render, ok := expr.(*ast.Render); ok && ctx <= ast.ContextMarkdown {
 					// Optimize {{ render "path" }}
 					em.fb.enterStack()
 					em.emitNodes([]ast.Node{render.IR.Import})
