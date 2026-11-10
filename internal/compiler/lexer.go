@@ -260,8 +260,9 @@ type scanState struct {
 	jsParensDeep bool
 
 	// jsIdentEnd reports whether the code before the current position can
-	// end with a character of an identifier, that an identifier after a
-	// show, statement or comment would continue.
+	// end with a character of an identifier, or with the decimal point of a
+	// number, that an identifier or number after a show, statement or
+	// comment would continue.
 	jsIdentEnd bool
 
 	// cutSpaces reports whether the text since the beginning of the body of
@@ -1101,6 +1102,14 @@ func (l *lexer) scan() {
 				}
 				if l.state.jsClassStart && l.isShowStatementOrCommentStart(p) {
 					l.state.jsClassDynamic = true
+				}
+				if l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone && p > 0 && l.src[p-1] == '.' &&
+					l.isShowStatementOrCommentStart(p) {
+					// If the '.' can be a decimal point, the digits after the
+					// show, statement or comment can continue the number, as
+					// in "1.{# c #}5.x", where x is a property name.
+					spread := p >= 3 && l.src[p-2] == '.' && l.src[p-3] == '.'
+					l.state.jsIdentEnd = l.state.jsNextName != jsNameProperty && !spread
 				}
 				switch l.src[p+1] {
 				case '{':
@@ -2312,6 +2321,13 @@ func (l *lexer) jsNameAfterDot(p int) jsName {
 		// The number can continue an identifier before a show, statement
 		// or comment.
 		return jsNameUnknown
+	}
+	if l.state.jsIdentName != jsNameAny {
+		// The digits follow a '.' before a show, statement or comment, or
+		// before cut spaces, as in ".{# c #}5.x", so they are the decimal
+		// part of a number, and this '.' is not a decimal point. If the
+		// '.' does not start a number, the code is not valid.
+		return l.state.jsIdentName
 	}
 	if d := s[i:]; len(d) > 1 && d[0] == '0' && !bytes.ContainsAny(d, "89") {
 		// A legacy octal literal, as "07", has no decimal point.

@@ -5,6 +5,7 @@
 package compiler
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -1176,6 +1177,13 @@ var parenTests = []struct {
 	{ast.FormatHTML, "<script>var y = 1;\n{% for x in xs %}\n--> 0; y{% end %}</script>", ":3:1: syntax error: '-->' could start a comment or be an operator"},
 	{ast.FormatHTML, "<script>var y = 1;{% for x in xs %}\n  --> 0\n{% end %}</script>", ":2:3: syntax error: '-->' could start a comment or be an operator"},
 	{ast.FormatHTML, "<script>{% for x in xs %}a){% end %} /b/</script>", ":1:38: syntax error: '/' could start a division or a regular expression"},
+	// A number that ends with a decimal point before a statement or comment
+	// can continue after it, as in "1.1.else", where else is a property name.
+	{ast.FormatHTML, "<script>x = 1.{# c #}1.else / \"/\"; s = {{ v }}; //\"</script>", ":1:29: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>x = 1.{% if c %}1.{% end %}else / \"/\"; s = {{ v }}; //\"</script>", ":1:41: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>x = 1.{% if c %}{% end %}1.else / \"/\"; s = {{ v }}; //\"</script>", ":1:41: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>x = 1.{# c #}5 / 2;</script>", ""},
+	{ast.FormatHTML, "<script>f(...{# c #}typeof /a/);</script>", ""},
 }
 
 func TestLexerParens(t *testing.T) {
@@ -1189,6 +1197,45 @@ func TestLexerParens(t *testing.T) {
 		}
 		if err != test.err {
 			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+// continuedTextTests contain sources in which the text after a show,
+// statement or comment can continue the text before it, as the digits of a
+// number, and the contexts of their shows, or the expected error.
+var continuedTextTests = []struct {
+	format ast.Format
+	src    string
+	ctxs   []ast.Context
+	err    string
+}{
+	// The digits after a '.' that starts a number, as in ".1", are not
+	// followed by a decimal point.
+	{ast.FormatHTML, "<script>x = .{# c #}1.else / \"/\"; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>x = .{% if c %}{% end %}1.else / \"/\"; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>x = [.{# c #}5.in / \"/\"]; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>x = y?.{# c #}5.in / \"/\" : 0; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>x = .{% if c %}\n{% end %}\n5.in / \"/\"; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
+}
+
+func TestLexerContinuedText(t *testing.T) {
+	for _, test := range continuedTextTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		var ctxs []ast.Context
+		for tok := range lex.Tokens() {
+			if tok.typ == tokenLeftBraces {
+				ctxs = append(ctxs, tok.ctx)
+			}
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		} else if err == "" && !reflect.DeepEqual(ctxs, test.ctxs) {
+			t.Errorf("source: %q, expecting contexts %v, got %v", test.src, test.ctxs, ctxs)
 		}
 	}
 }
