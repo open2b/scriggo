@@ -399,7 +399,17 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<script type="text/ecmascript">s{{a}}t</script>{{a}}`:                {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		`<script type="text/javascript; charset=utf-8">s{{a}}t</script>{{a}}`: {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		`<script type="TEXT/X-JAVASCRIPT">s{{a}}t</script>{{a}}`:              {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-		`<script type="application/json">s{{a}}t</script>{{a}}`:               {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="text/plain">s{{a}}t</script>{{a}}`:                     {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+
+		// JSON types.
+		`<script type="application/json">s{{a}}t</script>{{a}}`:                  {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="Application/JSON; charset=utf-8">s{{a}}t</script>{{a}}`:   {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="application/manifest+json">s{{a}}t</script>{{a}}`:         {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type=" application/ld+json ">s{{a}}t</script>{{a}}`:             {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="importmap">s{{a}}t</script>{{a}}`:                         {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="speculationrules">s{{a}}t</script>{{a}}`:                  {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="application/json">{"a": "<script>"}</script>{{a}}`:        {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="application/json">{"a": "<script>", "b": {{a}}}</script>`: {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText},
 
 		// Repeated type attributes, of which browsers use the first.
 		`<script type="text/javascript" type="text/plain">{{a}}</script>`:  {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
