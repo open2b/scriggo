@@ -1184,6 +1184,21 @@ var parenTests = []struct {
 	{ast.FormatHTML, "<script>x = 1.{% if c %}{% end %}1.else / \"/\"; s = {{ v }}; //\"</script>", ":1:41: syntax error: '/' could start a division or a regular expression"},
 	{ast.FormatHTML, "<script>x = 1.{# c #}5 / 2;</script>", ""},
 	{ast.FormatHTML, "<script>f(...{# c #}typeof /a/);</script>", ""},
+	// The parser cuts the newline after an else, default or end statement
+	// alone in its line, so the text after it can continue the text before
+	// the block, at the end of another branch, or before a break or continue
+	// statement, as in "aelse".
+	{ast.FormatHTML, "<script>\n{% for x in xs %}\nx = a{% if c %}{% break %}{% end %}\n{% end %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n</script>", ":6:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\n{% for x in xs %}\nx = a{% if c %}{% continue %}{% end %}\n{% end %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n</script>", ":6:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% end %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n</script>", ":6:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% else %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n{% end %}</script>", ":6:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% for x in xs %}\nb\n{% else %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n{% end %}</script>", ":6:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% switch n %}\n{% case 1 %}\nb\n{% default %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n{% end %}</script>", ":7:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatJS, "x = a{% macro M %}\nb\n{% end %}\nelse\n/\"/.test(b); s = {{ v }}; //\"", ":5:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% end %}\n--> 0</script>", ":5:1: syntax error: '-->' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script>\n{% if c %}\nx = 1;\n{% end %}\nreturn /a/.test(b);</script>", ""},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% end %}\n  else /\"/; s = '{{ v }}'; //\"</script>", ""},
+	{ast.FormatHTML, "<script>\nvar a = 1;\n{% if c %}\nb()\n{% end %}\n--> 0</script>", ""},
 }
 
 func TestLexerParens(t *testing.T) {
@@ -1203,7 +1218,8 @@ func TestLexerParens(t *testing.T) {
 
 // continuedTextTests contain sources in which the text after a show,
 // statement or comment can continue the text before it, as the digits of a
-// number, and the contexts of their shows, or the expected error.
+// number or after a newline that the parser cuts, and the contexts of their
+// shows, or the expected error.
 var continuedTextTests = []struct {
 	format ast.Format
 	src    string
@@ -1217,6 +1233,33 @@ var continuedTextTests = []struct {
 	{ast.FormatHTML, "<script>x = [.{# c #}5.in / \"/\"]; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
 	{ast.FormatHTML, "<script>x = y?.{# c #}5.in / \"/\" : 0; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
 	{ast.FormatHTML, "<script>x = .{% if c %}\n{% end %}\n5.in / \"/\"; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
+	// A line comment or regular expression continues after the newline cut
+	// after an else, default or end statement alone in its line.
+	{ast.FormatHTML, "<script>\n// x{% if c %}\n{% else %}\n\"\n{% end %}\ns = {{ v }};\n</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>\n// x{% if c %}\n{% else %}  \n'\n{% end %}\ns = {{ v }};</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>\n// x{% switch n %}\n{% default %}\n`\n`\n{% end %}\nvar t = `{{ v }}`; //`\n</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatJS, "// x{% macro M %}\n{% end %}\n`\ns = {{ v }};\n//`", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>x = /a{% if c %}/;\n{% else %}\n\"/; s = {{ v }}; //\"\n{% end %}</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>\n// x{% if c %}\n{% else %}\n`\n`\n{% end %}\nvar t = `{{ v }}`; //`\n</script>", nil, ":6:4: syntax error: if branches end in different contexts"},
+	// The parser does not cut the newline after a case statement, or after
+	// a statement that is not alone in its line.
+	{ast.FormatHTML, "<script>\nx = a{% switch n %}\n{% case 1 %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n{% end %}</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}{% end %}\n{% if d %}{% end %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>\n// built for {% if c %}admin{% else %}user{% end %}\nvar t = `{{ v }}`;\n</script>", []ast.Context{ast.ContextJSString}, ""},
+	{ast.FormatHTML, "<script>\nvar a = 1; // {% if c %}x{% end %}\nvar t = `{{ v }}`;\n</script>", []ast.Context{ast.ContextJSString}, ""},
+	{ast.FormatHTML, "<script>// Items:{% for x in xs %}\n// - {{ x }}{% end %}\nvar t = `{{ v }}`;</script>", []ast.Context{ast.ContextJS, ast.ContextJSString}, ""},
+	// The parser places a comment in the line in which it ends, and cuts
+	// the newline after a comment alone in its line.
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% end %}{# k\nk #}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n</script>", nil, ":7:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% else %}{# k\nk #}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n{% end %}</script>", nil, ":7:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% end %}{# k\nk #}{# j\nj #}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n</script>", nil, ":8:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\n// x{% if c %}\n{% else %}{# a\nb #}\n`\n{% end %}\ns = `{{ v }}`; //`\n</script>", []ast.Context{ast.ContextJSString}, ""},
+	{ast.FormatHTML, "<script>\n// x{% if c %}\n{# a\nb #}{% else %}\n`\n{% end %}\ns = `{{ v }}`; //`\n</script>", nil, ":6:4: syntax error: if branches end in different contexts"},
+	{ast.FormatHTML, "<script>x = /a{% if c %}/;\n{% else %}\n{# c #}\n\"/; s = {{ v }}; //\"\n{% end %}</script>", []ast.Context{ast.ContextJS}, ""},
+	// After a cut newline, it is not known whether the parser cuts the
+	// newline after another show or statement alone in its line.
+	{ast.FormatHTML, "<script>\n// x{% if c %}\n{% else %}\n{% if d %}\n{% end %}\n'\n{% end %}\ns = {{ v }};</script>", nil, ":4:11: syntax error: JavaScript comment could continue on the next line"},
+	{ast.FormatHTML, "<script>x = /a{% if c %}/;\n{% else %}\n{% var y = 1 %}\n\"/; s = {{ v }}; //\"\n{% end %}</script>", nil, ":3:16: syntax error: JavaScript regular expression could continue on the next line"},
 }
 
 func TestLexerContinuedText(t *testing.T) {
@@ -1236,6 +1279,66 @@ func TestLexerContinuedText(t *testing.T) {
 			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
 		} else if err == "" && !reflect.DeepEqual(ctxs, test.ctxs) {
 			t.Errorf("source: %q, expecting contexts %v, got %v", test.src, test.ctxs, ctxs)
+		}
+	}
+}
+
+// TestLexerCutAssumptions checks that the parser cuts the newline after an
+// else, default and end statement and a comment alone in its line, but not
+// after a case statement, and that it places a comment in the line in which
+// it ends, as the lexer assumes in startsAloneInLine and endLine.
+func TestLexerCutAssumptions(t *testing.T) {
+	for _, test := range []struct {
+		src string
+		cut bool
+	}{
+		{"{% if false %}\n{% else %}\nx{% end %}", true},
+		{"{% switch 1 %}\n{% default %}\nx{% end %}", true},
+		{"{% if false %}\n{% end %}\nx", true},
+		{"{# c #}\nx", true},
+		{"{% switch 1 %}\n{% case 1 %}\nx{% end %}", false},
+		{"{% if false %}\n{% else %}{% if true %}{% end %}\nx{% end %}", false},
+		{"{% if false %}\n{# a\nb #}{% else %}\nx{% end %}", false},
+		{"{% if false %}\n{% else %}{# a\nb #}\nx{% end %}", true},
+	} {
+		tree, _, err := ParseTemplateSource([]byte(test.src), ast.FormatText, false, false)
+		if err != nil {
+			t.Fatalf("source: %q, unexpected error %s", test.src, err)
+		}
+		// find returns the text node that contains "x".
+		var find func(nodes []ast.Node) *ast.Text
+		find = func(nodes []ast.Node) *ast.Text {
+			for _, node := range nodes {
+				var text *ast.Text
+				switch n := node.(type) {
+				case *ast.Text:
+					if strings.Contains(string(n.Text), "x") {
+						return n
+					}
+				case *ast.If:
+					text = find(n.Then.Nodes)
+					if b, ok := n.Else.(*ast.Block); ok && text == nil {
+						text = find(b.Nodes)
+					}
+				case *ast.Switch:
+					for _, c := range n.Cases {
+						if text == nil {
+							text = find(c.Body)
+						}
+					}
+				}
+				if text != nil {
+					return text
+				}
+			}
+			return nil
+		}
+		text := find(tree.Nodes)
+		if text == nil {
+			t.Fatalf("source: %q, text not found", test.src)
+		}
+		if cut := text.Cut.Left > 0; cut != test.cut {
+			t.Errorf("source: %q, expecting cut %t, got %t: update lexer.endLine", test.src, test.cut, cut)
 		}
 	}
 }
