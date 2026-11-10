@@ -204,7 +204,6 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 	}
 }
 
-var jsonLDMimeType = []byte("application/ld+json")
 var cssMimeType = []byte("text/css")
 
 type jsCommentState uint8
@@ -1586,7 +1585,7 @@ func (l *lexer) scan() {
 							if bytes.EqualFold(typ, []byte("module")) {
 								l.state.jsClassic = false
 							} else if len(typ) > 0 && !isJSMimeType(typ) {
-								if bytes.EqualFold(typ, jsonLDMimeType) {
+								if isJSONMimeType(typ) {
 									l.tag.ctx = ast.ContextJSON
 								} else {
 									l.tag.ctx = fileContext
@@ -2225,6 +2224,20 @@ var jsMimeTypes = map[string]bool{
 func isJSMimeType(typ []byte) bool {
 	typ, _, _ = bytes.Cut(typ, []byte(";"))
 	return jsMimeTypes[strings.ToLower(string(bytes.TrimSpace(typ)))]
+}
+
+// isJSONMimeType reports whether typ, the value of the type attribute of a
+// script element, is a type whose content is JSON: application/json, a type
+// with the +json suffix, such as application/ld+json, or one of the types
+// importmap and speculationrules. Parameters, case and spaces are ignored.
+func isJSONMimeType(typ []byte) bool {
+	typ, _, _ = bytes.Cut(typ, []byte(";"))
+	switch t := strings.ToLower(string(bytes.TrimSpace(typ))); t {
+	case "application/json", "importmap", "speculationrules":
+		return true
+	default:
+		return strings.HasSuffix(t, "+json")
+	}
 }
 
 // isEndScript reports whether s is the start or end of "script" tag.

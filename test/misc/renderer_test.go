@@ -231,7 +231,7 @@ var scriptContextTests = []struct {
 }
 
 func TestScriptContext(t *testing.T) {
-	for _, typ := range []string{"text/javascript", "application/ld+json"} {
+	for _, typ := range []string{"text/javascript", "application/ld+json", "application/json", "importmap"} {
 		for _, expr := range scriptContextTests {
 			fsys := fstest.Files{"index.html": `<script type="` + typ + `">{{` + expr.src + `}}</script>`}
 			opts := &scriggo.BuildOptions{
