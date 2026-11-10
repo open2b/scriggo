@@ -1353,6 +1353,65 @@ func TestLexerCutAssumptions(t *testing.T) {
 	}
 }
 
+// TestLexerStateFields checks the fields of lexState and scanState, so that
+// a new field is not forgotten in joinLexStates, which must decide how to
+// join its values at the end of the branches of a statement, and, if it is a
+// slice, in scanState.clone. If the fields change, check these functions and
+// then update the fields in this test.
+func TestLexerStateFields(t *testing.T) {
+	for _, test := range []struct {
+		typ    reflect.Type
+		fields []string
+		slices []string
+	}{
+		{reflect.TypeFor[lexState](), []string{"ctx", "tagCtx", "state"}, nil},
+		{reflect.TypeFor[scanState](), []string{"quote", "jsComment", "jsDivision", "jsClass", "jsBraces",
+			"jsLineCode", "jsClassic", "typeAttr", "attrNameChar", "jsClassStart", "jsClassDynamic",
+			"jsParens", "jsNextParen", "jsParensFloor", "jsParensDeep", "jsIdentEnd", "cutSpaces",
+			"jsNextName", "jsIdentName", "jsIdentParen", "jsIdentJoined", "jsDivisionUnknown",
+			"jsLineCodeUnknown", "typeAttrUnknown"}, []string{"jsBraces", "jsParens"}},
+	} {
+		var fields, slices []string
+		for i := 0; i < test.typ.NumField(); i++ {
+			f := test.typ.Field(i)
+			fields = append(fields, f.Name)
+			if f.Type.Kind() == reflect.Slice {
+				slices = append(slices, f.Name)
+			}
+		}
+		if !reflect.DeepEqual(fields, test.fields) {
+			t.Errorf("%s has fields %v, expected %v: check joinLexStates and scanState.clone, and update this test",
+				test.typ, fields, test.fields)
+		}
+		if !reflect.DeepEqual(slices, test.slices) {
+			t.Errorf("%s has slice fields %v, expected %v: check scanState.clone, and update this test",
+				test.typ, slices, test.slices)
+		}
+	}
+	s := scanState{jsBraces: []int{1}, jsParens: []jsParen{jsParenOther}}
+	c := s.clone()
+	c.jsBraces[0] = 2
+	c.jsParens[0] = jsParenControl
+	if s.jsBraces[0] != 1 || s.jsParens[0] != jsParenOther {
+		t.Errorf("scanState.clone does not copy the slices")
+	}
+}
+
+// TestRegExpPrecederKeywords checks that isRegExpPrecederKeyword reports
+// the keywords in regExpPrecederKeywords, and only them.
+func TestRegExpPrecederKeywords(t *testing.T) {
+	for _, k := range regExpPrecederKeywords {
+		if !isRegExpPrecederKeyword([]byte(k)) {
+			t.Errorf("isRegExpPrecederKeyword(%q) returns false, expected true", k)
+		}
+	}
+	for _, k := range []string{"", "if", "while", "for", "with", "await", "yield", "of", "x", "typeofx", "instanceo", "Return"} {
+		if isRegExpPrecederKeyword([]byte(k)) {
+			t.Errorf("isRegExpPrecederKeyword(%q) returns true, expected false", k)
+		}
+	}
+}
+
 func TestLexerClosingBrace(t *testing.T) {
 	for _, test := range closingBraceTests {
 		lex := scanTemplate([]byte(test.src), test.format, false)
