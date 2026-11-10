@@ -94,6 +94,9 @@ type lexer struct {
 		dynamic bool        // the current attribute value contains a show, a statement or a comment
 		ctx     ast.Context // context of the tag's content
 	}
+	tokenLine      int        // line in which the parser places the last show, statement or comment
+	cut            newlineCut // whether the parser cuts the newline after the statement or comment being scanned
+	cutEnd         int        // index in src of the end of the spaces and newline that the parser cuts
 	rawMarker      []byte     // raw marker, not nil when a raw statement has been lexed
 	inRaw          bool       // whether the content of a raw statement is being scanned
 	rawEnd         int        // index in src of the end of the raw content, if inRaw is true
@@ -105,6 +108,16 @@ type lexer struct {
 	templateSyntax bool       // support template syntax.
 	noParseShow    bool       // do not parse the short show statement.
 }
+
+// newlineCut reports whether the parser cuts the newline after a show,
+// statement or comment alone in its line, as described in endLine.
+type newlineCut uint8
+
+const (
+	cutUnknown newlineCut = iota // it is not known
+	cutAlways                    // it cuts it, as after an else, default or end statement or a comment
+	cutNever                     // it does not cut it, as after a case statement
+)
 
 // newline is called when the lexer encounters a new line.
 func (l *lexer) newline() {
@@ -187,6 +200,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 	if length > 0 {
 		l.lastTokenType = typ
 		l.src = l.src[length:]
+		l.cutEnd = 0
 	}
 }
 
@@ -266,13 +280,16 @@ type scanState struct {
 	jsIdentEnd bool
 
 	// cutSpaces reports whether the text since the beginning of the body of
-	// the innermost for statement only contains spaces, tabs, carriage
-	// returns and newlines. The parser can cut them, at the end of the lines
-	// of the statement and of the statements and comments that follow it, so
-	// from the second iteration on the body can continue the text at the end
-	// of the previous one. To keep it simple, they are all considered cut,
-	// except the spaces, tabs and carriage returns before the first other
-	// character, which the parser does not cut.
+	// the innermost for statement, or since an else, default or end statement
+	// alone in its line, only contains spaces, tabs, carriage returns and
+	// newlines. The parser can cut them, at the end of the lines of the
+	// statement and of the statements and comments that follow it, so from
+	// the second iteration on the body can continue the text at the end of
+	// the previous one, and the text after an else, default or end statement
+	// can continue the text before the block or at the end of a branch. To
+	// keep it simple, they are all considered cut, except the spaces, tabs and
+	// carriage returns before the first other character, which the parser
+	// does not cut.
 	cutSpaces bool
 
 	// jsNextName is the kind of a JavaScript identifier that follows, and
@@ -774,6 +791,7 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 			return err
 		}
 		l.restore(b.start)
+		l.cut = cutAlways
 		if b.kind == blockIf {
 			b.implicit = false
 		} else {
@@ -800,8 +818,10 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 		}
 		b.cases = true
 		l.restore(start)
+		l.cut = cutNever
 		if typ == tokenDefault {
 			b.implicit = false
+			l.cut = cutAlways
 		}
 	case tokenBreak, tokenContinue:
 		// A break or continue statement ends a branch of the innermost
@@ -876,6 +896,7 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 			} else {
 				l.restore(*b.end)
 			}
+			l.cut = cutAlways
 		case blockRaw:
 		default:
 			var err error
@@ -909,6 +930,92 @@ func (l *lexer) scanBlockStatement(typ tokenTyp, elseIf bool, col int) error {
 				}
 				l.state.jsParensDeep = true
 			}
+			l.cut = cutAlways
+		}
+	}
+	return nil
+}
+
+// startsAloneInLine reports whether the show, statement or comment that
+// starts at l.src[p] can be alone in its line, as the parser determines it:
+// it is the first one placed in the line, and only spaces, tabs and carriage
+// returns precede it in the line. The parser places a show or statement in
+// the line in which it starts, and a comment in the line in which it ends,
+// so a multiline comment is always the first one in its line.
+func (l *lexer) startsAloneInLine(p int) bool {
+	s := l.src[:p]
+	i := bytes.LastIndexByte(s, '\n')
+	for _, c := range s[i+1:] {
+		if c != ' ' && c != '\t' && c != '\r' {
+			return false
+		}
+	}
+	return i >= 0 || l.tokenLine < l.line
+}
+
+// cutLength returns the length of the spaces, tabs and carriage returns
+// followed by a newline at the beginning of s, which the parser cuts after a
+// show, statement or comment alone in its line. It returns 0 if s does not
+// start with them.
+func cutLength(s []byte) int {
+	for i, c := range s {
+		switch c {
+		case ' ', '\t', '\r':
+		case '\n':
+			return i + 1
+		default:
+			return 0
+		}
+	}
+	return 0
+}
+
+// endLine is called after a show, statement or comment, and aloneBefore
+// reports whether it can be alone in its line, as reported by
+// startsAloneInLine.
+//
+// If it is alone in its line, the parser can cut the spaces and the newline
+// that follow it, and l.cut reports whether it cuts them. The parser cuts
+// them after an else, default or end statement, after which the scan
+// resumes from another state, so the text after the line can continue a
+// text that does not end with a newline: in "a{% if c %}\n{% end %}\nelse",
+// if c is false, "a" is followed by "else", and in
+// "// a{% if c %}\n{% else %}\n`", the comment continues with "`". It cuts
+// them also after a comment, which can follow such a statement in the same
+// line, as in "{% end %}{# a\nb #}\n", where the comment is in the next line.
+// The parser does not cut them after a case statement.
+//
+// If the parser cuts them, they are not scanned in JavaScript code, and the
+// spaces and newlines that follow are considered cut, because the parser can
+// also cut the newlines after the shows, statements and comments alone in
+// their lines that follow.
+//
+// If it is not known whether the parser cuts them, the scan continues from
+// the text before the line, which ends with a newline, so a cut newline
+// does not change the context, unless the newline before the line was cut
+// too and the scan is in a line comment or a regular expression. In this
+// case, it returns an error.
+func (l *lexer) endLine(aloneBefore bool) error {
+	cut := l.cut
+	l.cut = cutUnknown
+	n := 0
+	if aloneBefore {
+		n = cutLength(l.src)
+	}
+	if n == 0 {
+		// It is not alone in its line.
+		return nil
+	}
+	switch cut {
+	case cutAlways:
+		l.cutEnd = n
+		l.state.cutSpaces = true
+	case cutUnknown:
+		if l.ctx == ast.ContextJS && l.state.jsComment == jsCommentLine {
+			return l.errorf("JavaScript comment could continue on the next line")
+		}
+		if l.ctx == ast.ContextJSRegExp {
+			return l.errorf("JavaScript regular expression could continue on the next line")
 		}
 	}
 	return nil
@@ -1111,6 +1218,11 @@ func (l *lexer) scan() {
 					spread := p >= 3 && l.src[p-2] == '.' && l.src[p-3] == '.'
 					l.state.jsIdentEnd = l.state.jsNextName != jsNameProperty && !spread
 				}
+				var aloneBefore bool
+				if l.isShowStatementOrCommentStart(p) {
+					aloneBefore = l.startsAloneInLine(p)
+					l.tokenLine = l.line
+				}
 				switch l.src[p+1] {
 				case '{':
 					if l.noParseShow {
@@ -1130,6 +1242,10 @@ func (l *lexer) scan() {
 						break LOOP
 					}
 					l.endShow()
+					if err := l.endLine(aloneBefore); err != nil {
+						l.err = err
+						break LOOP
+					}
 					lin = l.line
 					col = l.column
 					continue
@@ -1165,6 +1281,9 @@ func (l *lexer) scan() {
 					} else {
 						err = l.lexStatement()
 					}
+					if err == nil {
+						err = l.endLine(aloneBefore)
+					}
 					if err != nil {
 						l.err = err
 						break LOOP
@@ -1192,7 +1311,19 @@ func (l *lexer) scan() {
 						l.emitAtLineColumn(lin, col, tokenText, p)
 						p = 0
 					}
+					line := l.line
 					err := l.lexComment()
+					if err == nil {
+						if l.line > line {
+							// The parser places a comment in the line in
+							// which it ends, so a multiline comment is the
+							// first one in its line.
+							aloneBefore = true
+							l.tokenLine = l.line
+						}
+						l.cut = cutAlways
+						err = l.endLine(aloneBefore)
+					}
 					if err != nil {
 						l.err = err
 						break LOOP
@@ -1509,6 +1640,10 @@ func (l *lexer) scan() {
 				}
 
 			case ast.ContextJS:
+				if p < l.cutEnd {
+					// Cut by the parser, as described in endLine.
+					break
+				}
 				if c >= utf8.RuneSelf && !isStartChar(c) {
 					// Continuation byte of a character already scanned.
 					break
@@ -1648,6 +1783,12 @@ func (l *lexer) scan() {
 					l.state.jsLineCode = false
 					l.state.jsLineCodeUnknown = false
 				} else if lineTerminator {
+					// The parser can cut the line terminator, so the line can
+					// continue, and it is not known whether it contains code.
+					if l.state.jsLineCode {
+						l.state.jsLineCode = false
+						l.state.jsLineCodeUnknown = true
+					}
 				} else if code && l.state.jsComment == jsCommentNone {
 					l.state.jsLineCode = true
 					l.state.jsLineCodeUnknown = false
@@ -1712,6 +1853,10 @@ func (l *lexer) scan() {
 				}
 
 			case ast.ContextJSRegExp:
+				if p < l.cutEnd {
+					// Cut by the parser, as described in endLine.
+					break
+				}
 				if l.state.jsClassStart {
 					if c == '^' && l.state.jsClassDynamic {
 						// The shows, statements or comments before it could
