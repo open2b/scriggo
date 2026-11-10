@@ -1647,7 +1647,7 @@ func (l *lexer) scan() {
 					// Continuation byte of a character already scanned.
 					break
 				}
-				lineTerminator := isJSLineTerminator(l.src[p:])
+				lineTerminator := c == '\n' || c == '\r' || c == 0xE2 && isJSLineTerminator(l.src[p:])
 				code := l.state.jsComment == jsCommentNone && !isJSSpace(l.src[p:])
 				// braceEnd reports whether c is a '}' that does not end a
 				// template literal substitution, and parenUnknown whether c
@@ -2321,26 +2321,22 @@ func (l *lexer) isStringContext() bool {
 }
 
 // regExpPrecederKeywords contains the JavaScript keywords that can be
-// followed by a regular expression literal.
-var regExpPrecederKeywords = map[string]bool{
-	"break":      true,
-	"case":       true,
-	"continue":   true,
-	"debugger":   true,
-	"default":    true,
-	"delete":     true,
-	"do":         true,
-	"else":       true,
-	"extends":    true,
-	"finally":    true,
-	"in":         true,
-	"instanceof": true,
-	"new":        true,
-	"return":     true,
-	"throw":      true,
-	"try":        true,
-	"typeof":     true,
-	"void":       true,
+// followed by a regular expression literal. Keep isRegExpPrecederKeyword in
+// sync.
+var regExpPrecederKeywords = []string{
+	"break", "case", "continue", "debugger", "default", "delete", "do", "else", "extends",
+	"finally", "in", "instanceof", "new", "return", "throw", "try", "typeof", "void",
+}
+
+// isRegExpPrecederKeyword reports whether word is one of the keywords in
+// regExpPrecederKeywords. It uses a switch, which is faster than a map.
+func isRegExpPrecederKeyword(word []byte) bool {
+	switch string(word) {
+	case "break", "case", "continue", "debugger", "default", "delete", "do", "else", "extends",
+		"finally", "in", "instanceof", "new", "return", "throw", "try", "typeof", "void":
+		return true
+	}
+	return false
 }
 
 // isJSIdentifierPart reports whether c can be part of a JavaScript
@@ -2353,6 +2349,10 @@ func isJSIdentifierPart(c byte) bool {
 // isJSSpace reports whether s starts with a JavaScript white space or line
 // terminator.
 func isJSSpace(s []byte) bool {
+	if c := s[0]; c < utf8.RuneSelf {
+		// Tab, line feed, vertical tab, form feed, carriage return or space.
+		return '\t' <= c && c <= '\r' || c == ' '
+	}
 	r, _ := utf8.DecodeRune(s)
 	return unicode.IsSpace(r) && r != '\u0085' || r == '\uFEFF'
 }
@@ -2423,7 +2423,7 @@ func (l *lexer) scanJSIdentifier(p int) {
 	case "yield", "of":
 		ambiguous = true
 	default:
-		preceder = regExpPrecederKeywords[string(word)]
+		preceder = isRegExpPrecederKeyword(word)
 	}
 	if s.jsIdentName == jsNameProperty {
 		// The identifier can only be a property name, or the end of an
@@ -2496,13 +2496,7 @@ func (l *lexer) jsNameAfterDot(p int) jsName {
 
 // jsKeywords contains the JavaScript keywords after which the kind of a '('
 // or of a '/' depends on the keyword.
-var jsKeywords = func() []string {
-	keywords := []string{"if", "while", "for", "with", "await", "yield", "of"}
-	for k := range regExpPrecederKeywords {
-		keywords = append(keywords, k)
-	}
-	return keywords
-}()
+var jsKeywords = append([]string{"if", "while", "for", "with", "await", "yield", "of"}, regExpPrecederKeywords...)
 
 // isJSKeywordEnd reports whether word is the end of a keyword in jsKeywords
 // that is longer than word.

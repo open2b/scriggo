@@ -222,8 +222,17 @@ func TestLexerJSContextsAgainstHTMLTemplate(t *testing.T) {
 	if prudentErrors > 10 {
 		t.Errorf("expecting at most 10 errors where Go's html/template reports none, got %d", prudentErrors)
 	}
-	if braceErrors == 0 || braceErrors > 150 {
-		t.Errorf("expecting from 1 to 150 errors for a '/' after a '}', got %d", braceErrors)
+	// The errors for a '/' after a '}' can only occur in the sources that
+	// contain a fragment in differentialBraceFragments, so their maximum
+	// number is relative to the number of these sources.
+	braceSources := 0
+	for _, src := range sources {
+		if containsAny(src, differentialBraceFragments) {
+			braceSources++
+		}
+	}
+	if braceErrors == 0 || braceErrors > braceSources/4 {
+		t.Errorf("expecting from 1 to %d errors for a '/' after a '}', got %d", braceSources/4, braceErrors)
 	}
 }
 
