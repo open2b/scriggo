@@ -5,6 +5,7 @@
 package compiler
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -348,8 +349,6 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<script>'{{a}}'{{a}}</script>`:                {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 		`<script>// it's bad\n{{a}}</script>`:          {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 		`<script>/* it's bad */{{a}}</script>`:         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
-		`<script>'</script>'{{a}}</script>`:            {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
-		`<script>"</script>"{{a}}</script>`:            {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
 		`<script async></script>{{ "a" }}`:             {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 
 		`<script type="application/ld+json">s{{a}}t</script>{{a}}`:     {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
@@ -384,15 +383,165 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<style type>s{{a}}t</style>{{a}}`:              {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		`<style type="text/plain">s{{a}}t</style>{{a}}`: {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 
-		// JavaScript module
-		`<style type="module">s{{a}}t</style>{{a}}`:   {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-		`<style type='module'>s{{a}}t</style>{{a}}`:   {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-		`<style type=module>s{{a}}t</style>{{a}}`:     {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-		`<style type="Module">s{{a}}t</style>{{a}}`:   {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-		`<style type=" module ">s{{a}}t</style>{{a}}`: {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		// Type attribute whose value is not known at compile time.
+		`<script type="{{a}}">s{{a}}</script>{{a}}`:             {ast.ContextText, ast.ContextQuotedAttr, ast.ContextQuotedAttr, ast.ContextQuotedAttr, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type={{a}}>s{{a}}</script>{{a}}`:               {ast.ContextText, ast.ContextUnquotedAttr, ast.ContextUnquotedAttr, ast.ContextUnquotedAttr, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="text/{# c #}plain">s{{a}}</script>{{a}}`: {ast.ContextText, ast.ContextQuotedAttr, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<style type="{{a}}">s{{a}}t</style>{{a}}`:              {ast.ContextText, ast.ContextQuotedAttr, ast.ContextQuotedAttr, ast.ContextQuotedAttr, ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+
+		// JavaScript module and other JavaScript types.
+		`<script type="module">s{{a}}t</script>{{a}}`:                         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type='module'>s{{a}}t</script>{{a}}`:                         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type=module>s{{a}}t</script>{{a}}`:                           {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="Module">s{{a}}t</script>{{a}}`:                         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type=" module ">s{{a}}t</script>{{a}}`:                       {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="application/javascript">s{{a}}t</script>{{a}}`:         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="text/ecmascript">s{{a}}t</script>{{a}}`:                {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="text/javascript; charset=utf-8">s{{a}}t</script>{{a}}`: {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="TEXT/X-JAVASCRIPT">s{{a}}t</script>{{a}}`:              {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="text/plain">s{{a}}t</script>{{a}}`:                     {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+
+		// JSON types.
+		`<script type="application/json">s{{a}}t</script>{{a}}`:                  {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="Application/JSON; charset=utf-8">s{{a}}t</script>{{a}}`:   {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="application/manifest+json">s{{a}}t</script>{{a}}`:         {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type=" application/ld+json ">s{{a}}t</script>{{a}}`:             {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="importmap">s{{a}}t</script>{{a}}`:                         {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="speculationrules">s{{a}}t</script>{{a}}`:                  {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="application/json">{"a": "<script>"}</script>{{a}}`:        {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="application/json">{"a": "<script>", "b": {{a}}}</script>`: {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText},
+
+		// Repeated type attributes, of which browsers use the first.
+		`<script type="text/javascript" type="text/plain">{{a}}</script>`:  {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script type="text/javascript" TYPE="text/plain">{{a}}</script>`:  {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script type type="text/plain">{{a}}</script>`:                    {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script type/ type="text/plain">{{a}}</script>`:                   {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script type="text/plain" type="text/javascript">{{a}}</script>`:  {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+		`<style type="text/css" type="text/plain">{{a}}</style>`:           {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
+		`<script {% if a %}type {% end %}type="text/plain">{{a}}</script>`: {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+
+		// Attribute names read as browsers do.
+		`<script x"type="text/plain">{{a}}</script>`:                               {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script {{ x }} type="text/plain">{{a}}</script>`:                         {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script type{# c #} type="text/plain">{{a}}</script>`:                     {ast.ContextText, ast.ContextTag, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script {% if a %}defer{% end %} type="text/plain">{{a}}</script>`:        {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+		`<script {% for x in xs %}e typ{% end %} type="text/plain">{{a}}</script>`: {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script {% for x in xs %}defer {% end %}type="text/plain">{{a}}</script>`: {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+
+		// Strings that end with an escaped backslash.
+		`<script>'\''{{a}}</script>`:                            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script>'\\'{{a}}</script>`:                            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script>"\\"{{a}}</script>`:                            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script>'\\\\'{{a}}</script>`:                          {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script>'\\\''{{a}}</script>`:                          {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		`<script>'\\{{a}}'</script>`:                            {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		`<style>'\\'{{a}}</style>`:                              {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
+		`<style>"\\"{{a}}</style>`:                              {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
+		`<script type="application/ld+json">"\\"{{a}}</script>`: {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText},
+
+		// JavaScript template literals and regular expressions.
+		"<script>`{{a}}`</script>":                    {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`${ {{a}} }`</script>":               {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>`a${b}{{a}}`</script>":               {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`${ `{{a}}` }`</script>":             {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`${ `b` } {{a}}`</script>":           {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`${ {b: 1} } {{a}}`</script>":        {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`${ '}' } {{a}}`</script>":           {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`${ \"`\" } {{a}}`</script>":         {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`${ 1 /* } */ } {{a}}`</script>":     {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`${ /}/.test(b) } {{a}}`</script>":   {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`${ /`/.test(b) } {{a}}`</script>":   {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`\\` {{a}}`</script>":                {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`\\${ {{a}} }`</script>":             {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`\\${{a}}`</script>":                 {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>`It's` {{a}}</script>":               {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>`http://b` {{a}}</script>":           {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>/'/.test(b); {{a}}</script>":         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>/{{a}}/</script>":                    {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
+		"<script>b = /[/]{{a}}/</script>":             {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
+		"<script>b = /[{{a}}]/</script>":              {ast.ContextText, ast.ContextJSRegExpClass, ast.ContextJSRegExpClass, ast.ContextJSRegExpClass, ast.ContextText},
+		"<script>b = /[\\]{{a}}]/</script>":           {ast.ContextText, ast.ContextJSRegExpClass, ast.ContextJSRegExpClass, ast.ContextJSRegExpClass, ast.ContextText},
+		"<script>b = /\\/{{a}}/</script>":             {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
+		"<script>b = c / d; '{{a}}'</script>":         {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = (c) / '{{a}}'</script>":          {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = c[0] / '{{a}}'</script>":         {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = c +++/{{a}}/</script>":           {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
+		"<script>b = c++ / '{{a}}'</script>":          {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = /c/g / '{{a}}'</script>":         {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>return /'/.test(b) + {{a}}</script>": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = {{a}} / '{{a}}'</script>":        {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = {% show a %} / '{{a}}'</script>": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>/b\n'{{a}}'</script>":                {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>/b/</script>{{a}}":                   {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+
+		// HTML-like and hashbang comments.
+		"<script><!-- it's\n{{a}}</script>":           {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>  --> it's\n{{a}}</script>":          {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>a = 1\n--> it's\n{{a}}</script>":     {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>/* c */ --> it's\n{{a}}</script>":    {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>while (n-->0) r = /{{a}}/;</script>": {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
+		"<script>while (n-->0) s = '{{a}}';</script>": {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>{{a}} --> '{{a}}'</script>":          {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>--> it's\n{{a}}</script>":            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>#! it's\n{{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>'<!--' + {{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>`<!--` + {{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+
+		// Keywords that precede a regular expression.
+		"<script>b = typeof /* c */ /'/; {{a}}</script>": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = typeof // c\n/'/; {{a}}</script>":   {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = c.typeofd / '{{a}}'</script>":       {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = c.typeof / '{{a}}'</script>":        {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = [...typeof /'/]; {{a}}</script>":    {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = this.#typeof / '{{a}}'</script>":    {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+
+		// Conditions of if, while, for and with statements.
+		"<script>if (a) /'/.test(b); {{a}}</script>":                 {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>while (a) /'/.test(b); {{a}}</script>":              {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>for (;;) /'/.test(b); {{a}}</script>":               {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>with (a) /'/.test(b); {{a}}</script>":               {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>do b(); while (a) /'/.test(b); {{a}}</script>":      {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>if /* c */ (f(a, (b))) /'/.test(b); {{a}}</script>": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>if\n(a)\n/'/.test(b); {{a}}</script>":               {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>if (a) (b) / '{{a}}'</script>":                      {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>if (a) b = (c) / '{{a}}'</script>":                  {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = c.if(d) / '{{a}}'</script>":                     {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = this.#for(d) / '{{a}}'</script>":                {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = iff(d) / '{{a}}'</script>":                      {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = `${ if_(c) / d }`; '{{a}}'</script>":            {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = o. if (c) / '/' + {{a}}</script>":               {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = o.\nif (c) / '/' + {{a}}</script>":              {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = o./* c */if (c) / '/' + {{a}}</script>":         {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = o. typeof / '{{a}}'</script>":                   {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = x.y\nreturn /'/.test(x); {{a}}</script>":        {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = [...typeof /'/]; {{a}}</script>; c = x.if(1)":   {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = new /'/.constructor(); {{a}}</script>":          {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>class A extends /'/.constructor {}; {{a}}</script>": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>debugger\n/'/.test(b); {{a}}</script>":              {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script type=\"module\">export default /'/; {{a}}</script>": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = 1.\ntypeof /'/; {{a}}</script>":                 {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = 1_0.\ntypeof /'/; {{a}}</script>":               {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = 08.\ntypeof /'/; {{a}}</script>":                {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = 07.\ntypeof / '{{a}}'</script>":                 {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = 1.5.\ntypeof / '{{a}}'</script>":                {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>b = 1e5.\ntypeof / '{{a}}'</script>":                {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>if (a) {{a}}</script>":                              {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+
+		// Unicode spaces and line terminators.
+		"<script>b =\u00a0/'/; {{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b =\ufeff/'/; {{a}}</script>":             {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>return\u00a0/'/.test(b) + {{a}}</script>": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b =\u00a0typeof /'/; {{a}}</script>":      {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = c\u000b/ d; '{{a}}'</script>":         {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>// c\u2028'{{a}}'</script>":               {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>// c\u2029`{{a}}`</script>":               {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>/b\u2028'{{a}}'</script>":                 {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"<script>a\u2028--> c'\n{{a}}</script>":            {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+		"<script>b = \u00e8 / '{{a}}'</script>":            {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
 	},
 	ast.ContextCSS: {
 		`a`:                             {ast.ContextText},
+		`'\\'{{a}}`:                     {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS},
 		`{{a}}`:                         {ast.ContextCSS, ast.ContextCSS, ast.ContextCSS},
 		"<script></script>":             {ast.ContextText},
 		"<style></style>":               {ast.ContextText},
@@ -404,11 +553,17 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 	},
 	ast.ContextJS: {
 		`a`:                             {ast.ContextText},
+		"`{{a}}`":                       {ast.ContextText, ast.ContextJSString, ast.ContextJSString, ast.ContextJSString, ast.ContextText},
+		"/{{a}}/":                       {ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
+		"/[{{a}}]/":                     {ast.ContextText, ast.ContextJSRegExpClass, ast.ContextJSRegExpClass, ast.ContextJSRegExpClass, ast.ContextText},
+		"`It's` {{a}}":                  {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
+		`'\\'{{a}}`:                     {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
+		`"\\"{{a}}`:                     {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
 		`{{a}}`:                         {ast.ContextJS, ast.ContextJS, ast.ContextJS},
-		"<script></script>":             {ast.ContextText},
-		"<style></style>":               {ast.ContextText},
-		"<script>s{{a}}t</script>{{a}}": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
-		"<style>s{{a}}t</style>{{a}}":   {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS},
+		"<script></script>/":            {ast.ContextText},
+		"<style></style>/":              {ast.ContextText},
+		"<script>{{a}}t</script>{{a}}/": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
+		"<style>s{{a}}t</style>{{a}}/":  {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextJSRegExp, ast.ContextText},
 	},
 	ast.ContextJSString: {
 		`a`:       {ast.ContextText},
@@ -416,6 +571,7 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 	},
 	ast.ContextJSON: {
 		`a`:                             {ast.ContextText},
+		`"\\"{{a}}`:                     {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON},
 		`{{a}}`:                         {ast.ContextJSON, ast.ContextJSON, ast.ContextJSON},
 		"<script></script>":             {ast.ContextText},
 		"<style></style>":               {ast.ContextText},
@@ -563,32 +719,37 @@ var scanTagTests = []struct {
 var scanAttributeTests = []struct {
 	src    string
 	attr   string
+	value  bool
 	quote  byte
 	p      int
 	line   int
 	column int
 }{
-	{"href=\"h", "href", '"', 5, 1, 6},
-	{"href='h", "href", '\'', 5, 1, 6},
-	{"src = \"h", "src", '"', 6, 1, 7},
-	{"src\n= \"h", "src", '"', 6, 2, 3},
-	{"src =\n\"h", "src", '"', 6, 2, 1},
-	{"src\t\t=\n\"h", "src", '"', 7, 2, 1},
-	{"a='h", "a", '\'', 2, 1, 3},
-	{"src=h", "src", 0, 4, 1, 5},
-	{"src=\n\th", "src", 0, 6, 2, 2},
-	{"src=/a/b", "src", 0, 4, 1, 5},
-	{"src=>", "", 0, 4, 1, 5},
-	{"src=/>", "src", 0, 4, 1, 5},
-	{"src", "", 0, 3, 1, 4},
-	{"src=", "", 0, 4, 1, 5},
-	{"src ", "", 0, 4, 1, 5},
-	{"s5c='h", "s5c", '\'', 4, 1, 5},
-	{"本='h", "本", '\'', 4, 1, 3},
-	{"a本-€本b='h", "a本-€本b", '\'', 13, 1, 8},
-	{"5c=\"", "5c", '"', 3, 1, 4},
-	{"x:a=b", "x:a", 0, 4, 1, 5},
-	{"data-x=y", "data-x", 0, 7, 1, 8},
+	{"href=\"h", "href", true, '"', 5, 1, 6},
+	{"href='h", "href", true, '\'', 5, 1, 6},
+	{"src = \"h", "src", true, '"', 6, 1, 7},
+	{"src\n= \"h", "src", true, '"', 6, 2, 3},
+	{"src =\n\"h", "src", true, '"', 6, 2, 1},
+	{"src\t\t=\n\"h", "src", true, '"', 7, 2, 1},
+	{"a='h", "a", true, '\'', 2, 1, 3},
+	{"src=h", "src", true, 0, 4, 1, 5},
+	{"src=\n\th", "src", true, 0, 6, 2, 2},
+	{"src=/a/b", "src", true, 0, 4, 1, 5},
+	{"src=>", "src", false, 0, 4, 1, 5},
+	{"src=/>", "src", true, 0, 4, 1, 5},
+	{"src>", "src", false, 0, 3, 1, 4},
+	{"src img", "src", false, 0, 4, 1, 5},
+	{"a\"b='h", "a\"b", true, '\'', 4, 1, 5},
+	{"=a b", "=a", false, 0, 3, 1, 4},
+	{"src", "", false, 0, 3, 1, 4},
+	{"src=", "", false, 0, 4, 1, 5},
+	{"src ", "", false, 0, 4, 1, 5},
+	{"s5c='h", "s5c", true, '\'', 4, 1, 5},
+	{"本='h", "本", true, '\'', 4, 1, 3},
+	{"a本-€本b='h", "a本-€本b", true, '\'', 13, 1, 8},
+	{"5c=\"", "5c", true, '"', 3, 1, 4},
+	{"x:a=b", "x:a", true, 0, 4, 1, 5},
+	{"data-x=y", "data-x", true, 0, 7, 1, 8},
 }
 
 func testLexerTypes(t *testing.T, test map[string][]tokenTyp, isTemplate bool, format ast.Format) {
@@ -677,6 +838,853 @@ CONTEXTS:
 			if i < len(contexts) {
 				t.Errorf("source: %q, less contexts\n", source)
 			}
+		}
+	}
+}
+
+var stringEscapeErrorTests = []struct {
+	format      ast.Format
+	src         string
+	noParseShow bool
+	err         string
+}{
+	{ast.FormatHTML, `<script>'\{{a}}'</script>`, false, ":1:10: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, `<script>"\{{a}}"</script>`, false, ":1:10: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, `<script>'\{% if a %}{% end %}'</script>`, false, ":1:10: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, `<script>'\{# c #}'</script>`, false, ":1:10: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, `<script>'\\\{{a}}'</script>`, false, ":1:12: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, `<style>'\{{a}}'</style>`, false, ":1:9: syntax error: unfinished escape sequence in CSS string"},
+	{ast.FormatHTML, `<script type="application/ld+json">"\{{a}}"</script>`, false, ":1:37: syntax error: unfinished escape sequence in JSON string"},
+	{ast.FormatJS, `'\{{a}}'`, false, ":1:2: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatCSS, `'\{{a}}'`, false, ":1:2: syntax error: unfinished escape sequence in CSS string"},
+	{ast.FormatJSON, `"\{{a}}"`, false, ":1:2: syntax error: unfinished escape sequence in JSON string"},
+	{ast.FormatHTML, "<script>`\\{{a}}`</script>", false, ":1:10: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, "<script>/\\{{a}}/</script>", false, ":1:10: syntax error: unfinished escape sequence in JavaScript regular expression"},
+	{ast.FormatHTML, "<script>`${% if a %}{b}{% end %}`</script>", false, ":1:10: syntax error: unexpected show, statement or comment after $ in JavaScript template literal (write \\$ for a literal $)"},
+	{ast.FormatHTML, "<script>`${{a}}`</script>", false, ":1:10: syntax error: unexpected show, statement or comment after $ in JavaScript template literal (write \\$ for a literal $)"},
+	{ast.FormatHTML, "<script>`${# c #}`</script>", false, ":1:10: syntax error: unexpected show, statement or comment after $ in JavaScript template literal (write \\$ for a literal $)"},
+	{ast.FormatHTML, `<script>'\\{{a}}'</script>`, false, ""},
+	{ast.FormatHTML, `<script>'\{a}'</script>`, false, ""},
+	{ast.FormatHTML, `<script>\{{a}}</script>`, false, ""},
+	{ast.FormatHTML, `<script>'\{{a}}'</script>`, true, ""},
+}
+
+func TestLexerStringEscapeErrors(t *testing.T) {
+	for _, test := range stringEscapeErrorTests {
+		lex := scanTemplate([]byte(test.src), test.format, test.noParseShow)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+var blockContextTests = []struct {
+	src string
+	err string
+}{
+	{"<script>const r = {% if a %}'Admin: {% else %}'User: {% end %}' + {{ v }};</script>", ""},
+	{"<script>var b = {% if c %}1{% else %}2{% end %} / 2;</script>", ""},
+	{"<script>var b = {% if c %}1{% end %};</script>", ""},
+	{"<a href=\"{% if c %}/b{% else %}/c{% end %}\">d</a>", ""},
+	{"<script>[{% for x in xs %}{{ x }}, {% end %}]</script>", ""},
+	{"{% for x in xs %}{{ x }}{% else %}none{% end %}", ""},
+	{"<script>{% switch a %}{% case 1 %}'b'{% case 2 %}\"c\"{% default %}d{% end %}</script>", ""},
+	{"<script>{% for x in xs %}{% if x %}{% break %}{% end %}'b'{% end %}</script>", ""},
+	{"<script>{% for x in xs %}(/b/).test(x);{% end %}</script>", ""},
+	{"<script>{% switch a %}{% case 1 %}{{ v }}{% fallthrough %}{% case 2 %}, 1{% end %}</script>", ""},
+	{"<script>{% select %}{% case <-ch %}'b{% end %}'</script>", ""},
+	{"<script>var n = '{% for x in xs %}{{ x }}{% end %}' / 2;</script>", ""},
+	{"<script>var n = /{% for x in xs %}{{ x }}{% end %}/ / 2;</script>", ""},
+	{"<script>var n = `{% for x in xs %}{{ x }}{% end %}` / 2;</script>", ""},
+	{"<script>var n = '{% for x in xs %}{{ x }}{% end %}'-->0;</script>", ""},
+	{"<script {% if a %}type=\"module\"{% end %}>{{ v }}</script>", ""},
+	{"<script {% if a %}defer{% end %}>{{ v }}</script>", ""},
+	{"<script {% if a %}type=\"text/plain{% else %}type=\"module{% end %}\">{{ v }}</script>", ""},
+	{"{% if a %}<a{% else %}<span{% end %} class=\"b\">c</a>", ""},
+	{"<script {% if a %}type=\"text/plain\"{% end %}>{{ v }}</script>", ":1:39: syntax error: if branches end in different contexts"},
+	{"<script {% if a %}type=\"text/plain\"{% else %}type=\"module\"{% end %}>{{ v }}</script>", ":1:62: syntax error: if branches end in different contexts"},
+	{"<script {% for x in xs %}type=\"text/plain\" {% end %}>{{ v }}</script>", ":1:47: syntax error: for branches end in different contexts"},
+	{"<script>{% if a %}{% show itea; using %}b{% end using %}{% end %} {{ v }}</script>", ""},
+	{"<script>{% if a %}{% show itea; using %}b{% end using %}\"{% end %} {{ v }}</script>", ":1:61: syntax error: if branches end in different contexts"},
+	{"{% macro M %}<div>{% end %}", ""},
+	{"{% macro M js %}var b = 1;{% end %}", ""},
+	{"<script>{% show itea; using %}b{% end %}</script>", ""},
+	{"{% macro M %}<script>{% end %}", ":1:25: syntax error: macro body ends in a different context"},
+	{"{% macro M js %}`{% end %}", ":1:21: syntax error: macro body ends in a different context"},
+	{"<script>{% show itea; using %}`{% end %}</script>", ":1:35: syntax error: using body ends in a different context"},
+	{"<script>`${ {% show itea; using %}}{% end %} }`</script>", ":1:39: syntax error: using body ends in a different context"},
+	{"<script>var r = {% show itea; using %}/'/{% end %};</script>", ""},
+	{"<script>{% show itea; using html %}<b>{% end %}</script>", ""},
+	{"<script>var r = {% show itea; using %}/'/.test(a) + '{% end %}';</script>", ":1:57: syntax error: using body ends in a different context"},
+	{"{% macro Open(c string) %}<div class=\"{{ c }}\" {% end %}", ":1:51: syntax error: macro body ends in a different context"},
+	{"{% macro M using %}b{% end %}{% end %}", ""},
+	{"{% show itea; using; using %}b{% end %}{% end %}", ""},
+	{"<script>var r = {% show itea\nusing %}/'/{% end %};</script>", ""},
+	{"<script>var r = 1 {% show itea\nusing %}/ b + '/'+'{% end %}';</script>", ":2:23: syntax error: using body ends in a different context"},
+	{"<script>{% for x in xs %}{%% if x { break } %%}b;{% end %}</script>", ""},
+	{"{% macro M js %}a{% return %}b{% end %}", ""},
+	{"{% macro M js %}a{%% return %%}b{% end %}", ""},
+	{"<script>{% for x in xs %}'{%% if x { break } %%}'{% end %}</script>", ":1:53: syntax error: for branches end in different contexts"},
+	{"<script>{% for x in xs %}'{%% if x { continue } %%}'{% end %}</script>", ":1:56: syntax error: for branches end in different contexts"},
+	{"{% macro M js %}'{% return %}'{% end %}", ":1:21: syntax error: macro body ends in a different context"},
+	{"{% macro M js %}'{%% return %%}'{% end %}", ":1:22: syntax error: macro body ends in a different context"},
+	{"<script>{% for x in xs %}'{%% for i := 0; i < 1; i++ { break } %%}'{% end %}</script>", ""},
+	{"<script>{% for x in xs %}'{%% for _, y := range []int{1, 2} { if y > 0 { continue } } %%}'{% end %}</script>", ""},
+	{"<script>{% for x in xs %}'{%% for f := func() {}; ; { break } %%}'{% end %}</script>", ""},
+	{"<script>{% for x in xs %}'{%% switch x { case 1: break } %%}'{% end %}</script>", ""},
+	{"<script>{% for x in xs %}'{%% select { default: break } %%}'{% end %}</script>", ""},
+	{"{% macro M js %}'{%% f := func() { return }; f() %%}'{% end %}", ""},
+	{"{% macro M js %}'{%% f := func() interface{} { return nil }; f() %%}'{% end %}", ""},
+	{"<script>{% for x in xs %}'{%% for {}; if x { break } %%}'{% end %}</script>", ":1:61: syntax error: for branches end in different contexts"},
+	{"<script>{% for x in xs %}'{%% for {}\nif x { break } %%}'{% end %}</script>", ":2:23: syntax error: for branches end in different contexts"},
+	{"<script>{% for x in xs %}'{%% for range ys {} else { break } %%}'{% end %}</script>", ":1:69: syntax error: for branches end in different contexts"},
+	{"<script>{% for x in xs %}'{%% switch x { case 1: continue } %%}'{% end %}</script>", ":1:68: syntax error: for branches end in different contexts"},
+	{"<script>{% for x in xs %}'{%% var f func(); if x { break } %%}'{% end %}</script>", ":1:67: syntax error: for branches end in different contexts"},
+	{"<script>{% for x in xs %}'{%% if func() bool { return true }() { break } %%}'{% end %}</script>", ":1:81: syntax error: for branches end in different contexts"},
+	{"<script>{% L: for x in xs %}'{%% for { break L } %%}'{% end %}</script>", ":1:57: syntax error: for branches end in different contexts"},
+	{"<script>{% L: for x in xs %}'{%% for { break \r L } %%}'{% end %}</script>", ":1:59: syntax error: for branches end in different contexts"},
+	{"{% macro M js %}'{%% for { return } %%}'{% end %}", ":1:28: syntax error: macro body ends in a different context"},
+	{"<script>var a = {% show itea; using %}1 +{% if b %}{% return %}{% end %} 2{% end %};</script>", ""},
+	{"<script>var a = {% show itea; using %}1 +{% if b %}{% return %}{% end %} 2{% end %} /'/.test(b);</script>", ":1:85: syntax error: '/' could start a division or a regular expression"},
+	{"<script>{% L: for _, x := range xs %}{% for _, y := range ys %}{% break L %}{% end %}{% end %}</script>", ""},
+	{"<script>{% x := 1 %}{{ v }}</script>", ""},
+	{"<script>{% L: for _, v := range es %}`{% end %}{{ v }}</script>", ":1:42: syntax error: for branches end in different contexts"},
+	{"<script>{% L: switch a %}{% case 1 %}'{% case 2 %}{% end %}</script>", ":1:54: syntax error: switch branches end in different contexts"},
+	{"<script>{% L: for _, x := range xs %}'{% for _, y := range ys %}{% break L %}{% end %}'{% end %}</script>", ":1:91: syntax error: for branches end in different contexts"},
+	{"<script>{% if a %}{% L: for _, x := range xs %}{% end %}'{% else %}{% end %}</script>", ":1:71: syntax error: if branches end in different contexts"},
+	{"<script>var s = ` {% L: for _, v := range xs %}`{% switch %}{% case true %}`{% break L %}`{% end %}`{% end %}{{ v }}`;</script>", ":1:94: syntax error: switch branches end in different contexts"},
+	{"<script>var s = ` {% L: for i := 0; i < 2; i++ %}`{% for j := 0; j < 2; j++ %}`{% break L %}`{% end %}`{% end %}{{ v }}`;</script>", ":1:97: syntax error: for branches end in different contexts"},
+	{"<script>{% L /* c */ : for _, v := range es %}`\n{% end %}{{ v }}</script>", ":2:4: syntax error: for branches end in different contexts"},
+	{"<script>{% L: for _, x := range xs %}'{% for _, y := range ys %}{% break /* c */ L %}{% end %}'\n{% end %}</script>", ":2:4: syntax error: for branches end in different contexts"},
+	{"<script>{% for _, s := range ss %}{% for _, b := range es %}{% else %}{% continue %}{% end %}{% end %}</script>", ""},
+	{"<script>var a = [{% for _, s := range ss %}'{{ v }}{% for _, b := range es %}{% else %}{% continue %}{% end %}',{% end %}0];</script>", ":1:116: syntax error: for branches end in different contexts"},
+	{"<script>var a = [{% for _, s := range ss %}'{{ v }}{% for _, b := range es %}{% else %}{% break %}{% end %}',{% end %}0];</script>", ":1:113: syntax error: for branches end in different contexts"},
+	{"<script>{% if a %}'{% end %} {{ v }}</script>", ":1:23: syntax error: if branches end in different contexts"},
+	{"<script>{% if a %}'b{% else %}\"c{% end %}</script>", ":1:36: syntax error: if branches end in different contexts"},
+	{"<script>{% if a %}{% else if b %}'{% else %}{% end %}</script>", ":1:38: syntax error: if branches end in different contexts"},
+	{"<script>{% for x in xs %}'{% end %}</script>", ":1:30: syntax error: for branches end in different contexts"},
+	{"<script>{% for x in xs %}'{% else %}{% end %}</script>", ":1:40: syntax error: for branches end in different contexts"},
+	{"<script>{% for x in xs %}'{% if x %}{% break %}{% end %}'{% end %}</script>", ":1:61: syntax error: for branches end in different contexts"},
+	{"<script>{% switch a %}{% case 1 %}'{% case 2 %}{% end %}</script>", ":1:51: syntax error: switch branches end in different contexts"},
+	{"<script>{% switch a %}{% case 1 %}'{% fallthrough %}{% case 2 %}'{% end %}</script>", ":1:39: syntax error: switch branches end in different contexts"},
+	{"<script>{% if a %}<!--{% end %}</script>", ":1:26: syntax error: if branches end in different contexts"},
+	{"<script>var b = {% if c %}1{% else %}({% end %}/d/;</script>", ":1:48: syntax error: '/' could start a division or a regular expression"},
+	{"<script>var a = {%% show v %%};</script>", ""},
+	{"<script>var a = {%% show v %%} / 2;</script>", ":1:32: syntax error: '/' could start a division or a regular expression"},
+	{"<script>{% if c %}b{% end %}--> d</script>", ":1:29: syntax error: '-->' could start a comment or be an operator"},
+	{"<script>var a = 1;{% for x in xs %}/'/.test(x) + '{{ v }}'; a{% end %}</script>", ":1:36: syntax error: '/' could start a division or a regular expression"},
+	{"<script>{% for x in xs %}--> b\n{% end %}</script>", ":1:26: syntax error: '-->' could start a comment or be an operator"},
+	{"<script>{% switch a %}{% case 1 %}b{% fallthrough %}{% case 2 %}/c/{% end %}</script>", ":1:65: syntax error: '/' could start a division or a regular expression"},
+}
+
+func TestLexerBlockContexts(t *testing.T) {
+	for _, test := range blockContextTests {
+		lex := scanTemplate([]byte(test.src), ast.FormatHTML, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+// rawTests contain sources with raw statements. The content of a raw
+// statement is rendered as is, so it is scanned as text.
+var rawTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<script>{% raw %}var a = \"{{ b }}\";{% end raw %}var c = {{ d }};</script>", ""},
+	{ast.FormatHTML, "{% raw %}<a href=\"{{ b }}\">c</a>{% end raw %}<a href=\"{{ d }}\">e</a>", ""},
+	{ast.FormatHTML, "{% raw %}<script>{% end raw %}var a = {{ b }};</script>", ""},
+	{ast.FormatHTML, "{% raw code %}{# a #} {% end raw %} #}{% end raw code %}{{ b }}", ""},
+	{ast.FormatHTML, "{% raw %}<![CDATA[{% end raw %}{{ a }}]]>", ""},
+	{ast.FormatMarkdown, "{% raw %}\n    {{ a }}\n{% end raw %}{{ b }}", ""},
+	{ast.FormatMarkdown, "{% raw %}\n    {{ a }}{% end raw %}{{ b }}", ""},
+	{ast.FormatMarkdown, "{% raw %}<script>a</script>{% end raw %}{{ b }}", ""},
+	{ast.FormatMarkdown, "<script>{% raw %}var a = 1;{% end raw %}</script>{{ b }}", ""},
+	{ast.FormatMarkdown, "{% raw %}https://a{% end raw %}{{ b }}", ""},
+	{ast.FormatJS, "{% raw %}var a = `${ {% end raw %}{{ b }} }`;", ""},
+	{ast.FormatHTML, "<script>{% raw %}var a = \"{% end raw %}\"; var b = {{ c }}; // \"</script>", ":1:27: syntax error: raw content cannot end in JavaScript string"},
+	{ast.FormatHTML, "{% raw %}<a href=\"{% end raw %}{{ b }}\">c</a>", ":1:19: syntax error: raw content cannot end in quoted attribute"},
+	{ast.FormatHTML, "{% raw %}<div {% end raw %}>", ":1:15: syntax error: raw content cannot end in tag"},
+	{ast.FormatHTML, "<script>{% raw %}var a = /{% end raw %}/;</script>", ":1:27: syntax error: raw content cannot end in JavaScript regular expression"},
+	{ast.FormatHTML, "<script>{% raw %}var a = `{% end raw %}`;</script>", ":1:27: syntax error: raw content cannot end in JavaScript string"},
+	{ast.FormatHTML, "<script>{% raw %}var a = `${% end raw %}{b}`;</script>", ":1:27: syntax error: unexpected show, statement or comment after $ in JavaScript template literal (write \\$ for a literal $)"},
+	{ast.FormatHTML, "<script>{% raw %}var a = '\\{% end raw %}';</script>", ":1:27: syntax error: unfinished escape sequence in JavaScript string"},
+	{ast.FormatHTML, "<script>{% raw %}</scr{% end raw %}ipt>", ":1:18: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>{% raw %}<{% end raw %}/script>", ":1:18: syntax error: '<' followed by a statement or comment could start a script end tag"},
+	{ast.FormatCSS, "{% raw %}a { content: \"{% end raw %}\" }", ":1:24: syntax error: raw content cannot end in CSS string"},
+	{ast.FormatJS, "{% raw %}var a = '{% end raw %}';", ":1:19: syntax error: raw content cannot end in JavaScript string"},
+	{ast.FormatHTML, "<script>{% raw %}'{% end raw %}", ":1:19: syntax error: raw content cannot end in JavaScript string"},
+	{ast.FormatMarkdown, "Example: `{% raw %}<script>{% end raw %}` and {{ b }}", ":1:28: syntax error: raw content cannot end in JavaScript"},
+	{ast.FormatMarkdown, "{% raw %}\n```html\n<script>\n{% end raw %}```\n{{ b }}", ":4:1: syntax error: raw content cannot end in JavaScript"},
+	{ast.FormatMarkdown, "{% raw %}<style>{% end raw %}", ":1:17: syntax error: raw content cannot end in CSS"},
+	{ast.FormatMarkdown, "{% raw %}a\\{% end raw %}{{ b }}", ":1:11: syntax error: unfinished escape sequence in Markdown"},
+}
+
+func TestLexerRaw(t *testing.T) {
+	for _, test := range rawTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+// regExpClassTests contain sources with a '^' in a class of a regular
+// expression. If it follows only shows, statements or comments after the
+// '[', and they render nothing, it would negate the class.
+var regExpClassTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<script>/[{{ v }}^]/</script>", ":1:18: syntax error: '^' could negate the class (write \\^ for a literal ^)"},
+	{ast.FormatHTML, "<script>/[{# c #}^]/</script>", ":1:18: syntax error: '^' could negate the class (write \\^ for a literal ^)"},
+	{ast.FormatHTML, "<script>/[{% if a %}x{% end %}^]/</script>", ":1:31: syntax error: '^' could negate the class (write \\^ for a literal ^)"},
+	{ast.FormatHTML, "<script>/[a][{{ v }}^]/v</script>", ":1:21: syntax error: '^' could negate the class (write \\^ for a literal ^)"},
+	{ast.FormatJS, "/[{{ v }}^]/", ":1:10: syntax error: '^' could negate the class (write \\^ for a literal ^)"},
+	{ast.FormatHTML, "<script>/[{% if a %}x{% else %}y{% end %}^]/</script>", ""},
+	{ast.FormatHTML, "<script>/[^{{ v }}]/</script>", ""},
+	{ast.FormatHTML, "<script>/[{{ v }}\\^]/</script>", ""},
+	{ast.FormatHTML, "<script>/[a{{ v }}^]/</script>", ""},
+	{ast.FormatHTML, "<script>/[{{ v }}]^/</script>", ""},
+	{ast.FormatHTML, "<script>/[{{ v }}][^a]/</script>", ""},
+	{ast.FormatHTML, "<script>/[{{ v }}a]/.test(b); /^c/.test(d);</script>", ""},
+}
+
+func TestLexerRegExpClass(t *testing.T) {
+	for _, test := range regExpClassTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+// closingBraceTests contain sources with a '/' after a '}' that can end a
+// block, after which '/' starts a regular expression, or an expression, after
+// which '/' is a division.
+var closingBraceTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<script>var x = {}/\"/; var y = {{ v }};//\"</script>", ":1:19: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatJS, "var x = {}/\"/; var y = {{ v }};//\"", ":1:11: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var f = function() {}\n/\"/; var s = {{ v }}; // \"\n</script>", ":2:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var o = {a: 1}\n/\"/.test(b);</script>", ":2:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var C = class {}\n/'/;</script>", ":2:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>if (a) { b() }\n/c/.test(d);</script>", ":2:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{} /* c */ /d/</script>", ":1:20: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{}\n// c\n/d/</script>", ":3:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{} /b/</script>", ":1:12: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{} /b/</script>", ":1:12: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{}<!-- c\n/b/</script>", ":2:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{}{# c #}/b/</script>", ":1:18: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{}{%% x := 1 %%}/b/</script>", ":1:25: syntax error: '/' could start a division or a regular expression"},
+	// The '{' after "${" opens an object literal, so the '/' is a division,
+	// but in a substitution a '}' can also end a block, as in the next
+	// source, and the '/' is reported by prudence.
+	{ast.FormatHTML, "<script>`${ {b: 1} / 2 }`</script>", ":1:20: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>`${ (() => { if (a) {} /b/.test(c) })() }`</script>", ":1:32: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>`${ `${ {} / 2 }` }`</script>", ":1:20: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{% if a %}{}{% else %}b{% end %}/c/</script>", ":1:41: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{}{% if a %}{% end %}/b/</script>", ":1:30: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{% for x in xs %}{}{% end %}/b/</script>", ":1:37: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatMarkdown, "<script>{}/b/</script>", ":1:11: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>if (a) { b() } // c\n</script>", ""},
+	{ast.FormatHTML, "<script>if (a) { b() } /* c */ d / 2;</script>", ""},
+	{ast.FormatHTML, "<script>if (a) { b() }\nc = /d/;</script>", ""},
+	{ast.FormatHTML, "<script>if (a) { b() } (/c/).test(d);</script>", ""},
+	{ast.FormatHTML, "<script>var o = ({a: 1}) / 2;</script>", ""},
+	{ast.FormatHTML, "<script>var a = {}{{ v }} / 2;</script>", ""},
+	{ast.FormatHTML, "<script>var a = {}{% show v %} / 2;</script>", ""},
+	{ast.FormatHTML, "<script>`${a}` / 2;</script>", ""},
+	{ast.FormatHTML, "<script>`${ {b: 1} }` / 2;</script>", ""},
+	{ast.FormatHTML, "<script>`${ `${ {} }` / 2 }`</script>", ""},
+}
+
+// parenTests contain sources with a '/' after a ')', which is a division,
+// unless the ')' closes the condition of an if, while, for or with
+// statement, and after the keywords await, yield and of, which can also be
+// identifiers.
+var parenTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<script>if (a) /\"/.test(b); var s = {{ v }}; // \"</script>", ""},
+	{ast.FormatHTML, "<script>var a = f({% if b %}g({% end %}c{% if b %}){% end %}) / 2;</script>", ""},
+	{ast.FormatHTML, "<script>if ({% if b %}c{% else %}d{% end %}) /e/.test(f);</script>", ""},
+	{ast.FormatHTML, "<script>var a = b.await / c.yield / d.of / 2;</script>", ""},
+	{ast.FormatHTML, "<script>async function f() { await /a/.test(b); }</script>", ":1:36: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>function* f() { yield /a/; }</script>", ":1:31: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var await = 1; var a = await / 2;</script>", ":1:38: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>for (const m of /a/g.exec(b)) {}</script>", ":1:25: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>for await (const a of b) /\"/.test(a); var s = {{ v }}; // \"</script>", ""},
+	{ast.FormatHTML, "<script>async function f() { return await (a) / 2 + '{{ v }}'; }</script>", ""},
+	{ast.FormatJS, "await\n/a/", ":2:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{% if b %}if {% else %}f{% end %}(a) /c/.test(d);</script>", ":1:46: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{% if b %}if ({% else %}f({% end %}a) /c/.test(d);</script>", ":1:47: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>if ({% if b %}f({% end %}a) /c/.test(d);</script>", ":1:37: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var a = [{% for p in ps %}({{ p }} + 1) / 2, {% end %}];</script>", ""},
+	{ast.FormatHTML, "<script>if ({% for x in xs %}a) /'/; s = '{{ v }}'; f({% end %}0)) {} //'</script>", ":1:33: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>if {% for x in xs %}(a) /'/; s = '{{ v }}'; f{% end %}(0) {} //'</script>", ":1:33: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>f({% for x in xs %}a) /'/; s = {{ v }}; //'\nif ({% end %}1);</script>", ":1:31: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{% for x in xs %}(a) /'/; s = {{ v }}; //'\nif{% end %} (1);</script>", ":2:6: syntax error: for branches end in different contexts"},
+	{ast.FormatHTML, "<script>{% for x in xs %} if (a) /'/; s = {{ v }}; //'\no.{% end %}x;</script>", ":2:6: syntax error: for branches end in different contexts"},
+	{ast.FormatHTML, "<script>{% for x in xs %}if (a) /'/; s = {{ v }}; //'\nx{% end %};</script>", ":1:33: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var s = ''{% for x in xs %} + a.b{% end %} / 2;</script>", ""},
+	{ast.FormatHTML, "<script>{% for x in xs %} if (a) /'/; s = {{ v }}; //'\nif{% if b %}{% continue %}{% end %} (1);{% end %}</script>", ":2:16: syntax error: for branches end in different contexts"},
+	{ast.FormatHTML, "<script>f(g({% for x in xs %}{% if c %}){% end %}x) /'/; s = '{{ v }}'; if ({% end %}0)));</script>", ":1:53: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>x{# c #}if (a) /'/; s = '{{ v }}'; //'</script>", ":1:24: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>x{% if b %}{% end %}if (a) /'/; s = '{{ v }}'; //'</script>", ":1:36: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>i{# c #}f (a) /'/; s = '{{ v }}'; //'</script>", ":1:23: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>{% for x in xs %}if (a) /'/; s = '{{ v }}'; x{% end %}//'</script>", ":1:33: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var a = 1{# c #}.\ntypeof /'/; s = {{ v }}; //'</script>", ":2:8: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var a = x{# c #}1.\ntypeof /'/; s = {{ v }}; //'</script>", ":2:8: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var a = obj.prop{% if b %}A{% end %} / 2;</script>", ""},
+	{ast.FormatHTML, "<script>var a = x{# c #}z / 2;</script>", ""},
+	{ast.FormatHTML, "<script>if ({% for x in xs %}f({% end %}a))) /'/; s = {{ v }}; //'</script>", ":1:46: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>if (f(g({% for x in xs %}a), {% end %}0) /'/; s = {{ v }}; //'</script>", ":1:50: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var a = [{% for x in xs %}f(x), {% end %}0];</script>", ""},
+	{ast.FormatHTML, "<script>\n{% for y in ys %}\nif (a) /'/; s = '{{ v }}'; //'\nx{% end %}</script>", ":3:8: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\n  {% for y in ys %} \t\r\nif (a) /'/; s = '{{ v }}'; //'\nx{% end %}</script>", ":3:8: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\n{% for y in ys %}\n{% _ = y %}\nif (a) /'/; s = '{{ v }}'; //'\nx{% end %}</script>", ":4:8: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\n{% for y in ys %}\n{# c #}\nif (a) /'/; s = '{{ v }}'; //'\nx{% end %}</script>", ":4:8: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\n{% if true &&\ntrue %}{% for y in ys %}\nif (a) /'/; s = '{{ v }}'; //'\nx{% end %}{% end %}</script>", ":4:8: syntax error: '/' could start a division or a regular expression"},
+	// The spaces at the beginning of the body of a for statement are
+	// considered cut also if the statement is not alone in its line.
+	{ast.FormatHTML, "<script>{% for y in ys %}\nif (a) /'/; s = '{{ v }}'; //'\nx{% end %}</script>", ":2:8: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\n{% for y in ys %}\n  if (a) /'/; s = '{{ v }}'; //'\nx{% end %}</script>", ""},
+	{ast.FormatHTML, "<script>b = this.#{# c #}if (c) /'/;</script>", ":1:37: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "<script>var a = 1{# c #}. /'/; s = {{ v }}; //'</script>", ":1:27: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>var y = 1;\n{% for x in xs %}\n--> 0; y{% end %}</script>", ":3:1: syntax error: '-->' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script>var y = 1;{% for x in xs %}\n  --> 0\n{% end %}</script>", ":2:3: syntax error: '-->' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script>{% for x in xs %}a){% end %} /b/</script>", ":1:38: syntax error: '/' could start a division or a regular expression"},
+	// A number that ends with a decimal point before a statement or comment
+	// can continue after it, as in "1.1.else", where else is a property name.
+	{ast.FormatHTML, "<script>x = 1.{# c #}1.else / \"/\"; s = {{ v }}; //\"</script>", ":1:29: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>x = 1.{% if c %}1.{% end %}else / \"/\"; s = {{ v }}; //\"</script>", ":1:41: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>x = 1.{% if c %}{% end %}1.else / \"/\"; s = {{ v }}; //\"</script>", ":1:41: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>x = 1.{# c #}5 / 2;</script>", ""},
+	{ast.FormatHTML, "<script>f(...{# c #}typeof /a/);</script>", ""},
+	// The parser cuts the newline after an else, default or end statement
+	// alone in its line, so the text after it can continue the text before
+	// the block, at the end of another branch, or before a break or continue
+	// statement, as in "aelse".
+	{ast.FormatHTML, "<script>\n{% for x in xs %}\nx = a{% if c %}{% break %}{% end %}\n{% end %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n</script>", ":6:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\n{% for x in xs %}\nx = a{% if c %}{% continue %}{% end %}\n{% end %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n</script>", ":6:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% end %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n</script>", ":6:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% else %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n{% end %}</script>", ":6:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% for x in xs %}\nb\n{% else %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n{% end %}</script>", ":6:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% switch n %}\n{% case 1 %}\nb\n{% default %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n{% end %}</script>", ":7:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatJS, "x = a{% macro M %}\nb\n{% end %}\nelse\n/\"/.test(b); s = {{ v }}; //\"", ":5:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% end %}\n--> 0</script>", ":5:1: syntax error: '-->' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script>\n{% if c %}\nx = 1;\n{% end %}\nreturn /a/.test(b);</script>", ""},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% end %}\n  else /\"/; s = '{{ v }}'; //\"</script>", ""},
+	{ast.FormatHTML, "<script>\nvar a = 1;\n{% if c %}\nb()\n{% end %}\n--> 0</script>", ""},
+}
+
+func TestLexerParens(t *testing.T) {
+	for _, test := range parenTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+// continuedTextTests contain sources in which the text after a show,
+// statement or comment can continue the text before it, as the digits of a
+// number or after a newline that the parser cuts, and the contexts of their
+// shows, or the expected error.
+var continuedTextTests = []struct {
+	format ast.Format
+	src    string
+	ctxs   []ast.Context
+	err    string
+}{
+	// The digits after a '.' that starts a number, as in ".1", are not
+	// followed by a decimal point.
+	{ast.FormatHTML, "<script>x = .{# c #}1.else / \"/\"; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>x = .{% if c %}{% end %}1.else / \"/\"; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>x = [.{# c #}5.in / \"/\"]; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>x = y?.{# c #}5.in / \"/\" : 0; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>x = .{% if c %}\n{% end %}\n5.in / \"/\"; s = {{ v }}; //\"</script>", []ast.Context{ast.ContextJS}, ""},
+	// A line comment or regular expression continues after the newline cut
+	// after an else, default or end statement alone in its line.
+	{ast.FormatHTML, "<script>\n// x{% if c %}\n{% else %}\n\"\n{% end %}\ns = {{ v }};\n</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>\n// x{% if c %}\n{% else %}  \n'\n{% end %}\ns = {{ v }};</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>\n// x{% switch n %}\n{% default %}\n`\n`\n{% end %}\nvar t = `{{ v }}`; //`\n</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatJS, "// x{% macro M %}\n{% end %}\n`\ns = {{ v }};\n//`", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>x = /a{% if c %}/;\n{% else %}\n\"/; s = {{ v }}; //\"\n{% end %}</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>\n// x{% if c %}\n{% else %}\n`\n`\n{% end %}\nvar t = `{{ v }}`; //`\n</script>", nil, ":6:4: syntax error: if branches end in different contexts"},
+	// The parser does not cut the newline after a case statement, or after
+	// a statement that is not alone in its line.
+	{ast.FormatHTML, "<script>\nx = a{% switch n %}\n{% case 1 %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n{% end %}</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}{% end %}\n{% if d %}{% end %}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n</script>", []ast.Context{ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>\n// built for {% if c %}admin{% else %}user{% end %}\nvar t = `{{ v }}`;\n</script>", []ast.Context{ast.ContextJSString}, ""},
+	{ast.FormatHTML, "<script>\nvar a = 1; // {% if c %}x{% end %}\nvar t = `{{ v }}`;\n</script>", []ast.Context{ast.ContextJSString}, ""},
+	{ast.FormatHTML, "<script>// Items:{% for x in xs %}\n// - {{ x }}{% end %}\nvar t = `{{ v }}`;</script>", []ast.Context{ast.ContextJS, ast.ContextJSString}, ""},
+	// The parser places a comment in the line in which it ends, and cuts
+	// the newline after a comment alone in its line.
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% end %}{# k\nk #}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n</script>", nil, ":7:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% else %}{# k\nk #}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n{% end %}</script>", nil, ":7:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\nx = a{% if c %}\nb\n{% end %}{# k\nk #}{# j\nj #}\nelse\n/\"/.test(b); s = {{ v }}; //\"\n</script>", nil, ":8:1: syntax error: '/' could start a division or a regular expression"},
+	{ast.FormatHTML, "<script>\n// x{% if c %}\n{% else %}{# a\nb #}\n`\n{% end %}\ns = `{{ v }}`; //`\n</script>", []ast.Context{ast.ContextJSString}, ""},
+	{ast.FormatHTML, "<script>\n// x{% if c %}\n{# a\nb #}{% else %}\n`\n{% end %}\ns = `{{ v }}`; //`\n</script>", nil, ":6:4: syntax error: if branches end in different contexts"},
+	{ast.FormatHTML, "<script>x = /a{% if c %}/;\n{% else %}\n{# c #}\n\"/; s = {{ v }}; //\"\n{% end %}</script>", []ast.Context{ast.ContextJS}, ""},
+	// After a cut newline, it is not known whether the parser cuts the
+	// newline after another show or statement alone in its line.
+	{ast.FormatHTML, "<script>\n// x{% if c %}\n{% else %}\n{% if d %}\n{% end %}\n'\n{% end %}\ns = {{ v }};</script>", nil, ":4:11: syntax error: JavaScript comment could continue on the next line"},
+	{ast.FormatHTML, "<script>x = /a{% if c %}/;\n{% else %}\n{% var y = 1 %}\n\"/; s = {{ v }}; //\"\n{% end %}</script>", nil, ":3:16: syntax error: JavaScript regular expression could continue on the next line"},
+}
+
+func TestLexerContinuedText(t *testing.T) {
+	for _, test := range continuedTextTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		var ctxs []ast.Context
+		for tok := range lex.Tokens() {
+			if tok.typ == tokenLeftBraces {
+				ctxs = append(ctxs, tok.ctx)
+			}
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		} else if err == "" && !reflect.DeepEqual(ctxs, test.ctxs) {
+			t.Errorf("source: %q, expecting contexts %v, got %v", test.src, test.ctxs, ctxs)
+		}
+	}
+}
+
+// typedBodyTests contain sources with the body of a macro or using statement
+// with a type, and the contexts of their shows, or the expected error.
+//
+// In a body with html or markdown type, the scan returns to the context of
+// the type at the end of a tag and of a script or style element, also in a
+// file of another format. A js, css or json body is scanned as the content of
+// a script or style element of the content that encloses it, so the end tag
+// of the element is recognized in it as it is outside the body.
+var typedBodyTests = []struct {
+	format ast.Format
+	src    string
+	ctxs   []ast.Context
+	err    string
+}{
+	{ast.FormatMarkdown, "{% macro M html %}<p>{{ v }}</p>{% end %}{{ v }}", []ast.Context{ast.ContextHTML, ast.ContextMarkdown}, ""},
+	{ast.FormatJS, "{% macro M html %}<p>{{ v }}</p>{% end %}{{ v }}", []ast.Context{ast.ContextHTML, ast.ContextJS}, ""},
+	{ast.FormatCSS, "{% macro M html %}<p>{{ v }}</p>{% end %}{{ v }}", []ast.Context{ast.ContextHTML, ast.ContextCSS}, ""},
+	{ast.FormatText, "{% macro M html %}<p>{{ v }}</p>{% end %}{{ v }}", []ast.Context{ast.ContextHTML, ast.ContextText}, ""},
+	{ast.FormatHTML, "{% macro M markdown %}<p>{{ v }}</p>\n\n    x {{ v }}{% end %}{{ v }}", []ast.Context{ast.ContextMarkdown, ast.ContextSpacesCodeBlock, ast.ContextHTML}, ""},
+	{ast.FormatJS, "{% macro M html %}<script>a = {{ v }}</script>{{ v }}{% end %}{{ v }}", []ast.Context{ast.ContextJS, ast.ContextHTML, ast.ContextJS}, ""},
+	{ast.FormatMarkdown, "{% macro M html %}<style>a { b: {{ v }} }</style>{{ v }}{% end %}{{ v }}", []ast.Context{ast.ContextCSS, ast.ContextHTML, ast.ContextMarkdown}, ""},
+	{ast.FormatMarkdown, "{% var x = itea; using html %}\n<div>\n  <img src=\"{{ v }}\">\n</div>\n{% end %}{{ x }}", []ast.Context{ast.ContextQuotedAttr, ast.ContextMarkdown}, ""},
+	{ast.FormatMarkdown, "{% macro M html %}<script>a{% end %}", nil, ":1:31: syntax error: macro body ends in a different context"},
+	{ast.FormatMarkdown, "{% macro M html %}<p{% end %}", nil, ":1:24: syntax error: macro body ends in a different context"},
+	// A js, css or json body in HTML or Markdown content.
+	{ast.FormatHTML, "{% macro M js %}var s = \"</script><a title={{ v }}>\";{% end %}", nil, ":1:26: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "{% var x = itea; using js %}var s = \"</script><a title={{ v }}>\";{% end %}", nil, ":1:38: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "{% macro M css %}a { content: \"</style><a title={{ v }}>\" }{% end %}", nil, ":1:63: syntax error: macro body ends in a different context"},
+	{ast.FormatHTML, "{% macro M json %}{\"a\": \"</script><a title={{ v }}>\"}{% end %}", nil, ":1:57: syntax error: macro body ends in a different context"},
+	{ast.FormatMarkdown, "{% macro M js %}var s = \"</script><a title={{ v }}>\";{% end %}", nil, ":1:26: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "{% macro M js %}a = 1;</script><b title={{ v }}>x</b><script>c = {{ v }};{% end %}", []ast.Context{ast.ContextUnquotedAttr, ast.ContextJS}, ""},
+	{ast.FormatJS, "{% macro M js %}var s = \"</script>\"; a = {{ v }};{% end %}{{ v }}", []ast.Context{ast.ContextJS, ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>{% show itea; using js %}var a = 1;{% end %}</script><p title={{ v }}>{{ v }}</p><script>var z = {{ v }};</script>", []ast.Context{ast.ContextUnquotedAttr, ast.ContextHTML, ast.ContextJS}, ""},
+	{ast.FormatHTML, "<style>{% show itea; using css %}a { color: red }{% end %}</style><p title={{ v }}>{{ v }}</p>", []ast.Context{ast.ContextUnquotedAttr, ast.ContextHTML}, ""},
+	{ast.FormatHTML, "<script type=\"application/ld+json\">{% show itea; using json %}{\"a\": 1}{% end %}</script><p title={{ v }}>{{ v }}</p>", []ast.Context{ast.ContextUnquotedAttr, ast.ContextHTML}, ""},
+	{ast.FormatMarkdown, "<script>{% show itea; using js %}var a = 1;{% end %}</script><p title={{ v }}>{{ v }}</p>", []ast.Context{ast.ContextUnquotedAttr, ast.ContextMarkdown}, ""},
+	{ast.FormatHTML, "<script>{% show itea; using js %}var s = \"</script><a title={{ v }}>\";{% end %}</script>", nil, ":1:43: syntax error: unclosed JavaScript string at the end of the script"},
+	// A js, css or json body in a html or markdown body.
+	{ast.FormatJS, "{% macro M html %}<script>{% show itea; using js %}var a = {{ v }};{% end %}</script><p title={{ v }}>{{ v }}</p>{% end %}{{ v }}", []ast.Context{ast.ContextJS, ast.ContextUnquotedAttr, ast.ContextHTML, ast.ContextJS}, ""},
+	{ast.FormatJS, "{% macro M html %}{% var x = itea; using js %}var s = \"</script><a title={{ v }}>\";{% end %}<script>{{ x }}</script>{% end %}", nil, ":1:56: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatJS, "{% macro M html %}<script>{% show itea; using js %}var s = \"</script><a title={{ v }}>\";{% end %}</script>{% end %}", nil, ":1:61: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatText, "{% macro M markdown %}{% var x = itea; using css %}a { content: \"</style><a title={{ v }}>\" }{% end %}{% end %}", nil, ":1:97: syntax error: using body ends in a different context"},
+	// "<!--" is not checked in Markdown content.
+	{ast.FormatMarkdown, "{% macro M html %}<script type=\"module\">a <!--b</script>{% end %}", nil, ":1:43: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "{% macro M markdown %}<script type=\"module\">a <!--b; c = {{ v }}</script>{{ v }}{% end %}{{ v }}", []ast.Context{ast.ContextJS, ast.ContextMarkdown, ast.ContextHTML}, ""},
+}
+
+func TestLexerTypedBodies(t *testing.T) {
+	for _, test := range typedBodyTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		var ctxs []ast.Context
+		for tok := range lex.Tokens() {
+			if tok.typ == tokenLeftBraces {
+				ctxs = append(ctxs, tok.ctx)
+			}
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		} else if err == "" && !reflect.DeepEqual(ctxs, test.ctxs) {
+			t.Errorf("source: %q, expecting contexts %v, got %v", test.src, test.ctxs, ctxs)
+		}
+	}
+}
+
+// TestLexerCutAssumptions checks that the parser cuts the newline after an
+// else, default and end statement and a comment alone in its line, but not
+// after a case statement, and that it places a comment in the line in which
+// it ends, as the lexer assumes in startsAloneInLine and endLine.
+func TestLexerCutAssumptions(t *testing.T) {
+	for _, test := range []struct {
+		src string
+		cut bool
+	}{
+		{"{% if false %}\n{% else %}\nx{% end %}", true},
+		{"{% switch 1 %}\n{% default %}\nx{% end %}", true},
+		{"{% if false %}\n{% end %}\nx", true},
+		{"{# c #}\nx", true},
+		{"{% switch 1 %}\n{% case 1 %}\nx{% end %}", false},
+		{"{% if false %}\n{% else %}{% if true %}{% end %}\nx{% end %}", false},
+		{"{% if false %}\n{# a\nb #}{% else %}\nx{% end %}", false},
+		{"{% if false %}\n{% else %}{# a\nb #}\nx{% end %}", true},
+	} {
+		tree, _, err := ParseTemplateSource([]byte(test.src), ast.FormatText, false, false)
+		if err != nil {
+			t.Fatalf("source: %q, unexpected error %s", test.src, err)
+		}
+		// find returns the text node that contains "x".
+		var find func(nodes []ast.Node) *ast.Text
+		find = func(nodes []ast.Node) *ast.Text {
+			for _, node := range nodes {
+				var text *ast.Text
+				switch n := node.(type) {
+				case *ast.Text:
+					if strings.Contains(string(n.Text), "x") {
+						return n
+					}
+				case *ast.If:
+					text = find(n.Then.Nodes)
+					if b, ok := n.Else.(*ast.Block); ok && text == nil {
+						text = find(b.Nodes)
+					}
+				case *ast.Switch:
+					for _, c := range n.Cases {
+						if text == nil {
+							text = find(c.Body)
+						}
+					}
+				}
+				if text != nil {
+					return text
+				}
+			}
+			return nil
+		}
+		text := find(tree.Nodes)
+		if text == nil {
+			t.Fatalf("source: %q, text not found", test.src)
+		}
+		if cut := text.Cut.Left > 0; cut != test.cut {
+			t.Errorf("source: %q, expecting cut %t, got %t: update lexer.endLine", test.src, test.cut, cut)
+		}
+	}
+}
+
+// TestLexerStateFields checks the fields of lexState and scanState, so that
+// a new field is not forgotten in joinLexStates, which must decide how to
+// join its values at the end of the branches of a statement, and, if it is a
+// slice, in scanState.clone. If the fields change, check these functions and
+// then update the fields in this test.
+func TestLexerStateFields(t *testing.T) {
+	for _, test := range []struct {
+		typ    reflect.Type
+		fields []string
+		slices []string
+	}{
+		{reflect.TypeFor[lexState](), []string{"ctx", "tagCtx", "state", "base"}, nil},
+		{reflect.TypeFor[scanState](), []string{"quote", "jsComment", "jsDivision", "jsClass", "jsBraces",
+			"jsLineCode", "jsClassic", "typeAttr", "attrNameChar", "jsClassStart", "jsClassDynamic",
+			"jsParens", "jsNextParen", "jsParensFloor", "jsParensDeep", "jsIdentEnd", "cutSpaces",
+			"jsNextName", "jsIdentName", "jsIdentParen", "jsIdentJoined", "jsDivisionUnknown",
+			"jsLineCodeUnknown", "typeAttrUnknown"}, []string{"jsBraces", "jsParens"}},
+	} {
+		var fields, slices []string
+		for i := 0; i < test.typ.NumField(); i++ {
+			f := test.typ.Field(i)
+			fields = append(fields, f.Name)
+			if f.Type.Kind() == reflect.Slice {
+				slices = append(slices, f.Name)
+			}
+		}
+		if !reflect.DeepEqual(fields, test.fields) {
+			t.Errorf("%s has fields %v, expected %v: check joinLexStates and scanState.clone, and update this test",
+				test.typ, fields, test.fields)
+		}
+		if !reflect.DeepEqual(slices, test.slices) {
+			t.Errorf("%s has slice fields %v, expected %v: check scanState.clone, and update this test",
+				test.typ, slices, test.slices)
+		}
+	}
+	s := scanState{jsBraces: []int{1}, jsParens: []jsParen{jsParenOther}}
+	c := s.clone()
+	c.jsBraces[0] = 2
+	c.jsParens[0] = jsParenControl
+	if s.jsBraces[0] != 1 || s.jsParens[0] != jsParenOther {
+		t.Errorf("scanState.clone does not copy the slices")
+	}
+}
+
+// TestRegExpPrecederKeywords checks that isRegExpPrecederKeyword reports
+// the keywords in regExpPrecederKeywords, and only them.
+func TestRegExpPrecederKeywords(t *testing.T) {
+	for _, k := range regExpPrecederKeywords {
+		if !isRegExpPrecederKeyword([]byte(k)) {
+			t.Errorf("isRegExpPrecederKeyword(%q) returns false, expected true", k)
+		}
+	}
+	for _, k := range []string{"", "if", "while", "for", "with", "await", "yield", "of", "x", "typeofx", "instanceo", "Return"} {
+		if isRegExpPrecederKeyword([]byte(k)) {
+			t.Errorf("isRegExpPrecederKeyword(%q) returns true, expected false", k)
+		}
+	}
+}
+
+func TestLexerClosingBrace(t *testing.T) {
+	for _, test := range closingBraceTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+var unclosedJSTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<script>// a</script>", ""},
+	{ast.FormatHTML, "<script>a // b</script>{{a}}", ""},
+	{ast.FormatHTML, "<script>\"</script>\"{{a}}</script>", ":1:10: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "<script>'</script>'{{a}}</script>", ":1:10: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "<script>`a</script>{{a}}", ":1:11: syntax error: unclosed JavaScript template literal at the end of the script"},
+	{ast.FormatHTML, "<script>`${ a </script>", ":1:15: syntax error: unclosed JavaScript template literal at the end of the script"},
+	{ast.FormatHTML, "<script>if (a) /'/.test(b); var c = {{ v }};</script>", ""},
+	{ast.FormatHTML, "<script>/a</script>", ":1:11: syntax error: unclosed JavaScript regular expression at the end of the script"},
+	{ast.FormatHTML, "<script>/* a</script>", ":1:13: syntax error: unclosed JavaScript comment at the end of the script"},
+	{ast.FormatHTML, "<script>var n = 1. / 2</script>", ""},
+	{ast.FormatHTML, "<script>'a", ":1:11: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "<script>a", ""},
+	{ast.FormatMarkdown, "Put your code in a `<script>` element.", ""},
+	{ast.FormatMarkdown, "```html\n<script src=\"app.js\">\n```\n", ""},
+	{ast.FormatJS, "a // b", ""},
+	{ast.FormatJS, "'a", ":1:3: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatJS, "`a", ":1:3: syntax error: unclosed JavaScript template literal at the end of the script"},
+	{ast.FormatJS, "/* a", ":1:5: syntax error: unclosed JavaScript comment at the end of the script"},
+}
+
+func TestLexerUnclosedJS(t *testing.T) {
+	for _, test := range unclosedJSTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+var htmlLikeCommentTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<script><!-- it's\n</script>", ""},
+	{ast.FormatHTML, "<script type=\"text/javascript\"><!--\n</script>", ""},
+	{ast.FormatHTML, "<script {% if a %}type=\"text/javascript\"{% end %}><!--\n</script>", ""},
+	{ast.FormatHTML, "<script type=\"module\"></script><script><!--\n</script>", ""},
+	{ast.FormatHTML, "<script type=\"module\">a < !--b; '<!--'</script>", ""},
+	{ast.FormatMarkdown, "Add `<script type=\"module\" src=\"app.js\">` to the page.\n\n```html\n<!-- not here -->\n```\n", ""},
+	{ast.FormatHTML, "<script type type=\"module\"><!--\n</script>", ""},
+	{ast.FormatHTML, "<script type=\"text/javascript\" type=\"module\"><!--\n</script>", ""},
+	{ast.FormatHTML, "<script type=\"module\" type=\"text/javascript\"><!--\n</script>", ":1:46: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script type=\"module\"><!--\n</script>", ":1:23: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script type=\" Module \">a <!--b\n</script>", ":1:27: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script type=\"{{ t }}\"><!--\n</script>", ":1:24: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script {% if a %}type=\"module\"{% end %}><!--\n</script>", ":1:42: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script {% if a %}type=\"text/javascript\"{% end %} type=\"module\"><!--\n</script>", ":1:65: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script {% for x in xs %}type=\"text/javascript\" {% end %}type=\"module\"><!--\n</script>", ":1:72: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script {% if a %}type {% end %}type=\"module\"><!--\n</script>", ":1:47: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "<script {{ x }} type=\"module\"><!--\n</script>", ":1:31: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "{% macro M js %}<!--\n{% end %}", ":1:17: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatJS, "<!-- it's\n{{a}}", ":1:1: syntax error: '<!--' could start a comment or be an operator"},
+}
+
+func TestLexerHTMLLikeComments(t *testing.T) {
+	for _, test := range htmlLikeCommentTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+var tagAttributeTests = []struct {
+	src string
+	err string
+}{
+	{"<div {{ k }}=\"v\">", ""},
+	{"<div {% if a %}x{% end %}y>", ""},
+	{"<script {{ attrs }}></script>", ""},
+	{"<script nonce=\"{{ n }}\"></script>", ""},
+	{"<script {% if a %}async{% else %}defer{% end %} type=\"text/plain\"></script>", ""},
+	{"<script {% if a %}x{% end %}type=\"text/plain\"></script>", ":1:29: syntax error: attribute name could be joined to the previous one"},
+	{"<script {{ x }}type=\"text/plain\"></script>", ":1:16: syntax error: attribute name could be joined to the previous one"},
+	{"<script {{ k }}=\"v\"></script>", ":1:16: syntax error: '=' could start an attribute name or value"},
+	{"<script type {% if a %}=\"text/plain\"{% end %}></script>", ":1:24: syntax error: '=' could start an attribute name or value"},
+	{"<script a=\"1\" =\"2\"></script>", ":1:15: syntax error: '=' could start an attribute name or value"},
+	{"<style {{ k }}=\"v\"></style>", ":1:15: syntax error: '=' could start an attribute name or value"},
+}
+
+func TestLexerTagAttributes(t *testing.T) {
+	for _, test := range tagAttributeTests {
+		lex := scanTemplate([]byte(test.src), ast.FormatHTML, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+var tagNameTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<h{{ n }}>{{ v }}</h{{ n }}>", ""},
+	{ast.FormatHTML, "<div{% if a %} id=\"a\"{% end %}>", ""},
+	{ast.FormatHTML, "</{{ tag }}>", ""},
+	{ast.FormatHTML, "<{{ tag }}>", ":1:2: syntax error: tag name could be script or style"},
+	{ast.FormatHTML, "<{# c #}script>", ":1:2: syntax error: tag name could be script or style"},
+	{ast.FormatHTML, "<s{{ x }}>", ":1:3: syntax error: tag name could be script or style"},
+	{ast.FormatHTML, "<script{{ x }}>", ":1:8: syntax error: tag name could continue after script (add a space after it)"},
+	{ast.FormatHTML, "<script{% if a %} async{% end %}>", ":1:8: syntax error: tag name could continue after script (add a space after it)"},
+	{ast.FormatHTML, "<style{{ x }}>", ":1:7: syntax error: tag name could continue after style (add a space after it)"},
+	{ast.FormatHTML, "<STY{% if a %}LE{% end %}>", ":1:5: syntax error: tag name could be script or style"},
+	{ast.FormatMarkdown, "<{{ tag }}>", ":1:2: syntax error: tag name could be script or style"},
+
+	// End tags in the content of script and style elements.
+	{ast.FormatHTML, "<script></{{ t }}></script>", ":1:9: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>var s = \"</{{ t }}>\";</script>", ":1:18: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>var s = `</SCRIPT{{ x }}>`;</script>", ":1:18: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>// </scr{# c #}ipt>\n</script>", ":1:12: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>/</{{ t }}/;</script>", ":1:10: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script type=\"application/ld+json\">{\"a\": \"</{{ t }}>\"}</script>", ":1:43: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<style>a::before { content: \"</{{ t }}>\"; }</style>", ":1:30: syntax error: end tag could close a style element (write <\\/ for a literal </)"},
+	{ast.FormatMarkdown, "<script></{{ t }}></script>", ":1:9: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>var s = \"<\\/{{ t }}>\";</script>", ""},
+	{ast.FormatHTML, "<script>var s = \"</scripts{{ x }}>\";</script>", ""},
+	{ast.FormatHTML, "<script>var s = \"</style{{ x }}>\";</script>", ""},
+	{ast.FormatHTML, "<script type=\"text/plain\"></{{ t }}></script>", ""},
+	{ast.FormatHTML, "<p></{{ tag }}></p>", ""},
+	{ast.FormatHTML, "<style></{{ t }}></style>", ":1:8: syntax error: end tag could close a style element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<style>a::before { content: \"</STYLE{{ x }}>\"; }</style>", ":1:30: syntax error: end tag could close a style element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script type=\"application/ld+json\"></{{ t }}></script>", ":1:36: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>/* </{{ t }} */</script>", ":1:12: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>var s = \"</{% if a %}script{% end %}>\";</script>", ":1:18: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script type=\"{{ t }}\">var s = \"</{{ x }}>\";</script>", ":1:33: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "{% macro M js %}var s = \"</{{ t }}>\";{% end %}", ":1:26: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "{% show itea; using js %}var s = \"</{{ t }}>\";{% end %}", ":1:35: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatHTML, "<script>var s = \"</scx{{ x }}>\";</script>", ""},
+
+	// JavaScript, JSON and CSS files, which can be rendered in script and
+	// style elements.
+	{ast.FormatJS, "var s = \"</{{ t }}>\";", ":1:10: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatJSON, "{\"a\": \"</{{ t }}>\"}", ":1:8: syntax error: end tag could close a script element (write <\\/ for a literal </)"},
+	{ast.FormatCSS, "a::before { content: \"</{{ t }}>\"; }", ":1:23: syntax error: end tag could close a style element (write <\\/ for a literal </)"},
+	{ast.FormatText, "</{{ t }}>", ""},
+
+	// A '<' followed by shows, statements or comments.
+	{ast.FormatHTML, "<script>var h = \"<{# c #}/script>\";</script>", ":1:18: syntax error: '<' followed by a statement or comment could start a script end tag"},
+	{ast.FormatHTML, "<script>var h = \"<{% if a %}{% end %}/script>\";</script>", ":1:18: syntax error: '<' followed by a statement or comment could start a script end tag"},
+	{ast.FormatHTML, "<script>var h = \"<{{ e }}/script>\";</script>", ":1:26: syntax error: end tag could close a script element"},
+	{ast.FormatHTML, "<script>var h = \"<{{ e }}/SCRIPT>\";</script>", ":1:26: syntax error: end tag could close a script element"},
+	{ast.FormatHTML, "<script>var h = \"<{{ e }}/SCRIPT\";</script>", ""},
+	{ast.FormatHTML, "<script>var h = \"<{{ a }}{{ b }}/scr{{ c }}ipt>\";</script>", ":1:33: syntax error: end tag could close a script element"},
+	{ast.FormatHTML, "<script>var h = \"<{{ a }}{% if b %}{% end %}/b>\";</script>", ":1:26: syntax error: '<' followed by a statement or comment could start a script end tag"},
+	{ast.FormatCSS, "a::before { content: \"<{{ e }}/style>\"; }", ":1:31: syntax error: end tag could close a style element"},
+	{ast.FormatJS, "var a = 1 <{# c #} 2;", ":1:11: syntax error: '<' followed by a statement or comment could start a script end tag"},
+	{ast.FormatCSS, "a::before { content: \"<{% if b %}b{% end %}>\"; }", ":1:23: syntax error: '<' followed by a statement or comment could start a style end tag"},
+	{ast.FormatHTML, "<script>var h = \"<{{ tag }}>\";</script>", ""},
+	{ast.FormatHTML, "<script>var h = \"<{{ e }}/b>\";</script>", ""},
+	{ast.FormatHTML, "<script>var h = \"<{{ e }} /script>\";</script>", ""},
+	{ast.FormatHTML, "<script>if (a <{{ n }}) {}</script>", ""},
+	{ast.FormatHTML, "<p><{{ e }}/script></p>", ":1:5: syntax error: tag name could be script or style"},
+}
+
+func TestLexerTagNames(t *testing.T) {
+	for _, test := range tagNameTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
 		}
 	}
 }
@@ -785,11 +1793,14 @@ func TestLexerReadAttribute(t *testing.T) {
 			column: 1,
 			ctx:    ast.ContextHTML,
 		}
-		attr, p := l.scanAttribute(0)
+		attr, value, p := l.scanAttribute(0)
 		if attr != test.attr {
 			t.Errorf("source: %q, unexpected attribute %q, expecting %q\n", test.src, attr, test.attr)
 		}
-		if attr != "" && test.quote != 0 && l.src[p] != test.quote {
+		if value != test.value {
+			t.Errorf("source: %q, unexpected value %t, expecting %t\n", test.src, value, test.value)
+		}
+		if value && test.quote != 0 && l.src[p] != test.quote {
 			t.Errorf("source: %q, unexpected quote %q, expecting %q\n", test.src, string(l.src[p]), string(test.quote))
 		}
 		if p != test.p {

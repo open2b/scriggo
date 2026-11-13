@@ -97,6 +97,10 @@ func (r *renderer) Show(env *env, v any, context Context) error {
 		err = showInMarkdownCodeBlock(env, r.out, v, false)
 	case ast.ContextSpacesCodeBlock:
 		err = showInMarkdownCodeBlock(env, r.out, v, true)
+	case ast.ContextJSRegExp:
+		err = showInJSRegExp(env, r.out, v, false)
+	case ast.ContextJSRegExpClass:
+		err = showInJSRegExp(env, r.out, v, true)
 	default:
 		panic("scriggo: unknown context")
 	}
@@ -412,7 +416,7 @@ func showInCSS(env *env, out io.Writer, value any) error {
 	case native.EnvStringer:
 		value = v.String(env)
 	case []byte:
-		return escapeBytes(w, v, false)
+		return cssBytesEscape(w, v)
 	case error:
 		value = v.Error()
 	}
@@ -451,7 +455,7 @@ func showInCSSString(env *env, out io.Writer, value any) error {
 		v := reflect.ValueOf(value)
 		if v.Type() == byteSliceType {
 			w := newStringWriter(out)
-			return escapeBytes(w, v.Interface().([]byte), false)
+			return cssBytesEscape(w, v.Interface().([]byte))
 		}
 		var err error
 		s, err = toString(env, value)
@@ -863,22 +867,40 @@ func showInJSON(env *env, out io.Writer, value any) error {
 
 // showInJSString shows value in JSString context.
 func showInJSString(env *env, out io.Writer, value any) error {
-	var s string
-	switch v := value.(type) {
-	case fmt.Stringer:
-		s = v.String()
-	case native.EnvStringer:
-		s = v.String(env)
-	case error:
-		s = v.Error()
-	default:
-		var err error
-		s, err = toString(env, value)
-		if err != nil {
-			return err
-		}
+	s, err := jsStringValue(env, value)
+	if err != nil {
+		return err
 	}
 	return jsStringEscape(newStringWriter(out), s)
+}
+
+// showInJSRegExp shows value in JSRegExp context or, if inClass is true, in
+// JSRegExpClass context.
+func showInJSRegExp(env *env, out io.Writer, value any, inClass bool) error {
+	s, err := jsStringValue(env, value)
+	if err != nil {
+		return err
+	}
+	if s == "" && inClass {
+		// An empty class is valid, while the empty group written by
+		// jsRegExpEscape would add its characters to the class.
+		return nil
+	}
+	return jsRegExpEscape(newStringWriter(out), s)
+}
+
+// jsStringValue returns the string representation of value, as shown in a
+// JavaScript string.
+func jsStringValue(env *env, value any) (string, error) {
+	switch v := value.(type) {
+	case fmt.Stringer:
+		return v.String(), nil
+	case native.EnvStringer:
+		return v.String(env), nil
+	case error:
+		return v.Error(), nil
+	}
+	return toString(env, value)
 }
 
 // showInJSONString shows value in JSONString context.
