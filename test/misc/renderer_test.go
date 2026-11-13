@@ -178,11 +178,11 @@ var scriptContextTests = []struct {
 	{`"<a>"`, `"\u003ca\u003e"`, nil},
 	{`"<div></div>"`, `"\u003cdiv\u003e\u003c/div\u003e"`, nil},
 	{`"\\"`, `"\\"`, nil},
-	{`"\""`, `"\""`, nil},
+	{`"\""`, `"\u0022"`, nil},
 	{`"\n"`, `"\n"`, nil},
 	{`"\r"`, `"\r"`, nil},
 	{`"\t"`, `"\t"`, nil},
-	{`"\\\"\n\r\t\u2028\u2029\u0000\u0010"`, `"\\\"\n\r\t\u2028\u2029\u0000\u0010"`, nil},
+	{`"\\\"\n\r\t\u2028\u2029\u0000\u0010"`, `"\\\u0022\n\r\t\u2028\u2029\u0000\u0010"`, nil},
 	{`0`, "0", nil},
 	{`25`, "25", nil},
 	{`-25`, "-25", nil},
@@ -196,7 +196,7 @@ var scriptContextTests = []struct {
 	{`true`, "true", nil},
 	{`false`, "false", nil},
 	{`a`, `"a"`, Vars{"a": "a"}},
-	{`a`, `"\u003c\u003e\""`, Vars{"a": "<>\""}},
+	{`a`, `"\u003c\u003e\u0022"`, Vars{"a": "<>\""}},
 	{`a`, "null", Vars{"a": []int(nil)}},
 	{`a`, "[0,1,2,3,4,5]", Vars{"a": []int{0, 1, 2, 3, 4, 5}}},
 	{`a`, "[-2,-1,0,1,2]", Vars{"a": []int{-2, -1, 0, 1, 2}}},
@@ -221,7 +221,7 @@ var scriptContextTests = []struct {
 	}{A: 5, B: &struct{ C string }{C: "C"}}}},
 	{`s["a"]`, "null", Vars{"s": map[any]any{}}},
 	{`a`, `{"A":5,"B":2,"C":7,"D":3}`, Vars{"a": map[string]any{"A": 5, "B": 2, "C": 7, "D": 3}}},
-	{`a`, `{"":"c","\"\u0027":5}`, Vars{"a": map[string]any{"\"'": 5, "": "c"}}},
+	{`a`, `{"":"c","\u0022\u0027":5}`, Vars{"a": map[string]any{"\"'": 5, "": "c"}}},
 	{`a`, `{"a\u0027b":3}`, Vars{"a": map[string]any{"a'b": 3}}},
 	{`"$"`, `"\u0024"`, nil},
 	{`"{}"`, `"\u007b}"`, nil},
@@ -376,7 +376,7 @@ func TestJSTemplateLiteralEscapes(t *testing.T) {
 	const v = "`${a}`"
 	const e = `\u0060\u0024\u007ba}\u0060` // escaped v
 	// er is the escaped form of the JavaScript string literal with value v.
-	er := `\"` + strings.ReplaceAll(e, `\`, `\\`) + `\"`
+	er := `\u0022` + strings.ReplaceAll(e, `\`, `\\`) + `\u0022`
 	tests := []struct {
 		name     string
 		files    fstest.Files
@@ -528,9 +528,9 @@ func TestRenderInStringAndAttributeContexts(t *testing.T) {
 		{"unquoted attribute", "index.html", `<a title={X}>x</a>`, "p.html", `"><i>`, `<a title=&#34;&gt;&lt;i&gt;>x</a>`},
 		{"URL attribute", "index.html", `<a href="{X}">x</a>`, "p.html", `"><i>`, `<a href="%22%3e%3ci%3e">x</a>`},
 		{"tag", "index.html", `<a {X}>x</a>`, "p.html", `"><i>`, "<a \uFFFD\uFFFD<i\uFFFD>x</a>"},
-		{"JS string", "index.html", `<script>var s = '{X}';</script>`, "p.js", `"it's"`, `<script>var s = '\"it\u0027s\"';</script>`},
+		{"JS string", "index.html", `<script>var s = '{X}';</script>`, "p.js", `"it's"`, `<script>var s = '\u0022it\u0027s\u0022';</script>`},
 		{"CSS string", "index.html", `<style>a::before { content: "{X}"; }</style>`, "p.css", `a"b`, `<style>a::before { content: "a\22 b"; }</style>`},
-		{"JSON string", "index.html", `<script type="application/ld+json">{"a": "{X}"}</script>`, "p.json", `a"b`, `<script type="application/ld+json">{"a": "a\"b"}</script>`},
+		{"JSON string", "index.html", `<script type="application/ld+json">{"a": "{X}"}</script>`, "p.json", `a"b`, `<script type="application/ld+json">{"a": "a\u0022b"}</script>`},
 		{"Markdown code block", "index.md", "text\n\n    x {X}\n", "p.md", "a\nb", "text\n\n    x a\n    b\n"},
 		{"HTML", "index.html", `<div>{X}</div>`, "p.html", `<b>x</b>`, `<div><b>x</b></div>`},
 	}
@@ -573,9 +573,9 @@ func TestJSTemplateLiteralAndRegExpContexts(t *testing.T) {
 		{"after a regular expression", "<script>const s = /'/.test(t) ? {{ v }} : 0;</script>", "a", "<script>const s = /'/.test(t) ? \"a\" : 0;</script>"},
 		{"after a macro", "{% macro M js %}a{% end %}<script>/'/.test(t); const s = {{ v }};</script>", "a", "<script>/'/.test(t); const s = \"a\";</script>"},
 		{"after a show statement", "<script>const n = {% show v %} / 2; const s = '{{ v }}';</script>", "a.b", "<script>const n = \"a.b\" / 2; const s = 'a.b';</script>"},
-		{"regular expression", "<script>const r = /^{{ v }}$/;</script>", "a.b/c", "<script>const r = /^a\\.b\\/c$/;</script>"},
+		{"regular expression", "<script>const r = /^{{ v }}$/;</script>", "a.b/c", "<script>const r = /^a\\u002eb\\u002fc$/;</script>"},
 		{"empty regular expression", "<script>const r = /{{ v }}/;</script>", "", "<script>const r = /(?:)/;</script>"},
-		{"regular expression class", "<script>const r = /[{{ v }}]/;</script>", "a-]", "<script>const r = /[a\\u002d\\]]/;</script>"},
+		{"regular expression class", "<script>const r = /[{{ v }}]/;</script>", "a-]", "<script>const r = /[a\\u002d\\u005d]/;</script>"},
 		{"empty regular expression class", "<script>const r = /[{{ v }}]/;</script>", "", "<script>const r = /[]/;</script>"},
 		{"empty value in a class", "<script>const r = /[a{% show v %}]/v;</script>", "", "<script>const r = /[a]/v;</script>"},
 		{"empty value in a negated class", "<script>const r = /[^{{ v }}]/;</script>", "", "<script>const r = /[^]/;</script>"},
@@ -614,7 +614,7 @@ func TestJSCommentContexts(t *testing.T) {
 	}{
 		{"value in a block comment", "<script>/* {{ v }} */</script>", "a*/b", "<script>/* \"a*\\/b\" */</script>"},
 		{"value in a line comment", "<script>// {{ v }}\n</script>", "a\nb", "<script>// \"a\\nb\"\n</script>"},
-		{"decrement and comparison before a regular expression", "<script>while (n-->0) r = /{{ v }}/;</script>", "a/b", "<script>while (n-->0) r = /a\\/b/;</script>"},
+		{"decrement and comparison before a regular expression", "<script>while (n-->0) r = /{{ v }}/;</script>", "a/b", "<script>while (n-->0) r = /a\\u002fb/;</script>"},
 		{"decrement and comparison before a string", "<script>while (n-->0) s = '{{ v }}';</script>", "a", "<script>while (n-->0) s = 'a';</script>"},
 		{"after an HTML-like comment", "<script><!-- it's\nconst s = {{ v }};</script>", "a", "<script><!-- it's\nconst s = \"a\";</script>"},
 	}
@@ -713,7 +713,7 @@ func TestTypedBodies(t *testing.T) {
 		{"using body without tags", "index.md", "{% var x = itea; using html %}{{ v }}{% end %}{{ x }}", `\*a\* \&lt;b\&gt;`},
 		{"using body with tags", "index.md", "{% var x = itea; using html %}<p>{{ v }}</p>{% end %}{{ x }}", `<p>\*a\* \&lt;b\&gt;</p>`},
 		{"macro body with tags", "index.md", "{% macro M html %}<p>{{ v }}</p>{% end %}{{ M() }}", `<p>\*a\* \&lt;b\&gt;</p>`},
-		{"script in a macro body", "index.js", "{% macro M html %}<script>var s = {{ v }};</script><p>{{ v }}</p>{% end %}var h = {{ M() }};", `var h = "\u003cscript\u003evar s = \"*a* \\u003cb\\u003e\";\u003c/script\u003e\u003cp\u003e*a* \u0026lt;b\u0026gt;\u003c/p\u003e";`},
+		{"script in a macro body", "index.js", "{% macro M html %}<script>var s = {{ v }};</script><p>{{ v }}</p>{% end %}var h = {{ M() }};", `var h = "\u003cscript\u003evar s = \u0022*a* \\u003cb\\u003e\u0022;\u003c/script\u003e\u003cp\u003e*a* \u0026lt;b\u0026gt;\u003c/p\u003e";`},
 		{"using body in a script", "index.html", "<script>{% show itea; using js %}var a = 1;{% end %}</script><p title={{ v }}>{{ v }}</p>", `<script>var a = 1;</script><p title=*a*&#32;&lt;b&gt;>*a* &lt;b&gt;</p>`},
 	}
 	for _, tt := range tests {
@@ -724,6 +724,58 @@ func TestTypedBodies(t *testing.T) {
 			opts := &scriggo.BuildOptions{Globals: native.Declarations{"v": &v}}
 			fsys := fstest.Files{tt.file: tt.src}
 			template, err := scriggo.BuildTemplate(fsys, tt.file, opts)
+			if err != nil {
+				t.Fatalf("unexpected build error: %s", err)
+			}
+			var b bytes.Buffer
+			err = template.Run(&b, nil, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+			if got := b.String(); got != tt.expected {
+				t.Fatalf("expecting %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
+// TestScriptInHTMLShownInMarkdown tests that, when HTML code with a script
+// element is shown in Markdown, a value shown in the script cannot close a
+// string or a regular expression, even if the script is in an HTML block,
+// where the Markdown converter does not remove the '\' added to the content
+// of the script.
+func TestScriptInHTMLShownInMarkdown(t *testing.T) {
+	tests := []struct {
+		name     string
+		files    fstest.Files
+		v        string
+		expected string
+	}{
+		{
+			name:     "string",
+			files:    fstest.Files{"index.md": "{% macro M html %}<script>{{ v }}</script>{% end %}{{ M() }}"},
+			v:        `";new pwn;//`,
+			expected: `<script>"\\u0022;new pwn;//"</script>`,
+		},
+		{
+			name:     "regular expression",
+			files:    fstest.Files{"index.md": "{% macro M html %}<script>/a{{ v }}/i</script>{% end %}{{ M() }}"},
+			v:        "/ in new pwn in x",
+			expected: `<script>/a\\u002f in new pwn in x/i</script>`,
+		},
+		{
+			name:     "imported macro",
+			files:    fstest.Files{"index.md": `{% import "m.html" %}{{ M() }}`, "m.html": "{% macro M %}<script>/a{{ v }}/i</script>{% end %}"},
+			v:        "/ in new pwn in x",
+			expected: `<script>/a\\u002f in new pwn in x/i</script>`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// The global is a pointer to a variable, because a global passed
+			// to Run and used for the first time in a macro is empty.
+			opts := &scriggo.BuildOptions{Globals: native.Declarations{"v": &tt.v}}
+			template, err := scriggo.BuildTemplate(tt.files, "index.md", opts)
 			if err != nil {
 				t.Fatalf("unexpected build error: %s", err)
 			}
@@ -851,16 +903,16 @@ var jsStringContextTests = []struct {
 	{`"a"`, `a`, nil},
 	{`"<a>"`, `\u003ca\u003e`, nil},
 	{`"\\"`, `\\`, nil},
-	{`"\""`, `\"`, nil},
+	{`"\""`, `\u0022`, nil},
 	{`"'"`, `\u0027`, nil},
 	{`"\n"`, `\n`, nil},
 	{`"\r"`, `\r`, nil},
 	{`"\t"`, `\t`, nil},
-	{`"\\\"\n\r\t\u2028\u2029\u0000\u0010"`, `\\\"\n\r\t\u2028\u2029\u0000\u0010`, nil},
+	{`"\\\"\n\r\t\u2028\u2029\u0000\u0010"`, `\\\u0022\n\r\t\u2028\u2029\u0000\u0010`, nil},
 	{`25`, "25", nil},
 	{`0.1`, "0.1", nil},
 	{`a`, `a`, Vars{"a": "a"}},
-	{`a`, `\u003c\u003e\"`, Vars{"a": "<>\""}},
+	{`a`, `\u003c\u003e\u0022`, Vars{"a": "<>\""}},
 	{`"$"`, `\u0024`, nil},
 	{`"{}"`, `\u007b}`, nil},
 	{`a`, `\u0060\u0024\u007ba}\u0060`, Vars{"a": "`${a}`"}},

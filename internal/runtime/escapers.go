@@ -262,6 +262,14 @@ func cssStringEscape(w strWriter, s string) error {
 // close or interpolate a JavaScript template literal if it ends up inside
 // one, for example when the template text that precedes it already contains
 // a '$', or when a rendered file or a macro is shown in a template literal.
+//
+// No escape is a '\' followed by an ASCII punctuation character, except
+// "\\". When HTML code with a script element is shown in Markdown,
+// markdownEscape adds a '\' before the '\' and the punctuation characters
+// of the content of the script, and the Markdown converter does not remove
+// it if the script is in an HTML block. There, an escape such as `\"`
+// would become `\\"`, whose '"' closes the string, while `\u0022` becomes
+// `\\u0022`.
 var jsStringEscapes = []string{
 	0:    `\u0000`,
 	1:    `\u0001`,
@@ -295,7 +303,7 @@ var jsStringEscapes = []string{
 	29:   `\u001d`,
 	30:   `\u001e`,
 	31:   `\u001f`,
-	'"':  `\"`,
+	'"':  `\u0022`,
 	'$':  `\u0024`,
 	'&':  `\u0026`,
 	'\'': `\u0027`,
@@ -312,7 +320,9 @@ var jsStringEscapes = []string{
 // A '/' that follows a '*' is escaped, so that an escaped string shown in a
 // JavaScript comment cannot close it. A '/' at the start of s is escaped,
 // so that it cannot complete a '<' before it into an end tag, as in
-// "<{{ v }}>" with v = "/script".
+// "<{{ v }}>" with v = "/script". Unlike the escapes in jsStringEscapes, it
+// can be `\/`: it is not an issue if it becomes `\\/` in an HTML block of
+// Markdown, as a '/' does not close a string.
 func jsStringEscape(w strWriter, s string) error {
 	last := 0
 	for i, c := range s {
@@ -360,6 +370,10 @@ func jsStringEscape(w strWriter, s string) error {
 // and U+2029. The escapes are also valid in regular expressions with the 'u'
 // and 'v' flags, and the escaped punctuators include those that are reserved
 // when doubled in a class with the 'v' flag.
+//
+// As in jsStringEscapes, no escape is a '\' followed by an ASCII punctuation
+// character, except "\\": in an HTML block of Markdown, `\/` would become
+// `\\/`, whose '/' closes the regular expression.
 var jsRegExpEscapes = []string{
 	0:    `\u0000`,
 	1:    `\u0001`,
@@ -400,21 +414,21 @@ var jsRegExpEscapes = []string{
 	'<':  `\u003c`,
 	'>':  `\u003e`,
 	'`':  `\u0060`,
-	'$':  `\$`,
-	'(':  `\(`,
-	')':  `\)`,
-	'*':  `\*`,
-	'+':  `\+`,
-	'.':  `\.`,
-	'/':  `\/`,
-	'?':  `\?`,
-	'[':  `\[`,
+	'$':  `\u0024`,
+	'(':  `\u0028`,
+	')':  `\u0029`,
+	'*':  `\u002a`,
+	'+':  `\u002b`,
+	'.':  `\u002e`,
+	'/':  `\u002f`,
+	'?':  `\u003f`,
+	'[':  `\u005b`,
 	'\\': `\\`,
-	']':  `\]`,
-	'^':  `\^`,
-	'{':  `\{`,
-	'|':  `\|`,
-	'}':  `\}`,
+	']':  `\u005d`,
+	'^':  `\u005e`,
+	'{':  `\u007b`,
+	'|':  `\u007c`,
+	'}':  `\u007d`,
 	'!':  `\u0021`,
 	'#':  `\u0023`,
 	'%':  `\u0025`,
