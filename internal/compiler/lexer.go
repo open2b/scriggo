@@ -84,6 +84,7 @@ type lexer struct {
 	line   int         // current line starting from 1
 	column int         // current column starting from 1
 	ctx    ast.Context // current context used during the scan
+	base   ast.Context // context outside tags and script and style elements, as described in lexState
 	blocks []lexBlock  // blocks of the statements being scanned
 	code   *codeBlocks // braces of the code of the {%% %%} statement being scanned
 	state  scanState   // scan state, in addition to the context
@@ -323,6 +324,18 @@ type lexState struct {
 	ctx    ast.Context
 	tagCtx ast.Context // context of the content of the current tag
 	state  scanState
+
+	// base is the context outside tags and script and style elements, to
+	// which the scan returns at the end of a tag or of such an element. It
+	// is the context of the file or, in the body of a macro or using
+	// statement with html or markdown type, the context of that type, as
+	// in an html body of a Markdown file.
+	//
+	// A body with another type does not change it: a js, css or json body
+	// is scanned as the content of a script or style element of the
+	// content that encloses it, where it can be shown, so the end tag of
+	// the element is recognized also in the body.
+	base ast.Context
 }
 
 // joinLexStates returns the state at the end of a statement whose branches
@@ -331,8 +344,8 @@ type lexState struct {
 // state has them unknown.
 func joinLexStates(a, b lexState) (lexState, bool) {
 	sa, sb := a.state, b.state
-	if a.ctx != b.ctx || a.tagCtx != b.tagCtx || sa.quote != sb.quote || sa.jsComment != sb.jsComment ||
-		sa.jsClass != sb.jsClass || !slices.Equal(sa.jsBraces, sb.jsBraces) {
+	if a.ctx != b.ctx || a.tagCtx != b.tagCtx || a.base != b.base || sa.quote != sb.quote ||
+		sa.jsComment != sb.jsComment || sa.jsClass != sb.jsClass || !slices.Equal(sa.jsBraces, sb.jsBraces) {
 		return lexState{}, false
 	}
 	if sa.jsDivision != sb.jsDivision || sb.jsDivisionUnknown {
@@ -370,7 +383,7 @@ func joinLexStates(a, b lexState) (lexState, bool) {
 	if sa.jsIdentName != sb.jsIdentName {
 		sa.jsIdentName = jsNameUnknown
 	}
-	return lexState{ctx: a.ctx, tagCtx: a.tagCtx, state: sa.clone()}, true
+	return lexState{ctx: a.ctx, tagCtx: a.tagCtx, state: sa.clone(), base: a.base}, true
 }
 
 // joinJSParens returns the unclosed JavaScript parentheses at the end of a
@@ -592,7 +605,7 @@ func (b *codeBlocks) captures(typ tokenTyp, labeled bool) bool {
 
 // snapshot returns the current state of the scan.
 func (l *lexer) snapshot() lexState {
-	return lexState{ctx: l.ctx, tagCtx: l.tag.ctx, state: l.state.clone()}
+	return lexState{ctx: l.ctx, tagCtx: l.tag.ctx, state: l.state.clone(), base: l.base}
 }
 
 // restore restores the state of the scan to s.
@@ -600,6 +613,7 @@ func (l *lexer) restore(s lexState) {
 	l.ctx = s.ctx
 	l.tag.ctx = s.tagCtx
 	l.state = s.state.clone()
+	l.base = s.base
 }
 
 // beginBlock begins a block of kind kind.
@@ -1143,11 +1157,10 @@ func (l *lexer) scan() {
 		var emittedURL bool
 
 		fileContext := l.ctx
+		l.base = l.ctx
 
 		// Indicates if the current line contains only spaces. Used only for Markdown context.
 		spacesOnlyLine := true
-
-		isHTML := l.ctx == ast.ContextHTML || l.ctx == ast.ContextMarkdown
 
 		// ltShow reports whether the text before the last shows, in the
 		// content of a script or style element, ends with '<'.
@@ -1161,6 +1174,10 @@ func (l *lexer) scan() {
 		for p < len(l.src) {
 
 			c := l.src[p]
+
+			// isHTML reports whether the end tags of script and style
+			// elements are recognized.
+			isHTML := l.base == ast.ContextHTML || l.base == ast.ContextMarkdown
 
 			if ltShow && (c != '{' || !l.isShowStatementOrCommentStart(p) || l.src[p+1] != '{') {
 				// c follows the shows after a '<'. If they render nothing, a
@@ -1483,7 +1500,7 @@ func (l *lexer) scan() {
 					// scanned starting from an empty state.
 					l.state = scanState{jsClassic: l.state.jsClassic}
 					l.tag.name = ""
-					l.tag.ctx = fileContext
+					l.tag.ctx = l.base
 					if c == '/' {
 						p++
 						l.column++
@@ -1588,13 +1605,13 @@ func (l *lexer) scan() {
 								if isJSONMimeType(typ) {
 									l.tag.ctx = ast.ContextJSON
 								} else {
-									l.tag.ctx = fileContext
+									l.tag.ctx = l.base
 								}
 							}
 						case "style":
 							if typ := bytes.TrimSpace(l.src[l.tag.index:p]); len(typ) > 0 {
 								if !bytes.EqualFold(typ, cssMimeType) {
-									l.tag.ctx = fileContext
+									l.tag.ctx = l.base
 								}
 							}
 						}
@@ -1611,7 +1628,7 @@ func (l *lexer) scan() {
 			case ast.ContextCSS:
 				if isHTML && c == '<' && isEndStyle(l.src[p:]) {
 					// </style>
-					l.ctx = fileContext
+					l.ctx = l.base
 					p += 7
 					l.column += 7
 				} else if c == '"' || c == '\'' {
@@ -1631,7 +1648,7 @@ func (l *lexer) scan() {
 					l.state.quote = 0
 				case '<':
 					if isHTML && isEndStyle(l.src[p:]) {
-						l.ctx = fileContext
+						l.ctx = l.base
 						l.state.quote = 0
 						p += 7
 						l.column += 7
@@ -1660,7 +1677,7 @@ func (l *lexer) scan() {
 						l.err = err
 						break LOOP
 					}
-					l.ctx = fileContext
+					l.ctx = l.base
 					l.state = scanState{}
 					p += 8
 					l.column += 8
@@ -1676,7 +1693,7 @@ func (l *lexer) scan() {
 					}
 				} else if c == '/' && l.state.jsDivisionUnknown && p+1 < len(l.src) && l.src[p+1] != '/' && l.src[p+1] != '*' ||
 					c == '-' && l.state.jsLineCodeUnknown && bytes.HasPrefix(l.src[p:], jsHTMLCommentEnd) ||
-					c == '<' && !l.state.jsClassic && fileContext != ast.ContextMarkdown && bytes.HasPrefix(l.src[p:], jsHTMLCommentStart) {
+					c == '<' && !l.state.jsClassic && l.base != ast.ContextMarkdown && bytes.HasPrefix(l.src[p:], jsHTMLCommentStart) {
 					// It is not known whether '/' starts a regular expression
 					// or "-->" starts a comment, for example because the
 					// branches of a statement end in different states or
@@ -1902,7 +1919,7 @@ func (l *lexer) scan() {
 			case ast.ContextJSON:
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
-					l.ctx = fileContext
+					l.ctx = l.base
 					p += 8
 					l.column += 8
 				} else if c == '"' {
@@ -1922,7 +1939,7 @@ func (l *lexer) scan() {
 					l.state.quote = 0
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
-						l.ctx = fileContext
+						l.ctx = l.base
 						l.state.quote = 0
 						p += 8
 						l.column += 8
@@ -2837,6 +2854,12 @@ LOOP:
 							for i, name := range formatTypeName {
 								if name == ident.txt {
 									l.ctx = ast.Context(i)
+									if l.ctx == ast.ContextHTML || l.ctx == ast.ContextMarkdown {
+										// The body is scanned in the context of
+										// the type, also after its tags.
+										l.base = l.ctx
+										l.tag.ctx = l.ctx
+									}
 									break
 								}
 							}

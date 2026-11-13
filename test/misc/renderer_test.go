@@ -699,6 +699,46 @@ func TestStatementBranchContexts(t *testing.T) {
 	}
 }
 
+// TestTypedBodies tests that in the body of a macro or using statement with a
+// type different from the format of the file, the values shown after a tag
+// are escaped for the type, and that the values shown after a js body in a
+// script element are escaped as HTML.
+func TestTypedBodies(t *testing.T) {
+	tests := []struct {
+		name     string
+		file     string
+		src      string
+		expected string
+	}{
+		{"using body without tags", "index.md", "{% var x = itea; using html %}{{ v }}{% end %}{{ x }}", `\*a\* \&lt;b\&gt;`},
+		{"using body with tags", "index.md", "{% var x = itea; using html %}<p>{{ v }}</p>{% end %}{{ x }}", `<p>\*a\* \&lt;b\&gt;</p>`},
+		{"macro body with tags", "index.md", "{% macro M html %}<p>{{ v }}</p>{% end %}{{ M() }}", `<p>\*a\* \&lt;b\&gt;</p>`},
+		{"script in a macro body", "index.js", "{% macro M html %}<script>var s = {{ v }};</script><p>{{ v }}</p>{% end %}var h = {{ M() }};", `var h = "\u003cscript\u003evar s = \"*a* \\u003cb\\u003e\";\u003c/script\u003e\u003cp\u003e*a* \u0026lt;b\u0026gt;\u003c/p\u003e";`},
+		{"using body in a script", "index.html", "<script>{% show itea; using js %}var a = 1;{% end %}</script><p title={{ v }}>{{ v }}</p>", `<script>var a = 1;</script><p title=*a*&#32;&lt;b&gt;>*a* &lt;b&gt;</p>`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// The global is a pointer to a variable, because a global passed
+			// to Run and used for the first time in a macro is empty.
+			v := "*a* <b>"
+			opts := &scriggo.BuildOptions{Globals: native.Declarations{"v": &v}}
+			fsys := fstest.Files{tt.file: tt.src}
+			template, err := scriggo.BuildTemplate(fsys, tt.file, opts)
+			if err != nil {
+				t.Fatalf("unexpected build error: %s", err)
+			}
+			var b bytes.Buffer
+			err = template.Run(&b, nil, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+			if got := b.String(); got != tt.expected {
+				t.Fatalf("expecting %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
 // TestTypeAttributeNotKnown tests that the content of a script or style
 // element whose type attribute is not known at compile time is escaped as
 // JavaScript or CSS.

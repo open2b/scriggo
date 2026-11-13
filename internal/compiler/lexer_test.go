@@ -1293,6 +1293,74 @@ func TestLexerContinuedText(t *testing.T) {
 	}
 }
 
+// typedBodyTests contain sources with the body of a macro or using statement
+// with a type, and the contexts of their shows, or the expected error.
+//
+// In a body with html or markdown type, the scan returns to the context of
+// the type at the end of a tag and of a script or style element, also in a
+// file of another format. A js, css or json body is scanned as the content of
+// a script or style element of the content that encloses it, so the end tag
+// of the element is recognized in it as it is outside the body.
+var typedBodyTests = []struct {
+	format ast.Format
+	src    string
+	ctxs   []ast.Context
+	err    string
+}{
+	{ast.FormatMarkdown, "{% macro M html %}<p>{{ v }}</p>{% end %}{{ v }}", []ast.Context{ast.ContextHTML, ast.ContextMarkdown}, ""},
+	{ast.FormatJS, "{% macro M html %}<p>{{ v }}</p>{% end %}{{ v }}", []ast.Context{ast.ContextHTML, ast.ContextJS}, ""},
+	{ast.FormatCSS, "{% macro M html %}<p>{{ v }}</p>{% end %}{{ v }}", []ast.Context{ast.ContextHTML, ast.ContextCSS}, ""},
+	{ast.FormatText, "{% macro M html %}<p>{{ v }}</p>{% end %}{{ v }}", []ast.Context{ast.ContextHTML, ast.ContextText}, ""},
+	{ast.FormatHTML, "{% macro M markdown %}<p>{{ v }}</p>\n\n    x {{ v }}{% end %}{{ v }}", []ast.Context{ast.ContextMarkdown, ast.ContextSpacesCodeBlock, ast.ContextHTML}, ""},
+	{ast.FormatJS, "{% macro M html %}<script>a = {{ v }}</script>{{ v }}{% end %}{{ v }}", []ast.Context{ast.ContextJS, ast.ContextHTML, ast.ContextJS}, ""},
+	{ast.FormatMarkdown, "{% macro M html %}<style>a { b: {{ v }} }</style>{{ v }}{% end %}{{ v }}", []ast.Context{ast.ContextCSS, ast.ContextHTML, ast.ContextMarkdown}, ""},
+	{ast.FormatMarkdown, "{% var x = itea; using html %}\n<div>\n  <img src=\"{{ v }}\">\n</div>\n{% end %}{{ x }}", []ast.Context{ast.ContextQuotedAttr, ast.ContextMarkdown}, ""},
+	{ast.FormatMarkdown, "{% macro M html %}<script>a{% end %}", nil, ":1:31: syntax error: macro body ends in a different context"},
+	{ast.FormatMarkdown, "{% macro M html %}<p{% end %}", nil, ":1:24: syntax error: macro body ends in a different context"},
+	// A js, css or json body in HTML or Markdown content.
+	{ast.FormatHTML, "{% macro M js %}var s = \"</script><a title={{ v }}>\";{% end %}", nil, ":1:26: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "{% var x = itea; using js %}var s = \"</script><a title={{ v }}>\";{% end %}", nil, ":1:38: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "{% macro M css %}a { content: \"</style><a title={{ v }}>\" }{% end %}", nil, ":1:63: syntax error: macro body ends in a different context"},
+	{ast.FormatHTML, "{% macro M json %}{\"a\": \"</script><a title={{ v }}>\"}{% end %}", nil, ":1:57: syntax error: macro body ends in a different context"},
+	{ast.FormatMarkdown, "{% macro M js %}var s = \"</script><a title={{ v }}>\";{% end %}", nil, ":1:26: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatHTML, "{% macro M js %}a = 1;</script><b title={{ v }}>x</b><script>c = {{ v }};{% end %}", []ast.Context{ast.ContextUnquotedAttr, ast.ContextJS}, ""},
+	{ast.FormatJS, "{% macro M js %}var s = \"</script>\"; a = {{ v }};{% end %}{{ v }}", []ast.Context{ast.ContextJS, ast.ContextJS}, ""},
+	{ast.FormatHTML, "<script>{% show itea; using js %}var a = 1;{% end %}</script><p title={{ v }}>{{ v }}</p><script>var z = {{ v }};</script>", []ast.Context{ast.ContextUnquotedAttr, ast.ContextHTML, ast.ContextJS}, ""},
+	{ast.FormatHTML, "<style>{% show itea; using css %}a { color: red }{% end %}</style><p title={{ v }}>{{ v }}</p>", []ast.Context{ast.ContextUnquotedAttr, ast.ContextHTML}, ""},
+	{ast.FormatHTML, "<script type=\"application/ld+json\">{% show itea; using json %}{\"a\": 1}{% end %}</script><p title={{ v }}>{{ v }}</p>", []ast.Context{ast.ContextUnquotedAttr, ast.ContextHTML}, ""},
+	{ast.FormatMarkdown, "<script>{% show itea; using js %}var a = 1;{% end %}</script><p title={{ v }}>{{ v }}</p>", []ast.Context{ast.ContextUnquotedAttr, ast.ContextMarkdown}, ""},
+	{ast.FormatHTML, "<script>{% show itea; using js %}var s = \"</script><a title={{ v }}>\";{% end %}</script>", nil, ":1:43: syntax error: unclosed JavaScript string at the end of the script"},
+	// A js, css or json body in a html or markdown body.
+	{ast.FormatJS, "{% macro M html %}<script>{% show itea; using js %}var a = {{ v }};{% end %}</script><p title={{ v }}>{{ v }}</p>{% end %}{{ v }}", []ast.Context{ast.ContextJS, ast.ContextUnquotedAttr, ast.ContextHTML, ast.ContextJS}, ""},
+	{ast.FormatJS, "{% macro M html %}{% var x = itea; using js %}var s = \"</script><a title={{ v }}>\";{% end %}<script>{{ x }}</script>{% end %}", nil, ":1:56: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatJS, "{% macro M html %}<script>{% show itea; using js %}var s = \"</script><a title={{ v }}>\";{% end %}</script>{% end %}", nil, ":1:61: syntax error: unclosed JavaScript string at the end of the script"},
+	{ast.FormatText, "{% macro M markdown %}{% var x = itea; using css %}a { content: \"</style><a title={{ v }}>\" }{% end %}{% end %}", nil, ":1:97: syntax error: using body ends in a different context"},
+	// "<!--" is not checked in Markdown content.
+	{ast.FormatMarkdown, "{% macro M html %}<script type=\"module\">a <!--b</script>{% end %}", nil, ":1:43: syntax error: '<!--' could start a comment or be an operator"},
+	{ast.FormatHTML, "{% macro M markdown %}<script type=\"module\">a <!--b; c = {{ v }}</script>{{ v }}{% end %}{{ v }}", []ast.Context{ast.ContextJS, ast.ContextMarkdown, ast.ContextHTML}, ""},
+}
+
+func TestLexerTypedBodies(t *testing.T) {
+	for _, test := range typedBodyTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		var ctxs []ast.Context
+		for tok := range lex.Tokens() {
+			if tok.typ == tokenLeftBraces {
+				ctxs = append(ctxs, tok.ctx)
+			}
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		} else if err == "" && !reflect.DeepEqual(ctxs, test.ctxs) {
+			t.Errorf("source: %q, expecting contexts %v, got %v", test.src, test.ctxs, ctxs)
+		}
+	}
+}
+
 // TestLexerCutAssumptions checks that the parser cuts the newline after an
 // else, default and end statement and a comment alone in its line, but not
 // after a case statement, and that it places a comment in the line in which
@@ -1364,7 +1432,7 @@ func TestLexerStateFields(t *testing.T) {
 		fields []string
 		slices []string
 	}{
-		{reflect.TypeFor[lexState](), []string{"ctx", "tagCtx", "state"}, nil},
+		{reflect.TypeFor[lexState](), []string{"ctx", "tagCtx", "state", "base"}, nil},
 		{reflect.TypeFor[scanState](), []string{"quote", "jsComment", "jsDivision", "jsClass", "jsBraces",
 			"jsLineCode", "jsClassic", "typeAttr", "attrNameChar", "jsClassStart", "jsClassDynamic",
 			"jsParens", "jsNextParen", "jsParensFloor", "jsParensDeep", "jsIdentEnd", "cutSpaces",
