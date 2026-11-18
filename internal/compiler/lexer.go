@@ -328,6 +328,12 @@ type scanState struct {
 	htmlComment bool
 	elemComment bool
 
+	// scriptEscaped reports whether, in the content of a script element,
+	// the HTML tokenizer of the browser can be in the "escaped" state,
+	// after a "<!--" not followed by a "-->", as described in
+	// escapedScriptError.
+	scriptEscaped bool
+
 	// md is the state of the Markdown code spans, block quotes and fenced
 	// code blocks, in which a script or style element cannot start.
 	md mdState
@@ -444,6 +450,7 @@ func joinLexStates(a, b lexState) (lexState, bool) {
 	}
 	sa.htmlComment = sa.htmlComment || sb.htmlComment
 	sa.elemComment = sa.elemComment || sb.elemComment
+	sa.scriptEscaped = sa.scriptEscaped || sb.scriptEscaped
 	sa.md.backtick = sa.md.backtick || sb.md.backtick
 	sa.md.lineText = sa.md.lineText || sb.md.lineText
 	sa.md.lineStart = sa.md.lineStart || sb.md.lineStart
@@ -760,6 +767,11 @@ func (l *lexer) endIteration(b *lexBlock, next bool, col int) error {
 	}
 	if next && (!slices.Equal(start.jsParens, end.jsParens) || start.jsParensDeep != end.jsParensDeep) {
 		b.parens = true
+	}
+	if next && end.scriptEscaped && !start.scriptEscaped {
+		// From the second iteration on, the body starts in the state in
+		// which it ends, so a "<script" in the body could follow a "<!--".
+		return l.errorAtColumnf(col, "%s branches end in different contexts", b.kind)
 	}
 	if next && b.htmlElem && end.htmlComment && !start.htmlComment {
 		// From the second iteration on, the body starts in the state in
@@ -1513,6 +1525,13 @@ func (l *lexer) scan() {
 				first = !md.lineText
 				md.lineText = true
 				md.lineStart = false
+			}
+
+			if (c == '<' || c == '-') && l.rawTextElement() == "script" {
+				if err := l.escapedScriptError(p); err != nil {
+					l.err = err
+					break LOOP
+				}
 			}
 
 			if l.state.elemComment {
@@ -2305,6 +2324,44 @@ func (l *lexer) elementInComment(name string, p int) {
 	l.commentErr = l.errorAtColumnf(col, "%s element could be in an HTML comment that ends before its end tag", name)
 }
 
+// escapedScriptError is called when l.src[p] is a '<' or a '-' in the
+// content of a script element. It updates scriptEscaped, and returns an
+// error if a "<script" could follow a "<!--" not followed by a "-->".
+//
+// The HTML tokenizer of the browser follows these sequences in the content
+// of every script element, whatever its type, also in JavaScript strings and
+// comments. After "<!--" it is in the "escaped" state, which "-->" ends, and
+// in this state a "<script" followed by a space, a '/' or a '>' starts the
+// "double escaped" state, in which an end tag does not close the element.
+// The lexer would instead end the script at the first end tag, and scan the
+// text after it as HTML, while the browser executes it. For example, in
+//
+//	<script>
+//	<!--
+//	// The <script> and </script> tags are added below.
+//	var name = {{ v }};
+//	// -->
+//	</script>
+//
+// v would be escaped as HTML, and the browser would execute "1; alert(1)".
+// "<!-->" and "<!--->" end the escaped state as they start it. A "<!--"
+// formed with a show, a statement or a comment is not considered.
+func (l *lexer) escapedScriptError(p int) error {
+	switch l.src[p] {
+	case '<':
+		if bytes.HasPrefix(l.src[p:], htmlCommentStart) {
+			l.state.scriptEscaped = true
+		} else if l.state.scriptEscaped && l.couldBeEndTag(p+1, "script") {
+			return l.errorf("'<script' after '<!--' could prevent the end tag from closing the script element")
+		}
+	case '-':
+		if bytes.HasPrefix(l.src[p:], htmlCommentEnd) {
+			l.state.scriptEscaped = false
+		}
+	}
+	return nil
+}
+
 // lineIndent returns the number of columns of the spaces and tabs that
 // precede l.src[p] in its line of the source, with a tab counted as four
 // columns. If other characters precede it, as those of a statement or a
@@ -2735,7 +2792,8 @@ func (l *lexer) isDynamicEndTag(p int, name string) bool {
 // couldBeEndTag reports whether l.src[p:], which follows "</", could be an
 // end tag of the element name: it starts with name, in any case, followed by
 // a character that ends a tag name or by the end of the source, or it is a
-// dynamic end tag as reported by isDynamicEndTag.
+// dynamic end tag as reported by isDynamicEndTag. After "<", it reports
+// whether it could be a start tag of the element.
 func (l *lexer) couldBeEndTag(p int, name string) bool {
 	if l.isDynamicEndTag(p, name) {
 		return true

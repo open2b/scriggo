@@ -1008,6 +1008,57 @@ func TestElementsInHTMLComments(t *testing.T) {
 	}
 }
 
+// TestEscapedScripts tests that a "<script" after a "<!--" in a script
+// element is rejected, because the browser would not end the element at its
+// end tag, and would execute the values shown after it, which are escaped as
+// HTML.
+func TestEscapedScripts(t *testing.T) {
+	tests := []struct {
+		name     string
+		src      string
+		expected string
+		err      string
+	}{
+		{
+			name: "script start tag in a comment",
+			src:  "<script>\n<!--\n// The <script> and </script> tags are added below.\nvar name = {{ v }};\n// -->\n</script>\n",
+			err:  "index.html:3:8: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element",
+		},
+		{
+			name:     "script start tag split",
+			src:      "<script>\n<!--\ndocument.write('<scr' + 'ipt src=\"a.js\"><\\/script>');\nvar name = {{ v }};\n// -->\n</script>\n",
+			expected: "<script>\n<!--\ndocument.write('<scr' + 'ipt src=\"a.js\"><\\/script>');\nvar name = \"1; alert(1)\";\n// -->\n</script>\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := "1; alert(1)"
+			opts := &scriggo.BuildOptions{Globals: native.Declarations{"v": &v}}
+			template, err := scriggo.BuildTemplate(fstest.Files{"index.html": tt.src}, "index.html", opts)
+			if tt.err != "" {
+				if err == nil {
+					t.Fatalf("expecting build error %q, got no error", tt.err)
+				}
+				if got := err.Error(); got != tt.err {
+					t.Fatalf("expecting build error %q, got %q", tt.err, got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected build error: %s", err)
+			}
+			var b bytes.Buffer
+			err = template.Run(&b, nil, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+			if got := b.String(); got != tt.expected {
+				t.Fatalf("expecting %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
 // TestTypeAttributeNotKnown tests that the content of a script or style
 // element whose type attribute is not known at compile time is escaped as
 // JavaScript or CSS.
