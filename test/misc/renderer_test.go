@@ -655,7 +655,7 @@ func TestStatementBranchContexts(t *testing.T) {
 		{"in a macro", "index.js", "var a = b{% macro M(s string) %}/'/.test(x) + {{ s }}{% end %};\n{{ M(v) }}", "var a = b;\n/'/.test(x) + \"a\"", ""},
 		{"raw in a macro", "index.js", "{% macro M %}{% raw %}'{% end raw %}{% end %}var s = '{{ v }}';", "", "index.js:1:24: syntax error: raw content cannot end in JavaScript string"},
 		{"raw ending in a script", "index.html", "{% raw %}<script>{% end raw %}var s = {{ v }};</script>", "<script>var s = \"a\";</script>", ""},
-		{"raw ending in a script in Markdown", "index.md", "Example: `{% raw %}<script>{% end raw %}` and {{ v }}", "", "index.md:1:28: syntax error: raw content cannot end in JavaScript"},
+		{"raw ending in a script in Markdown", "index.md", "-     {% raw %}<script>{% end raw %} and {{ v }}", "", "index.md:1:24: syntax error: raw content cannot end in JavaScript"},
 		{"raw ending in a string", "index.html", "<script>{% raw %}var q = \"{% end raw %}\"; var s = {{ v }}; // \"</script>", "", "index.html:1:27: syntax error: raw content cannot end in JavaScript string"},
 		{"fallthrough", "index.html", "<script>{% switch 1 %}{% case 1 %}var s = {{ v }}{% fallthrough %}{% case 2 %};{% end %}</script>", "<script>var s = \"a\";</script>", ""},
 		{"loop re-entry", "index.html", "<script>var a = 1;{% for x in []int{1, 2} %}/'/.test(x) + '{{ v }}'; a{% end %}</script>", "", "index.html:1:45: syntax error: '/' could start a division or a regular expression"},
@@ -776,6 +776,139 @@ func TestScriptInHTMLShownInMarkdown(t *testing.T) {
 			// to Run and used for the first time in a macro is empty.
 			opts := &scriggo.BuildOptions{Globals: native.Declarations{"v": &tt.v}}
 			template, err := scriggo.BuildTemplate(tt.files, "index.md", opts)
+			if err != nil {
+				t.Fatalf("unexpected build error: %s", err)
+			}
+			var b bytes.Buffer
+			err = template.Run(&b, nil, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+			if got := b.String(); got != tt.expected {
+				t.Fatalf("expecting %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
+// TestElementsInMarkdownCode tests that a script or style element that could
+// be in a Markdown code span or code block, where the Markdown converter
+// renders it as text, is rejected, so that the values shown after it are not
+// escaped as the content of the element.
+func TestElementsInMarkdownCode(t *testing.T) {
+	const page = "Use `<script>` and don't forget it's async.\n\n<a title={{ v }}>x</a>\n"
+	tests := []struct {
+		name     string
+		files    fstest.Files
+		file     string
+		expected string
+		err      string
+	}{
+		{
+			name:  "code span",
+			files: fstest.Files{"index.md": page},
+			file:  "index.md",
+			err:   "index.md:1:6: syntax error: script element could be in a code span (write &lt;script in a <code> element)",
+		},
+		{
+			name:  "code span in a rendered file",
+			files: fstest.Files{"index.html": `{{ render "page.md" }}`, "page.md": page},
+			file:  "index.html",
+			err:   "page.md:1:6: syntax error: script element could be in a code span (write &lt;script in a <code> element)",
+		},
+		{
+			name:  "fenced code block",
+			files: fstest.Files{"index.md": "```html\n<script src=\"app.js\"></script>\n```\n\n<a title={{ v }}>x</a>\n"},
+			file:  "index.md",
+			err:   "index.md:2:1: syntax error: script element in a fenced code block (use an indented code block)",
+		},
+		{
+			name:  "code span that starts in a previous line",
+			files: fstest.Files{"index.md": "Use `a\nb <script>` and it's async.\n\n<a title={{ v }}>x</a>\n"},
+			file:  "index.md",
+			err:   "index.md:2:3: syntax error: script element could be in a code span (write &lt;script in a <code> element)",
+		},
+		{
+			name:  "fenced code block after a fence in a list item",
+			files: fstest.Files{"index.md": "- ```html\n  <b>\n  ```\n\n```\n<script>\n```\n\n<a title={{ v }}>x</a>\n"},
+			file:  "index.md",
+			err:   "index.md:6:1: syntax error: script element in a fenced code block (use an indented code block)",
+		},
+		{
+			name:  "fence after a show that renders nothing",
+			files: fstest.Files{"index.md": "{% macro E %}{% end %}{{ E() }}```html\n<script>\n```\n\n<a title={{ v }}>x</a>\n"},
+			file:  "index.md",
+			err:   "index.md:2:1: syntax error: script element could be in a fenced code block (use an indented code block)",
+		},
+		{
+			name:  "block quote after a line with a show",
+			files: fstest.Files{"index.md": "{{ v }}\n>     <script>\n\nIt is a ` character.\n\n<a title={{ v }}>x</a>\n"},
+			file:  "index.md",
+			err:   "index.md:2:7: syntax error: script element in a block quote",
+		},
+		{
+			name:  "fence from the second iteration of a for statement",
+			files: fstest.Files{"index.md": "a {% for _, x := range []int{1, 2} %}~~~\n{% end %}\n\n<script>\n~~~\n\nIt is a ` character.\n\n<a title={{ v }}>x</a>\n"},
+			file:  "index.md",
+			err:   "index.md:4:1: syntax error: script element could be in a fenced code block (use an indented code block)",
+		},
+		{
+			name:     "script in the body of a for statement",
+			files:    fstest.Files{"index.md": "Scripts: {% for _, s := range []string{\"a.js\"} %}<script src=\"{{ s }}\"></script>\n{% end %}"},
+			file:     "index.md",
+			expected: "Scripts: <script src=\"a.js\"></script>\n",
+		},
+		{
+			name:  "fence after a statement",
+			files: fstest.Files{"index.md": "{% if true %}```html{% end %}\n<script>\n```\n\n<a title={{ v }}>x</a>\n"},
+			file:  "index.md",
+			err:   "index.md:2:1: syntax error: script element could be in a fenced code block (use an indented code block)",
+		},
+		{
+			name:  "fenced code block in a block quote",
+			files: fstest.Files{"index.md": "> ```html\n> <script>\n> ```\n\n<a title={{ v }}>x</a>\n"},
+			file:  "index.md",
+			err:   "index.md:2:3: syntax error: script element in a block quote",
+		},
+		{
+			name:  "indented code block in a block quote",
+			files: fstest.Files{"index.md": ">     <script>\n\nHello {{ v }}\n"},
+			file:  "index.md",
+			err:   "index.md:1:7: syntax error: script element in a block quote",
+		},
+		{
+			name:     "code element",
+			files:    fstest.Files{"index.md": "Use <code>&lt;script&gt;</code> and don't forget it's async.\n\n<a title={{ v }}>x</a>\n"},
+			file:     "index.md",
+			expected: "Use <code>&lt;script&gt;</code> and don't forget it's async.\n\n<a title=x&#32;onmouseover&#61;alert(1)>x</a>\n",
+		},
+		{
+			name:     "indented code block",
+			files:    fstest.Files{"index.md": "Example:\n\n    <script src=\"app.js\"></script>\n\n<a title={{ v }}>x</a>\n"},
+			file:     "index.md",
+			expected: "Example:\n\n    <script src=\"app.js\"></script>\n\n<a title=x&#32;onmouseover&#61;alert(1)>x</a>\n",
+		},
+		{
+			name:     "script after a code span and a fenced code block",
+			files:    fstest.Files{"index.md": "Use `a`.\n\n```js\nvar b;\n```\n\n<script>var c = {{ v }};</script>\n"},
+			file:     "index.md",
+			expected: "Use `a`.\n\n```js\nvar b;\n```\n\n<script>var c = \"x onmouseover=alert(1)\";</script>\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := "x onmouseover=alert(1)"
+			opts := &scriggo.BuildOptions{Globals: native.Declarations{"v": &v}}
+			template, err := scriggo.BuildTemplate(tt.files, tt.file, opts)
+			if tt.err != "" {
+				if err == nil {
+					t.Fatalf("expecting build error %q, got no error", tt.err)
+				}
+				if got := err.Error(); got != tt.err {
+					t.Fatalf("expecting build error %q, got %q", tt.err, got)
+				}
+				return
+			}
 			if err != nil {
 				t.Fatalf("unexpected build error: %s", err)
 			}
