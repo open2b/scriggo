@@ -1439,7 +1439,7 @@ func TestLexerStateFields(t *testing.T) {
 			"jsLineCode", "jsClassic", "typeAttr", "attrNameChar", "jsClassStart", "jsClassDynamic",
 			"jsParens", "jsNextParen", "jsParensFloor", "jsParensDeep", "jsIdentEnd", "cutSpaces",
 			"jsNextName", "jsIdentName", "jsIdentParen", "jsIdentJoined", "jsDivisionUnknown",
-			"jsLineCodeUnknown", "typeAttrUnknown", "htmlComment", "elemComment", "md"}, []string{"jsBraces", "jsParens"}},
+			"jsLineCodeUnknown", "typeAttrUnknown", "htmlComment", "elemComment", "scriptEscaped", "md"}, []string{"jsBraces", "jsParens"}},
 		{reflect.TypeFor[mdState](), []string{"backtick", "lineText", "lineStart", "quote", "fence"}, nil},
 	} {
 		var fields, slices []string
@@ -1804,6 +1804,59 @@ var commentTests = []struct {
 
 func TestLexerElementsInComments(t *testing.T) {
 	for _, test := range commentTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+// escapedScriptTests contain sources with a "<script" after a "<!--" in the
+// content of a script element, where an end tag does not close the element.
+var escapedScriptTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<script>\n<!--\n// The <script> and </script> tags are added below.\nvar name = {{ v }};\n// -->\n</script>", ":3:8: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script>var s = \"<!--<script>\";</script><p>{{ v }}</p>", ":1:22: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script><!--\ndocument.write('<script src=x><\\/script>');\n</script><p>{{ v }}</p>", ":2:17: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script type=\"application/ld+json\">{\"a\": \"<!--<script>\"}</script>", ":1:47: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script type=\"module\">var s = '<!--', t = '<script>';</script>", ":1:44: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script><!-- <SCRIPT ></script>", ":1:14: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script><!-- <script/></script>", ":1:14: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script>// <!-- <script\n</script>", ":1:17: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script>var s = '<!-- <{{ v }}';</script>", ":1:23: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script>var s = '<!-- <scr{# c #}ipt>';</script>", ":1:23: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script>{% raw %}<!--{% end raw %} <script></script>", ":1:36: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatJS, "var s = \"<!--<script>\";", ":1:14: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "{% macro M js %}var s = \"<!--<script>\";{% end %}", ":1:30: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatMarkdown, "<script>\n<!--\n<script>\n</script>", ":3:1: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script><!--\ndocument.write('<scr' + 'ipt src=x><\\/script>');\n// -->\n</script>", ""},
+	{ast.FormatHTML, "<script><!--\ndocument.write('<\\script src=x><\\/script>');\n// -->\n</script>", ""},
+	{ast.FormatHTML, "<script>var a = '<!-- a -->', b = '<script>';</script>", ""},
+	{ast.FormatHTML, "<script>var a = '<!-->', b = '<script>';</script>", ""},
+	{ast.FormatHTML, "<script>var a = '<!--->', b = '<script>';</script>", ""},
+	{ast.FormatHTML, "<script>var a = '<!-- <scripts>';</script>", ""},
+	{ast.FormatHTML, "<script>var a = '<script>';</script>", ""},
+	{ast.FormatHTML, "<script>var a = '<!--';</script><script>var b = '<script>';</script>", ""},
+	{ast.FormatHTML, "<style><!-- <script></style>", ""},
+	{ast.FormatHTML, "<script type=\"text/plain\"><!-- <script></script>", ""},
+	// Statements.
+	{ast.FormatHTML, "<script>var a = '{% if b %}<!--{% end %}', c = '<script>';</script>", ":1:49: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script>var a = '{% if b %}<!--{% else %}-->{% end %}', c = '<script>';</script>", ":1:62: syntax error: '<script' after '<!--' could prevent the end tag from closing the script element"},
+	{ast.FormatHTML, "<script>{% for x in xs %}<!--{% end %}</script>", ":1:33: syntax error: for branches end in different contexts"},
+	{ast.FormatHTML, "<script>{% for x in xs %}// <!-- {{ x }} -->\n{% end %}</script>", ""},
+}
+
+func TestLexerEscapedScripts(t *testing.T) {
+	for _, test := range escapedScriptTests {
 		lex := scanTemplate([]byte(test.src), test.format, false)
 		for range lex.Tokens() {
 		}
