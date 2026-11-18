@@ -98,6 +98,8 @@ type lexer struct {
 	tokenLine      int        // line in which the parser places the last show, statement or comment
 	cut            newlineCut // whether the parser cuts the newline after the statement or comment being scanned
 	cutEnd         int        // index in src of the end of the spaces and newline that the parser cuts
+	mayCutEnd      int        // index in src of the end of the spaces and newline that the parser could cut
+	render         bool       // whether a render keyword has been emitted since the start of the current show
 	rawMarker      []byte     // raw marker, not nil when a raw statement has been lexed
 	inRaw          bool       // whether the content of a raw statement is being scanned
 	rawEnd         int        // index in src of the end of the raw content, if inRaw is true
@@ -193,6 +195,8 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 			}
 		case tokenEnd:
 			l.rawMarker = nil
+		case tokenRender:
+			l.render = true
 		}
 	}
 	if l.code != nil {
@@ -202,6 +206,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 		l.lastTokenType = typ
 		l.src = l.src[length:]
 		l.cutEnd = 0
+		l.mayCutEnd = 0
 	}
 }
 
@@ -310,6 +315,48 @@ type scanState struct {
 	jsDivisionUnknown bool
 	jsLineCodeUnknown bool
 	typeAttrUnknown   bool
+
+	// md is the state of the Markdown code spans, block quotes and fenced
+	// code blocks, in which a script or style element cannot start.
+	md mdState
+}
+
+// mdState is the state of the scan that, in Markdown, is needed to determine
+// whether a script or style element could be in a code span, in a block
+// quote or in a fenced code block, as described in elementInCodeError.
+type mdState struct {
+	// backtick reports whether a '`' can precede the current position in
+	// its paragraph, since the last blank line, so that the text that
+	// follows could be in a code span.
+	backtick bool
+
+	// lineText reports whether characters other than spaces and tabs can
+	// precede the current position in its line. A show can render them,
+	// while a statement or a comment renders nothing.
+	lineText bool
+
+	// lineStart reports whether the current position can be at the
+	// beginning of its line, after any spaces and tabs. Unlike lineText, it
+	// considers that a show can render nothing, and that a newline that the
+	// parser can cut can also not be cut. So it is true after every newline,
+	// until a character other than a space or a tab.
+	lineStart bool
+
+	// quote reports whether the line of the current position can start
+	// with a '>', the marker of a block quote.
+	quote bool
+
+	// fence is the fence of the fenced code block that contains the current
+	// position, if any.
+	fence mdFence
+}
+
+// mdFence is the fence that starts a Markdown fenced code block.
+type mdFence struct {
+	char    byte // character of the fence, '`' or '~', or 0 if there is no fence
+	length  int  // number of characters of the fence
+	indent  int  // number of columns before the fence in its line
+	unknown bool // whether the fence is not known, as when it differs in the branches of a statement
 }
 
 // clone returns a copy of s.
@@ -383,6 +430,13 @@ func joinLexStates(a, b lexState) (lexState, bool) {
 	if sa.jsIdentName != sb.jsIdentName {
 		sa.jsIdentName = jsNameUnknown
 	}
+	sa.md.backtick = sa.md.backtick || sb.md.backtick
+	sa.md.lineText = sa.md.lineText || sb.md.lineText
+	sa.md.lineStart = sa.md.lineStart || sb.md.lineStart
+	sa.md.quote = sa.md.quote || sb.md.quote
+	if sa.md.fence != sb.md.fence {
+		sa.md.fence = mdFence{unknown: true}
+	}
 	return lexState{ctx: a.ctx, tagCtx: a.tagCtx, state: sa.clone(), base: a.base}, true
 }
 
@@ -453,6 +507,8 @@ type lexBlock struct {
 	label    string    // label of the statement, if any
 	inElse   bool      // whether the else branch of a for statement is being scanned
 	parens   bool      // whether an iteration of a for statement changes the JavaScript parentheses
+	mdElem   bool      // whether a script or style element starts in Markdown in the body of a for statement
+	mdInline bool      // whether such an element does not start at the beginning of its line
 }
 
 // codeOwner is the statement or expression that owns a brace in the code of
@@ -630,8 +686,9 @@ func (l *lexer) beginBlock(kind blockKind) {
 		// an empty state, except for a using body whose content is shown
 		// in place, whose state is set by lexCode. lexCode also updates
 		// the state at the beginning of the body at the end of the
-		// statement, after the type of the macro or using statement.
-		l.state = scanState{}
+		// statement, after the type of the macro or using statement. The
+		// content can be shown at the beginning of a line.
+		l.state = scanState{md: mdState{lineStart: true}}
 		b.body = l.snapshot()
 	}
 	if kind == blockFor {
@@ -641,11 +698,13 @@ func (l *lexer) beginBlock(kind blockKind) {
 		// identifier at the beginning can continue one at the end. The kinds
 		// of a following '(' and identifier are assumed to be the same as
 		// here, and checked at the end of the iterations, or are unknown if
-		// they are not the usual ones, as after "if" or '.'.
+		// they are not the usual ones, as after "if" or '.'. In Markdown,
+		// the body can start at the beginning of a line.
 		l.state.jsDivisionUnknown = true
 		l.state.jsLineCodeUnknown = true
 		l.state.jsIdentEnd = true
 		l.state.cutSpaces = true
+		l.state.md.lineStart = true
 		l.state.jsParensFloor = len(l.state.jsParens)
 		if l.state.jsNextParen != jsParenOther {
 			l.state.jsNextParen = jsParenUnknown
@@ -686,6 +745,19 @@ func (l *lexer) endIteration(b *lexBlock, next bool, col int) error {
 	}
 	if next && (!slices.Equal(start.jsParens, end.jsParens) || start.jsParensDeep != end.jsParensDeep) {
 		b.parens = true
+	}
+	if next && b.mdElem {
+		// From the second iteration on, the body starts in the state in
+		// which it ends, so a script or style element of the body could be
+		// in a fenced code block, in a block quote or, if it is not at the
+		// beginning of its line, in a code span. An element at the
+		// beginning of the first line of the body is no longer at the
+		// beginning if the body ends with text.
+		s, e := start.md, end.md
+		if e.fence != s.fence || e.quote && !s.quote ||
+			e.backtick && (b.mdInline && !s.backtick || e.lineText && !s.lineText) {
+			return l.errorAtColumnf(col, "%s branches end in different contexts", b.kind)
+		}
 	}
 	// After the statement, the floor of the parentheses is the one of the
 	// enclosing for statement, if any.
@@ -1008,6 +1080,9 @@ func cutLength(s []byte) int {
 // does not change the context, unless the newline before the line was cut
 // too and the scan is in a line comment or a regular expression. In this
 // case, it returns an error.
+//
+// If the parser can cut them, the line may not end, so in Markdown the text
+// after them can continue the line, as described in elementInCodeError.
 func (l *lexer) endLine(aloneBefore bool) error {
 	cut := l.cut
 	l.cut = cutUnknown
@@ -1018,6 +1093,9 @@ func (l *lexer) endLine(aloneBefore bool) error {
 	if n == 0 {
 		// It is not alone in its line.
 		return nil
+	}
+	if cut != cutNever {
+		l.mayCutEnd = n
 	}
 	switch cut {
 	case cutAlways:
@@ -1036,6 +1114,7 @@ func (l *lexer) endLine(aloneBefore bool) error {
 
 // endShow updates the state after a show.
 func (l *lexer) endShow() {
+	l.state.md.lineText = true
 	switch l.ctx {
 	case ast.ContextJS:
 		if l.state.jsComment == jsCommentNone {
@@ -1158,6 +1237,7 @@ func (l *lexer) scan() {
 
 		fileContext := l.ctx
 		l.base = l.ctx
+		l.state.md.lineStart = true
 
 		// Indicates if the current line contains only spaces. Used only for Markdown context.
 		spacesOnlyLine := true
@@ -1168,6 +1248,9 @@ func (l *lexer) scan() {
 
 		if l.ctx == ast.ContextMarkdown {
 			p, l.ctx = l.scanCodeBlock(0)
+			if l.ctx == ast.ContextMarkdown {
+				l.scanFence(0, false)
+			}
 		}
 
 	LOOP:
@@ -1211,7 +1294,12 @@ func (l *lexer) scan() {
 						p += s
 						l.column++
 					}
+					l.state.md.lineText = true
+					l.state.md.lineStart = false
 					continue
+				}
+				if c == '`' {
+					l.state.md.backtick = true
 				}
 			}
 
@@ -1252,6 +1340,7 @@ func (l *lexer) scan() {
 						l.emitAtLineColumn(lin, col, tokenText, p)
 						p = 0
 					}
+					l.render = false
 					err := l.lexShow()
 					if err != nil {
 						l.err = err
@@ -1262,6 +1351,11 @@ func (l *lexer) scan() {
 						l.err = err
 						break LOOP
 					}
+					if !l.render {
+						// The parser cuts the newline after a show alone in
+						// its line only if it is a render expression.
+						l.mayCutEnd = 0
+					}
 					lin = l.line
 					col = l.column
 					continue
@@ -1271,9 +1365,9 @@ func (l *lexer) scan() {
 						// which it can start, or in a Markdown code block,
 						// because the URLs in it are not emitted. If it
 						// starts in Markdown, it must end in Markdown, because
-						// the lexer does not recognize code spans and fenced
-						// code blocks, so a tag shown in them, as in
-						// `<script>`, would change the context.
+						// the lexer does not recognize all the code spans and
+						// fenced code blocks, so a tag shown in them, as in
+						// `<a href="`, would change the context.
 						l.inRaw = false
 						ok := false
 						switch l.ctx {
@@ -1377,6 +1471,28 @@ func (l *lexer) scan() {
 				}
 			}
 
+			// first reports whether, in Markdown, c is the first character
+			// of its line other than a space or a tab.
+			first := false
+			if l.base == ast.ContextMarkdown && c != ' ' && c != '\t' && c != '\r' && c != '\n' {
+				md := &l.state.md
+				if md.lineStart {
+					// c can be the first character of its line.
+					md.quote = md.quote || c == '>'
+					if l.ctx == ast.ContextMarkdown && (c == '`' || c == '~' || c == '-' || c == '+' || c == '*' || '0' <= c && c <= '9') &&
+						l.lineIndent(p) < 0 {
+						// c could start a fence or a list marker after a
+						// show, a statement or a comment in its line, so the
+						// fence has not been scanned at the beginning of the
+						// line of the source.
+						l.scanFence(p, true)
+					}
+				}
+				first = !md.lineText
+				md.lineText = true
+				md.lineStart = false
+			}
+
 			// cut reports whether c can be cut by the parser at the beginning
 			// of the body of a for statement, as described for cutSpaces.
 			cut := false
@@ -1474,6 +1590,24 @@ func (l *lexer) scan() {
 						}
 						break LOOP
 					}
+					if l.ctx == ast.ContextMarkdown && (l.tag.name == "script" || l.tag.name == "style") {
+						// An element at the beginning of a line, after at
+						// most three spaces, starts an HTML block.
+						indent := l.lineIndent(p - len(l.tag.name) - 1)
+						block := first && 0 <= indent && indent <= 3
+						if err := l.elementInCodeError(l.tag.name, block); err != nil {
+							l.err = err
+							break LOOP
+						}
+						// The element is checked again at the end of the
+						// iterations of the for statements.
+						for i := range l.blocks {
+							if b := &l.blocks[i]; b.kind == blockFor && !b.inElse {
+								b.mdElem = true
+								b.mdInline = b.mdInline || !block
+							}
+						}
+					}
 					if l.tag.name != "" {
 						l.ctx = ast.ContextTag
 						l.state.jsClassic = l.tag.name == "script"
@@ -1498,7 +1632,7 @@ func (l *lexer) scan() {
 					l.ctx = l.tag.ctx
 					// The content of the element, such as a script, is
 					// scanned starting from an empty state.
-					l.state = scanState{jsClassic: l.state.jsClassic}
+					l.state = scanState{jsClassic: l.state.jsClassic, md: l.state.md}
 					l.tag.name = ""
 					l.tag.ctx = l.base
 					if c == '/' {
@@ -1678,7 +1812,7 @@ func (l *lexer) scan() {
 						break LOOP
 					}
 					l.ctx = l.base
-					l.state = scanState{}
+					l.state = scanState{md: l.state.md}
 					p += 8
 					l.column += 8
 				} else if l.state.jsComment == jsCommentLine {
@@ -1700,8 +1834,8 @@ func (l *lexer) scan() {
 					// because '/' follows a '}' that can end a block or an
 					// expression, or whether "<!--" starts a comment, as it
 					// does only in a classic script and not in a module.
-					// "<!--" is not checked in Markdown, where code spans and
-					// code blocks are not recognized.
+					// "<!--" is not checked in Markdown, where not all the
+					// code spans and code blocks are recognized.
 					if c == '/' {
 						l.err = l.errorf("'/' could start a division or a regular expression")
 					} else if c == '<' {
@@ -1951,9 +2085,19 @@ func (l *lexer) scan() {
 			p++
 			if c == '\n' {
 				l.newline()
+				if p > l.mayCutEnd {
+					// The line ends, and a blank line ends the paragraph.
+					if !l.state.md.lineText {
+						l.state.md.backtick = false
+					}
+					l.state.md.lineText = false
+					l.state.md.quote = false
+				}
+				l.state.md.lineStart = true
 				if p < len(l.src) && l.src[p] == '\r' {
 					p++
 				}
+				start := p
 				switch l.ctx {
 				case ast.ContextTabCodeBlock, ast.ContextSpacesCodeBlock:
 					p, l.ctx = l.scanCodeBlock(p)
@@ -1963,6 +2107,15 @@ func (l *lexer) scan() {
 					} else {
 						spacesOnlyLine = true
 					}
+				default:
+					continue
+				}
+				// In a code block, a fence is scanned only if it could
+				// close a fenced code block. If the parser can cut the
+				// newline after a show that renders text, the line could
+				// continue the previous one.
+				if l.ctx == ast.ContextMarkdown || l.state.md.fence.char != 0 {
+					l.scanFence(start, l.state.md.lineText)
 				}
 				continue
 			}
@@ -1976,7 +2129,7 @@ func (l *lexer) scan() {
 			// An HTML or JavaScript file cannot end in a JavaScript string,
 			// template literal, regular expression or block comment. It is
 			// not checked for Markdown, where the lexer does not recognize
-			// code spans and code blocks.
+			// all the code spans and code blocks.
 			l.err = l.unclosedJSError()
 		}
 
@@ -2006,6 +2159,187 @@ func (l *lexer) scan() {
 	l.src = nil
 
 	close(l.tokens)
+}
+
+// elementInCodeError returns an error if the script or style element with the
+// given name, whose start tag is at the current position in Markdown, could
+// be in a code span, in a block quote or in a fenced code block. Otherwise it
+// returns nil. block reports whether the start tag is at the beginning of its
+// line, so that it starts an HTML block.
+//
+// The Markdown converter renders an element in a code span or in a code
+// block as text, while the lexer scans the text that follows as the content
+// of the element, so the values shown after it would be escaped for the
+// wrong context: after "Use `<script>` to", the '`' that closes the code
+// span would start a JavaScript template literal.
+//
+// The lexer does not parse Markdown, so it approximates them:
+//
+//   - an element could be in a code span if a '`' precedes it in its
+//     paragraph, since the last blank line, also if the code span ends
+//     before it. An element that starts an HTML block is not in a code
+//     span, because the block ends the paragraph;
+//   - an element is in a fenced code block if it follows an opening fence
+//     that is not closed, as scanned by scanFence;
+//   - an element in a line that starts with a '>' is in a block quote, where
+//     the fences and the indented code blocks are not recognized.
+//
+// A newline that the parser can cut does not end the line. Like the rest of
+// the state, this state is joined at the end of the branches of a statement.
+//
+// An element in a code block that is not recognized, as a fenced code block
+// that scanFence does not recognize or an indented code block in a list
+// item, is still scanned as an element.
+func (l *lexer) elementInCodeError(name string, block bool) error {
+	// The error is reported at the '<' of the start tag.
+	col := l.column - len(name) - 1
+	md := l.state.md
+	if md.fence.char != 0 {
+		return l.errorAtColumnf(col, "%s element in a fenced code block (use an indented code block)", name)
+	}
+	if md.fence.unknown {
+		return l.errorAtColumnf(col, "%s element could be in a fenced code block (use an indented code block)", name)
+	}
+	if md.quote {
+		return l.errorAtColumnf(col, "%s element in a block quote", name)
+	}
+	if md.backtick && !block {
+		return l.errorAtColumnf(col, "%s element could be in a code span (write &lt;%s in a <code> element)", name, name)
+	}
+	return nil
+}
+
+// lineIndent returns the number of columns of the spaces and tabs that
+// precede l.src[p] in its line of the source, with a tab counted as four
+// columns. If other characters precede it, as those of a statement or a
+// comment, it returns -1.
+func (l *lexer) lineIndent(p int) int {
+	n := 0
+	for i := len(l.text) - len(l.src) + p; i > 0 && l.text[i-1] != '\n'; i-- {
+		switch l.text[i-1] {
+		case ' ':
+			n++
+		case '\t':
+			n += 4
+		default:
+			return -1
+		}
+	}
+	return n
+}
+
+// scanFence scans a code fence at l.src[p], the beginning of a line in
+// Markdown, and updates the fence in the state: an opening fence starts a
+// fenced code block, and a closing fence ends it.
+//
+// As in CommonMark, a fence is a sequence of at least three '`' or three '~'
+// characters. An opening fence of '`' characters is not followed by a '`' in
+// its line. A closing fence has the same character as the opening fence, is
+// at least as long, and is followed only by spaces and tabs in its line.
+//
+// A fence is recognized only at the beginning of a line, after any spaces,
+// tabs and list markers, so also if it is in a list item. A closing fence is
+// not indented more than three columns or, if it is indented more, than the
+// opening fence. After a list marker, it could instead start a list item
+// with another fenced code block, so the fence is not known. The shows,
+// statements and comments after the fence in its line are scanned as text.
+//
+// after reports whether it is not known whether l.src[p] is at the
+// beginning of a line, after any spaces and tabs: when a show, a statement or
+// a comment precedes it in its line of the source, or when the parser can cut
+// the newline before it, after a show that can render text. In this case the
+// fence is not known: its indentation is not known and, in the body of a for
+// statement, it could not start its line from the second iteration on.
+//
+// The following cases are not recognized: a fence in an HTML block, which is
+// not a fence, a closing fence less indented than the opening fence, which
+// could instead end the list item of the fenced code block and start another
+// one, and a list marker that does not start a list item, as "2." after a
+// line of a paragraph.
+func (l *lexer) scanFence(p int, after bool) {
+	f := &l.state.md.fence
+	if f.unknown {
+		return
+	}
+	s := l.src[p:]
+	indent := 0
+	marker := false
+	for {
+		start := indent
+		for len(s) > 0 && (s[0] == ' ' || s[0] == '\t') {
+			indent++
+			if s[0] == '\t' {
+				indent += 3 - (indent-1)%4
+			}
+			s = s[1:]
+		}
+		if marker && indent-start > 4 {
+			// The list item starts with an indented code block.
+			return
+		}
+		n := listMarkerLen(s)
+		if n == 0 {
+			break
+		}
+		marker = true
+		indent += n
+		s = s[n:]
+	}
+	if len(s) == 0 || s[0] != '`' && s[0] != '~' {
+		return
+	}
+	c := s[0]
+	n := 1
+	for n < len(s) && s[n] == c {
+		n++
+	}
+	if n < 3 {
+		return
+	}
+	// s is the rest of the line.
+	s = s[n:]
+	if i := bytes.IndexByte(s, '\n'); i >= 0 {
+		s = s[:i]
+	}
+	if f.char == 0 {
+		if c == '~' || bytes.IndexByte(s, '`') < 0 {
+			*f = mdFence{char: c, length: n, indent: indent}
+			if after {
+				*f = mdFence{unknown: true}
+			}
+		}
+		return
+	}
+	if c != f.char || n < f.length || len(bytes.TrimRight(s, " \t\r")) > 0 {
+		return
+	}
+	if marker || after {
+		*f = mdFence{unknown: true}
+	} else if indent <= max(3, f.indent) {
+		*f = mdFence{}
+	}
+}
+
+// listMarkerLen returns the length of the Markdown list marker at the
+// beginning of s, as "-", "+", "*", "1." and "1)", if it is followed by a
+// space or a tab. Otherwise it returns 0.
+func listMarkerLen(s []byte) int {
+	n := 0
+	if len(s) > 0 && (s[0] == '-' || s[0] == '+' || s[0] == '*') {
+		n = 1
+	} else {
+		for n < len(s) && n < 9 && '0' <= s[n] && s[n] <= '9' {
+			n++
+		}
+		if n == 0 || n == len(s) || s[n] != '.' && s[n] != ')' {
+			return 0
+		}
+		n++
+	}
+	if n < len(s) && (s[n] == ' ' || s[n] == '\t') {
+		return n
+	}
+	return 0
 }
 
 // scanCodeBlock scans a tab or four spaces that start a Markdown code block.
@@ -3092,10 +3426,14 @@ LOOP:
 				typ, txt = l.lexIdentifierOrKeyword(s)
 			}
 			// A show statement among other statements may not be executed,
-			// so it is not known whether a following '/' is a division.
-			if end == tokenEndStatements && typ == tokenShow && l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone {
-				l.state.jsDivisionUnknown = true
-				l.state.jsLineCodeUnknown = true
+			// so it is not known whether a following '/' is a division. In
+			// Markdown, it can render text.
+			if end == tokenEndStatements && typ == tokenShow {
+				if l.ctx == ast.ContextJS && l.state.jsComment == jsCommentNone {
+					l.state.jsDivisionUnknown = true
+					l.state.jsLineCodeUnknown = true
+				}
+				l.state.md.lineText = true
 			}
 			// A break, continue or return statement among other statements
 			// ends a branch or a body as in a single statement, unless it

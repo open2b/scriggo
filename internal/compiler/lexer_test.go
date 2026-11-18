@@ -1028,8 +1028,10 @@ var rawTests = []struct {
 	{ast.FormatCSS, "{% raw %}a { content: \"{% end raw %}\" }", ":1:24: syntax error: raw content cannot end in CSS string"},
 	{ast.FormatJS, "{% raw %}var a = '{% end raw %}';", ":1:19: syntax error: raw content cannot end in JavaScript string"},
 	{ast.FormatHTML, "<script>{% raw %}'{% end raw %}", ":1:19: syntax error: raw content cannot end in JavaScript string"},
-	{ast.FormatMarkdown, "Example: `{% raw %}<script>{% end raw %}` and {{ b }}", ":1:28: syntax error: raw content cannot end in JavaScript"},
-	{ast.FormatMarkdown, "{% raw %}\n```html\n<script>\n{% end raw %}```\n{{ b }}", ":4:1: syntax error: raw content cannot end in JavaScript"},
+	{ast.FormatMarkdown, "Example: `{% raw %}<a href=\"{% end raw %}` and {{ b }}", ":1:29: syntax error: raw content cannot end in quoted attribute"},
+	{ast.FormatMarkdown, "-     {% raw %}<script>{% end raw %} and {{ b }}", ":1:24: syntax error: raw content cannot end in JavaScript"},
+	{ast.FormatMarkdown, "Example: `{% raw %}<script>{% end raw %}` and {{ b }}", ":1:20: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "{% raw %}\n```html\n<script>\n{% end raw %}```\n{{ b }}", ":3:1: syntax error: script element in a fenced code block (use an indented code block)"},
 	{ast.FormatMarkdown, "{% raw %}<style>{% end raw %}", ":1:17: syntax error: raw content cannot end in CSS"},
 	{ast.FormatMarkdown, "{% raw %}a\\{% end raw %}{{ b }}", ":1:11: syntax error: unfinished escape sequence in Markdown"},
 }
@@ -1421,11 +1423,11 @@ func TestLexerCutAssumptions(t *testing.T) {
 	}
 }
 
-// TestLexerStateFields checks the fields of lexState and scanState, so that
-// a new field is not forgotten in joinLexStates, which must decide how to
-// join its values at the end of the branches of a statement, and, if it is a
-// slice, in scanState.clone. If the fields change, check these functions and
-// then update the fields in this test.
+// TestLexerStateFields checks the fields of lexState, scanState and mdState,
+// so that a new field is not forgotten in joinLexStates, which must decide
+// how to join its values at the end of the branches of a statement, and, if
+// it is a slice, in scanState.clone. If the fields change, check these
+// functions and then update the fields in this test.
 func TestLexerStateFields(t *testing.T) {
 	for _, test := range []struct {
 		typ    reflect.Type
@@ -1437,7 +1439,8 @@ func TestLexerStateFields(t *testing.T) {
 			"jsLineCode", "jsClassic", "typeAttr", "attrNameChar", "jsClassStart", "jsClassDynamic",
 			"jsParens", "jsNextParen", "jsParensFloor", "jsParensDeep", "jsIdentEnd", "cutSpaces",
 			"jsNextName", "jsIdentName", "jsIdentParen", "jsIdentJoined", "jsDivisionUnknown",
-			"jsLineCodeUnknown", "typeAttrUnknown"}, []string{"jsBraces", "jsParens"}},
+			"jsLineCodeUnknown", "typeAttrUnknown", "md"}, []string{"jsBraces", "jsParens"}},
+		{reflect.TypeFor[mdState](), []string{"backtick", "lineText", "lineStart", "quote", "fence"}, nil},
 	} {
 		var fields, slices []string
 		for i := 0; i < test.typ.NumField(); i++ {
@@ -1512,8 +1515,8 @@ var unclosedJSTests = []struct {
 	{ast.FormatHTML, "<script>var n = 1. / 2</script>", ""},
 	{ast.FormatHTML, "<script>'a", ":1:11: syntax error: unclosed JavaScript string at the end of the script"},
 	{ast.FormatHTML, "<script>a", ""},
-	{ast.FormatMarkdown, "Put your code in a `<script>` element.", ""},
-	{ast.FormatMarkdown, "```html\n<script src=\"app.js\">\n```\n", ""},
+	{ast.FormatMarkdown, "-     <script>\n\nIt's here.\n", ""},
+	{ast.FormatMarkdown, "- a\n  ```\n  b\n```\n<script src=\"app.js\">\n```\n", ""},
 	{ast.FormatJS, "a // b", ""},
 	{ast.FormatJS, "'a", ":1:3: syntax error: unclosed JavaScript string at the end of the script"},
 	{ast.FormatJS, "`a", ":1:3: syntax error: unclosed JavaScript template literal at the end of the script"},
@@ -1522,6 +1525,197 @@ var unclosedJSTests = []struct {
 
 func TestLexerUnclosedJS(t *testing.T) {
 	for _, test := range unclosedJSTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+// markdownCodeTests contain sources with script and style elements that, in
+// Markdown, could be in a code span or in a fenced code block, where the
+// Markdown converter renders them as text.
+var markdownCodeTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	// Code spans.
+	{ast.FormatMarkdown, "Use `<script>` and don't forget it's async.\n\n<a title={{ v }}>x</a>\n", ":1:6: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use `<style>` here.", ":1:6: syntax error: style element could be in a code span (write &lt;style in a <code> element)"},
+	{ast.FormatMarkdown, "Use `a` and <script src=\"a.js\"></script>", ":1:13: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use `a` and <b>c</b> <script>d</script>", ":1:22: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use `a`.\n<script>var b = {{ v }};</script>", ""},
+	{ast.FormatMarkdown, "Use `a`.\n   <script>b</script>", ""},
+	{ast.FormatMarkdown, "Use `a`.\n    <script>b</script>", ":2:5: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use `a\nb <script>` and it's async.", ":2:3: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use `a` <b title=\"c\nd\"> <script>e</script>", ":2:5: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use `a`.\n\nb <script>c</script>", ""},
+	{ast.FormatMarkdown, "Use `a`.\n  \nb <script>c</script>", ""},
+	{ast.FormatMarkdown, "Use `a`.\n\\*\nb <script>", ":3:3: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use `a`.\n{{ v }}<script>", ":2:8: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use \\`<script>a</script>", ""},
+	{ast.FormatMarkdown, "Use \\\\`<script>a</script>", ":1:8: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "<script>var a = `b`;</script> <script>c</script>", ""},
+	{ast.FormatMarkdown, "Use `</script>` and <b>", ""},
+	{ast.FormatHTML, "Use `<script>a</script>`", ""},
+	{ast.FormatHTML, "{% macro M markdown %}Use `<script>`{% end %}", ":1:28: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use `a` {% var x = itea; using html %}<script>b</script>{% end %}", ""},
+	{ast.FormatMarkdown, "{% raw %}`{% end raw %}<script>a</script>", ":1:24: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	// Code spans in a paragraph with statements.
+	{ast.FormatMarkdown, "Use `a`.\n{% if b %}<script>c</script>{% end %}", ":2:11: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use `a`{% if b %}\n{% else %}\n<script>c</script>{% end %}", ":3:1: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use `a`{% if b %}\n\n{% end %}c <script>", ":3:12: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use `a`{% if b %}\n{% end %}\n\nc <script>", ":4:3: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "Use `a`.\n{% if b %}\n\n{% else %}\n\n{% end %}\nc <script>d</script>", ""},
+	// Code spans in the branches of a statement.
+	{ast.FormatMarkdown, "{% if a %}`{% end %}<script>b</script>", ":1:21: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "{% if a %}`{% else %}<script>b</script>{% end %}", ""},
+	{ast.FormatMarkdown, "`{% if a %}\n{% end %}<script>b</script>", ":2:10: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "`{% if a %}\n{% else %}\n{% end %}<script>b</script>", ":3:10: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "`a`\n{% if b %}\n<script>c</script>\n{% end %}", ""},
+	{ast.FormatMarkdown, "`{% switch a %}\n{% case 1 %}\n<script>b</script>{% end %}", ""},
+	// A newline that the parser can cut does not end the line.
+	{ast.FormatMarkdown, "`a`{# b\nc #}\n<script>d</script>", ":3:1: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "`a`{% if b\n%}{% if c %}\n<script>d</script>{% end %}{% end %}", ":3:1: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "`a`{% if b %}\n{% end %}\n<script>c</script>", ":3:1: syntax error: script element could be in a code span (write &lt;script in a <code> element)"},
+	{ast.FormatMarkdown, "`a`{% if b %}\n{% end %}\n\n<script>c</script>", ""},
+	// Code spans in the body of a for statement.
+	{ast.FormatMarkdown, "{% for a in b %}`{{ a }}` {% end %}", ""},
+	{ast.FormatMarkdown, "{% for a in b %}<script>c</script> `d` {% end %}", ":1:43: syntax error: for branches end in different contexts"},
+	{ast.FormatMarkdown, "{% for a in b %}<script>c</script>{% if d %} `e`{% continue %}{% end %}\n{% end %}", ":1:52: syntax error: for branches end in different contexts"},
+	{ast.FormatMarkdown, "{% for a in b %}<script>c</script> `d`{% break %}\n\n{% end %}", ""},
+	{ast.FormatMarkdown, "{% for a in b %}\n<script>c</script>\nUse `d`.\n{% end %}", ""},
+	{ast.FormatMarkdown, "{% for a in b %}\nc <script>d</script>\nUse `e`.\n{% end %}", ":4:4: syntax error: for branches end in different contexts"},
+	{ast.FormatMarkdown, "{% for a in b %}\nc <script>d</script>\nUse `e`.\n\n{% end %}", ""},
+	{ast.FormatMarkdown, "{% for a in b %}<script>c</script>\n`d`{% end %}", ":2:7: syntax error: for branches end in different contexts"},
+	{ast.FormatMarkdown, "{% for a in b %}<script>c</script>\n> d{% end %}", ":2:7: syntax error: for branches end in different contexts"},
+	{ast.FormatMarkdown, "{% for a in b %}{% else %}<script>c</script> `d` {% end %}", ""},
+	{ast.FormatMarkdown, "Scripts: {% for _, s := range []string{\"a.js\"} %}<script src=\"{{ s }}\"></script>\n{% end %}", ""},
+	{ast.FormatMarkdown, "<div>{% for a in b %}<script src=\"a.js\"></script>\n{% end %}</div>", ""},
+	{ast.FormatMarkdown, "a {% for a in b %}> <script>c</script>\n{% end %}", ":1:21: syntax error: script element in a block quote"},
+	// Fences and block quotes from the second iteration of a for statement.
+	{ast.FormatMarkdown, "a {% for _, x := range []int{1, 2} %}~~~\n{% end %}\n\n<script>\n~~~\n\nIt is a ` character.\n\n<a title={{ v }}>x</a>\n", ":4:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "a {% for a in b %}```\n{% end %}\n\n<script>\n```\n\nIt's here.\n", ":4:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "a {% for a in b %}- ```\n{% end %}\n<script>", ":3:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{% for a in b %}\n```\nc\n```\n{% end %}\n<script>d</script>", ""},
+	// Fenced code blocks.
+	{ast.FormatMarkdown, "```html\n<script src=\"app.js\">\n```\n", ":2:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "~~~\n<style>\n~~~\n", ":2:1: syntax error: style element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "a\n```\nb <script>\n", ":3:3: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "```\na\n```\n<script>var b = {{ v }};</script>", ""},
+	{ast.FormatMarkdown, "```\na\n```  \n<script>b</script>", ""},
+	{ast.FormatMarkdown, "```\r\na\r\n```\r\n<script>b</script>", ""},
+	{ast.FormatMarkdown, "```\n<b>\n````\n<script>a</script>", ""},
+	{ast.FormatMarkdown, "````\n```\n<script>", ":3:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "```\n~~~\n<script>", ":3:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "```\n``` a\n<script>", ":3:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "~~~ a`b\n<script>", ":2:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "``` a`b\n<script>c</script>", ""},
+	{ast.FormatMarkdown, "```a```\n<script>b</script>", ""},
+	{ast.FormatMarkdown, "``\n<script>a</script>", ""},
+	{ast.FormatMarkdown, "a ```\n<script>b</script>", ""},
+	{ast.FormatHTML, "```\n<script>a</script>\n```", ""},
+	// Fences after list markers.
+	{ast.FormatMarkdown, "- ```html\n  <b>\n  ```\n\n```\n<script>\n```\n\n<a title={{ v }}>x</a>\n", ":6:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "- ```\n  <script>", ":2:3: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "1. ~~~\n   <script>", ":2:4: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "10) ```\n<script>", ":2:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "- - ```\n<script>", ":2:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "* ```\n  a\n  ```\n<script>b</script>", ""},
+	{ast.FormatMarkdown, "```\n- ```\n<script>", ":3:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "-```\n<script>a</script>", ""},
+	{ast.FormatMarkdown, "-     ```\n<script>a</script>", ""},
+	{ast.FormatMarkdown, "-    ```\n<script>", ":2:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "- a ```\n<script>b</script>", ""},
+	// Block quotes.
+	{ast.FormatMarkdown, "> ```html\n> <script src=\"app.js\">\n> ```\n", ":2:3: syntax error: script element in a block quote"},
+	{ast.FormatMarkdown, ">     <script>\n\nHello {{ v }}", ":1:7: syntax error: script element in a block quote"},
+	{ast.FormatMarkdown, "   > <style>", ":1:6: syntax error: style element in a block quote"},
+	{ast.FormatMarkdown, "> a\n<script>b</script>", ""},
+	{ast.FormatMarkdown, "a > <script>b</script>", ""},
+	{ast.FormatMarkdown, "\\> <script>a</script>", ""},
+	{ast.FormatMarkdown, "{% if a %}> {% end %}<script>b</script>", ":1:22: syntax error: script element in a block quote"},
+	{ast.FormatMarkdown, "> a{% if b %}\n{% end %}\n<script>c</script>", ":3:1: syntax error: script element in a block quote"},
+	// Block quotes after a show.
+	{ast.FormatMarkdown, "{{ v }}\n>     <script>\n\nIt is a ` character.\n\n<a title={{ v }}>x</a>\n", ":2:7: syntax error: script element in a block quote"},
+	{ast.FormatMarkdown, "{{ v }}> <script>", ":1:10: syntax error: script element in a block quote"},
+	{ast.FormatMarkdown, "{{ v }}{% if a %}{{ b }}{% end %}> <script>", ":1:36: syntax error: script element in a block quote"},
+	{ast.FormatMarkdown, "{% if a %}b{% end %}> <script>", ":1:23: syntax error: script element in a block quote"},
+	{ast.FormatMarkdown, "a{{ v }}> <script>b</script>", ""},
+	{ast.FormatMarkdown, "{{ v }}a> <script>b</script>", ""},
+	{ast.FormatMarkdown, "<b>{{ v }}</b>> <script>a</script>", ""},
+	// Indented fences.
+	{ast.FormatMarkdown, "   ```\n<script>", ":2:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "- a\n    ```\n    <script>\n    ```\n", ":3:5: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "- a\n\t```\n\t<script>\n", ":3:2: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "- a\n    ```\n    b\n    ```\n<script>c</script>", ""},
+	{ast.FormatMarkdown, "- a\n    ```\n    b\n\n    c\n    ```\n<script>d</script>", ""},
+	{ast.FormatMarkdown, "```\n    ```\n<script>", ":3:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "  ```\n   ```\n<script>a</script>", ""},
+	{ast.FormatMarkdown, "  ```\n    ```\n<script>", ":3:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "- a\n     ```\n    ```\n<script>b</script>", ""},
+	{ast.FormatMarkdown, "- a\n    ```\n     ```\n<script>", ":4:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "    ```\n    <script>\n    ```\n{{ v }}", ""},
+	{ast.FormatMarkdown, "a\n\n    ```\n    <script>\n    ```\n{{ v }}", ""},
+	// Fences after a show, a statement or a comment in their line.
+	{ast.FormatMarkdown, "{% if true %}```html{% end %}\n<script>\n```\n\n<a title={{ v }}>x</a>\n", ":2:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{# a #}```html\n<script>\n```\n", ":2:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "a\n  {# b #} ~~~\n<style>", ":3:1: syntax error: style element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{% if a %}- ```{% end %}\n  <script>", ":2:3: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "```\n{# a #}```\n<script>", ":3:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{% raw %}```{% end raw %}\n<script>", ":2:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatHTML, "{% macro M markdown %}```\n<script>\n```\n{% end %}", ":2:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{{ a }}```html\n<script>\n```\n", ":2:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{{ a }}{% if b %}{{ c }}{% end %}~~~\n<style>", ":2:1: syntax error: style element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{{ a }}\n{# b #}```html\n<script>\n```\n", ":3:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{# a #}```b``` c\n<script>d</script>", ""},
+	{ast.FormatMarkdown, "{# a #}``\n<script>b</script>", ""},
+	{ast.FormatMarkdown, "a{# b #}```\n<script>c</script>", ""},
+	{ast.FormatMarkdown, "a{{ b }}```\n<script>c</script>", ""},
+	{ast.FormatMarkdown, "{{ a }}b```\n<script>c</script>", ""},
+	{ast.FormatMarkdown, "    {# a #}```\n<script>b</script>", ""},
+	// Fences after a line that ends with a show.
+	{ast.FormatMarkdown, "{{ a }}\n```\n<script>", ":3:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{{ a }}\n```\nb\n```\n<script>c</script>", ""},
+	{ast.FormatMarkdown, "a {{ b }}\n```\nc\n```\n<script>d</script>", ""},
+	{ast.FormatMarkdown, "{{ render \"a.md\" }}\n```\nb\n```\n<script>c</script>", ":5:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{{ render \"a.md\" }}\n{% if b %}\n{% end %}\n```\nc\n```\n<script>d</script>", ":7:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{{ render \"a.md\" }}\n\n```\nb\n```\n<script>c</script>", ""},
+	{ast.FormatMarkdown, "{{ render \"a.md\" }}\nb\n```\nc\n```\n<script>d</script>", ""},
+	{ast.FormatMarkdown, "a {{ render \"b.md\" }}\n```\nc\n```\n<script>d</script>", ""},
+	{ast.FormatMarkdown, "{% show render \"a.md\" %}\n```\nb\n```\n<script>c</script>", ":5:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{%% show render \"a.md\" %%}\n```\nb\n```\n<script>c</script>", ":5:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{% if a %}\n```\nb\n```\n<script>c</script>", ""},
+	// Fenced code blocks in the branches of a statement.
+	{ast.FormatMarkdown, "{% if a %}\n```\n{% end %}\n<script>", ":4:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{% if a %}\n```\n{% else %}\n~~~\n{% end %}\n~~~\n<script>", ":7:1: syntax error: script element could be in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{% if a %}\n```\n{% else %}\n```\n{% end %}\n<script>", ":6:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{% if a %}\n```\n{% else %}\n```\n{% end %}\nb\n```\n<script>c</script>", ""},
+	{ast.FormatMarkdown, "{% if a %}\n```\nb\n```\n{% end %}\n<script>c</script>", ""},
+	{ast.FormatMarkdown, "```{{ a }}\n<script>", ":2:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{% raw %}\n```\n{% end raw %}\n<script>", ":4:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	// Fenced code blocks in the body of a for statement.
+	{ast.FormatMarkdown, "{% for a in b %}\n```\n{{ a }}\n```\n{% end %}\n<script>c</script>", ""},
+	{ast.FormatMarkdown, "{% for a in b %}\n```\n{{ a }}\n{% end %}", ""},
+	{ast.FormatMarkdown, "{% for a in b %}\n<script>c</script>\n```\n{% end %}", ":4:4: syntax error: for branches end in different contexts"},
+	{ast.FormatMarkdown, "```\n{% for a in b %}\n```\n<script>c</script>\n{% end %}", ":5:4: syntax error: for branches end in different contexts"},
+	// Fenced code blocks in the body of a macro or using statement.
+	{ast.FormatHTML, "{% macro M markdown %}\n```\n<script>\n```\n{% end %}", ":3:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "{% macro M %}\n```\n{% end %}\n<script>a</script>", ""},
+	{ast.FormatMarkdown, "```\n{% macro M %}\n<script>a</script>\n{% end %}", ""},
+	{ast.FormatMarkdown, "{% show itea; using %}\n```\n{% end %}\n<script>", ":4:1: syntax error: script element in a fenced code block (use an indented code block)"},
+	{ast.FormatMarkdown, "```\n{% show itea; using %}\n```\n{% end %}\n<script>a</script>", ""},
+}
+
+func TestLexerMarkdownCode(t *testing.T) {
+	for _, test := range markdownCodeTests {
 		lex := scanTemplate([]byte(test.src), test.format, false)
 		for range lex.Tokens() {
 		}
@@ -1545,7 +1739,7 @@ var htmlLikeCommentTests = []struct {
 	{ast.FormatHTML, "<script {% if a %}type=\"text/javascript\"{% end %}><!--\n</script>", ""},
 	{ast.FormatHTML, "<script type=\"module\"></script><script><!--\n</script>", ""},
 	{ast.FormatHTML, "<script type=\"module\">a < !--b; '<!--'</script>", ""},
-	{ast.FormatMarkdown, "Add `<script type=\"module\" src=\"app.js\">` to the page.\n\n```html\n<!-- not here -->\n```\n", ""},
+	{ast.FormatMarkdown, "-     <script type=\"module\" src=\"app.js\">\n\n<!-- not here -->\n", ""},
 	{ast.FormatHTML, "<script type type=\"module\"><!--\n</script>", ""},
 	{ast.FormatHTML, "<script type=\"text/javascript\" type=\"module\"><!--\n</script>", ""},
 	{ast.FormatHTML, "<script type=\"module\" type=\"text/javascript\"><!--\n</script>", ":1:46: syntax error: '<!--' could start a comment or be an operator"},
