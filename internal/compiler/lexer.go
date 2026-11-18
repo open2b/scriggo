@@ -72,8 +72,9 @@ func (l *lexer) Stop() {
 
 var cdataStart = []byte("<![CDATA[")
 var cdataEnd = []byte("]]>")
-var jsHTMLCommentStart = []byte("<!--")
-var jsHTMLCommentEnd = []byte("-->")
+var htmlCommentStart = []byte("<!--")
+var htmlCommentEnd = []byte("-->")
+var htmlCommentBangEnd = []byte("--!>")
 
 var emptyMarker = []byte{}
 
@@ -100,6 +101,8 @@ type lexer struct {
 	cutEnd         int        // index in src of the end of the spaces and newline that the parser cuts
 	mayCutEnd      int        // index in src of the end of the spaces and newline that the parser could cut
 	render         bool       // whether a render keyword has been emitted since the start of the current show
+	commentEnd     int        // index in text of the comment end in the script or style element, as described in elementInComment
+	commentErr     error      // error reported if the scan reaches commentEnd in the element
 	rawMarker      []byte     // raw marker, not nil when a raw statement has been lexed
 	inRaw          bool       // whether the content of a raw statement is being scanned
 	rawEnd         int        // index in src of the end of the raw content, if inRaw is true
@@ -316,6 +319,15 @@ type scanState struct {
 	jsLineCodeUnknown bool
 	typeAttrUnknown   bool
 
+	// htmlComment reports whether, in HTML or Markdown, an HTML comment can
+	// be open at the current position. In Markdown, it is true after every
+	// "<!--". elemComment reports whether the current position is in a
+	// script or style element that starts when an HTML comment can be open,
+	// and that can contain the end of the comment, as described in
+	// elementInComment.
+	htmlComment bool
+	elemComment bool
+
 	// md is the state of the Markdown code spans, block quotes and fenced
 	// code blocks, in which a script or style element cannot start.
 	md mdState
@@ -430,6 +442,8 @@ func joinLexStates(a, b lexState) (lexState, bool) {
 	if sa.jsIdentName != sb.jsIdentName {
 		sa.jsIdentName = jsNameUnknown
 	}
+	sa.htmlComment = sa.htmlComment || sb.htmlComment
+	sa.elemComment = sa.elemComment || sb.elemComment
 	sa.md.backtick = sa.md.backtick || sb.md.backtick
 	sa.md.lineText = sa.md.lineText || sb.md.lineText
 	sa.md.lineStart = sa.md.lineStart || sb.md.lineStart
@@ -507,6 +521,7 @@ type lexBlock struct {
 	label    string    // label of the statement, if any
 	inElse   bool      // whether the else branch of a for statement is being scanned
 	parens   bool      // whether an iteration of a for statement changes the JavaScript parentheses
+	htmlElem bool      // whether a script or style element starts in HTML in the body of a for statement
 	mdElem   bool      // whether a script or style element starts in Markdown in the body of a for statement
 	mdInline bool      // whether such an element does not start at the beginning of its line
 }
@@ -745,6 +760,13 @@ func (l *lexer) endIteration(b *lexBlock, next bool, col int) error {
 	}
 	if next && (!slices.Equal(start.jsParens, end.jsParens) || start.jsParensDeep != end.jsParensDeep) {
 		b.parens = true
+	}
+	if next && b.htmlElem && end.htmlComment && !start.htmlComment {
+		// From the second iteration on, the body starts in the state in
+		// which it ends, so a script or style element of the body could be
+		// in an HTML comment. In Markdown, the elements are checked as if a
+		// comment were open, as described in elementInComment.
+		return l.errorAtColumnf(col, "%s branches end in different contexts", b.kind)
 	}
 	if next && b.mdElem {
 		// From the second iteration on, the body starts in the state in
@@ -1493,6 +1515,17 @@ func (l *lexer) scan() {
 				md.lineStart = false
 			}
 
+			if l.state.elemComment {
+				if l.ctx == l.base {
+					// The element has ended.
+					l.state.elemComment = false
+				} else if len(l.text)-len(l.src)+p >= l.commentEnd {
+					// The comment could end in the element.
+					l.err = l.commentErr
+					break LOOP
+				}
+			}
+
 			// cut reports whether c can be cut by the parser at the beginning
 			// of the body of a for statement, as described for cutSpaces.
 			cut := false
@@ -1507,6 +1540,14 @@ func (l *lexer) scan() {
 			}
 
 			switch l.ctx {
+
+			case ast.ContextTabCodeBlock, ast.ContextSpacesCodeBlock:
+				if c == '<' && bytes.HasPrefix(l.src[p:], htmlCommentStart) {
+					// The text that follows can be in an HTML comment, as in
+					// an HTML block, where the converter does not recognize
+					// the code block.
+					l.state.htmlComment = true
+				}
 
 			case ast.ContextMarkdown:
 				// The content of a raw statement is a single text token, so
@@ -1540,6 +1581,12 @@ func (l *lexer) scan() {
 				fallthrough
 
 			case ast.ContextHTML:
+				if c == '-' && l.state.htmlComment && l.base != ast.ContextMarkdown && bytes.HasPrefix(l.src[p:], htmlCommentEnd) {
+					// End of the HTML comment. In Markdown, it does not end
+					// it, because the converter escapes it when it is not in
+					// raw HTML, as in a paragraph or in a code span.
+					l.state.htmlComment = false
+				}
 				if c == '<' {
 					// <![CDATA[...]]>
 					if l.ctx == ast.ContextHTML && p+8 < len(l.src) && l.src[p+1] == '!' {
@@ -1569,6 +1616,13 @@ func (l *lexer) scan() {
 							continue
 						}
 					}
+					if bytes.HasPrefix(l.src[p:], htmlCommentStart) {
+						// The text that follows can be in an HTML comment,
+						// also if, in Markdown, it is in a code span or in a
+						// fenced code block, which the lexer does not always
+						// recognize, as in an HTML block.
+						l.state.htmlComment = true
+					}
 					// Start tag.
 					p++
 					l.column++
@@ -1590,22 +1644,31 @@ func (l *lexer) scan() {
 						}
 						break LOOP
 					}
-					if l.ctx == ast.ContextMarkdown && (l.tag.name == "script" || l.tag.name == "style") {
-						// An element at the beginning of a line, after at
-						// most three spaces, starts an HTML block.
-						indent := l.lineIndent(p - len(l.tag.name) - 1)
-						block := first && 0 <= indent && indent <= 3
-						if err := l.elementInCodeError(l.tag.name, block); err != nil {
-							l.err = err
-							break LOOP
+					if l.tag.name == "script" || l.tag.name == "style" {
+						md, block := l.ctx == ast.ContextMarkdown, false
+						if md {
+							// An element at the beginning of a line, after at
+							// most three spaces, starts an HTML block.
+							indent := l.lineIndent(p - len(l.tag.name) - 1)
+							block = first && 0 <= indent && indent <= 3
+							if err := l.elementInCodeError(l.tag.name, block); err != nil {
+								l.err = err
+								break LOOP
+							}
 						}
 						// The element is checked again at the end of the
 						// iterations of the for statements.
+						inFor := false
 						for i := range l.blocks {
 							if b := &l.blocks[i]; b.kind == blockFor && !b.inElse {
-								b.mdElem = true
-								b.mdInline = b.mdInline || !block
+								inFor = true
+								b.htmlElem = b.htmlElem || !md
+								b.mdElem = b.mdElem || md
+								b.mdInline = b.mdInline || md && !block
 							}
+						}
+						if l.state.htmlComment || md && inFor {
+							l.elementInComment(l.tag.name, p)
 						}
 					}
 					if l.tag.name != "" {
@@ -1632,7 +1695,8 @@ func (l *lexer) scan() {
 					l.ctx = l.tag.ctx
 					// The content of the element, such as a script, is
 					// scanned starting from an empty state.
-					l.state = scanState{jsClassic: l.state.jsClassic, md: l.state.md}
+					l.state = scanState{jsClassic: l.state.jsClassic, htmlComment: l.state.htmlComment,
+						elemComment: l.state.elemComment, md: l.state.md}
 					l.tag.name = ""
 					l.tag.ctx = l.base
 					if c == '/' {
@@ -1812,7 +1876,7 @@ func (l *lexer) scan() {
 						break LOOP
 					}
 					l.ctx = l.base
-					l.state = scanState{md: l.state.md}
+					l.state = scanState{htmlComment: l.state.htmlComment, md: l.state.md}
 					p += 8
 					l.column += 8
 				} else if l.state.jsComment == jsCommentLine {
@@ -1826,8 +1890,8 @@ func (l *lexer) scan() {
 						l.column++
 					}
 				} else if c == '/' && l.state.jsDivisionUnknown && p+1 < len(l.src) && l.src[p+1] != '/' && l.src[p+1] != '*' ||
-					c == '-' && l.state.jsLineCodeUnknown && bytes.HasPrefix(l.src[p:], jsHTMLCommentEnd) ||
-					c == '<' && !l.state.jsClassic && l.base != ast.ContextMarkdown && bytes.HasPrefix(l.src[p:], jsHTMLCommentStart) {
+					c == '-' && l.state.jsLineCodeUnknown && bytes.HasPrefix(l.src[p:], htmlCommentEnd) ||
+					c == '<' && !l.state.jsClassic && l.base != ast.ContextMarkdown && bytes.HasPrefix(l.src[p:], htmlCommentStart) {
 					// It is not known whether '/' starts a regular expression
 					// or "-->" starts a comment, for example because the
 					// branches of a statement end in different states or
@@ -1844,8 +1908,8 @@ func (l *lexer) scan() {
 						l.err = l.errorf("'-->' could start a comment or be an operator")
 					}
 					break LOOP
-				} else if c == '<' && bytes.HasPrefix(l.src[p:], jsHTMLCommentStart) ||
-					c == '-' && !l.state.jsLineCode && bytes.HasPrefix(l.src[p:], jsHTMLCommentEnd) ||
+				} else if c == '<' && bytes.HasPrefix(l.src[p:], htmlCommentStart) ||
+					c == '-' && !l.state.jsLineCode && bytes.HasPrefix(l.src[p:], htmlCommentEnd) ||
 					c == '#' && p+1 < len(l.src) && l.src[p+1] == '!' {
 					// HTML-like comments and hashbang comments are treated as
 					// line comments. "-->" is a comment only at the beginning of
@@ -2207,6 +2271,38 @@ func (l *lexer) elementInCodeError(name string, block bool) error {
 		return l.errorAtColumnf(col, "%s element could be in a code span (write &lt;%s in a <code> element)", name, name)
 	}
 	return nil
+}
+
+// elementInComment is called when the start tag of the script or style
+// element with the given name, which ends at l.src[p], is at the current
+// position, where an HTML comment can be open. The browser ends the comment
+// at the first "-->" or "--!>", also in the element, while the lexer scans
+// the text after it as the content of the element, so the values shown after
+// it would be escaped for the wrong context: after "<!-- <script> -->", a
+// '`' would start a JavaScript template literal.
+//
+// So, if a comment end follows the start tag, the scan reports an error if
+// it reaches it before the end of the element. A comment end in a show, a
+// statement or a comment is also considered, as one in a statement that is
+// not executed.
+//
+// In Markdown, where a "-->" does not end a comment, an element in the body
+// of a for statement is checked as if a comment were open, as one can be from
+// the second iteration on.
+func (l *lexer) elementInComment(name string, p int) {
+	s := l.src[p:]
+	i := bytes.Index(s, htmlCommentEnd)
+	if j := bytes.Index(s, htmlCommentBangEnd); j >= 0 && (i < 0 || j < i) {
+		i = j
+	}
+	if i < 0 {
+		return
+	}
+	l.state.elemComment = true
+	l.commentEnd = len(l.text) - len(l.src) + p + i
+	// The error is reported at the '<' of the start tag.
+	col := l.column - len(name) - 1
+	l.commentErr = l.errorAtColumnf(col, "%s element could be in an HTML comment that ends before its end tag", name)
 }
 
 // lineIndent returns the number of columns of the spaces and tabs that

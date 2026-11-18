@@ -1439,7 +1439,7 @@ func TestLexerStateFields(t *testing.T) {
 			"jsLineCode", "jsClassic", "typeAttr", "attrNameChar", "jsClassStart", "jsClassDynamic",
 			"jsParens", "jsNextParen", "jsParensFloor", "jsParensDeep", "jsIdentEnd", "cutSpaces",
 			"jsNextName", "jsIdentName", "jsIdentParen", "jsIdentJoined", "jsDivisionUnknown",
-			"jsLineCodeUnknown", "typeAttrUnknown", "md"}, []string{"jsBraces", "jsParens"}},
+			"jsLineCodeUnknown", "typeAttrUnknown", "htmlComment", "elemComment", "md"}, []string{"jsBraces", "jsParens"}},
 		{reflect.TypeFor[mdState](), []string{"backtick", "lineText", "lineStart", "quote", "fence"}, nil},
 	} {
 		var fields, slices []string
@@ -1716,6 +1716,94 @@ var markdownCodeTests = []struct {
 
 func TestLexerMarkdownCode(t *testing.T) {
 	for _, test := range markdownCodeTests {
+		lex := scanTemplate([]byte(test.src), test.format, false)
+		for range lex.Tokens() {
+		}
+		var err string
+		if lex.err != nil {
+			err = lex.err.Error()
+		}
+		if err != test.err {
+			t.Errorf("source: %q, expecting error %q, got %q", test.src, test.err, err)
+		}
+	}
+}
+
+// commentTests contain sources with script and style elements that could be
+// in an HTML comment that ends before their end tag.
+var commentTests = []struct {
+	format ast.Format
+	src    string
+	err    string
+}{
+	{ast.FormatHTML, "<!-- <script> -->\n<p>Write `<a title={{ v }}>x</a>` here.</p>\n", ":1:6: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "<!-- <style> -->", ":1:6: syntax error: style element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "<!-- <script>a --> b</script>", ":1:6: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "<!-- <script title=\"-->\">a</script>", ":1:6: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "<!-- <script a-->", ":1:6: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "<!-- <style>a --!> b</style>", ":1:6: syntax error: style element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "<!-- <script type=\"application/ld+json\">{\"a\": \"-->\"}</script>", ":1:6: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "<!-- <script>\n{{ v }}\n-->\n<p>", ":1:6: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "<!-- <script>{# --> #}</script> -->", ":1:6: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "<!-- <script src=\"a.js\"></script> -->", ""},
+	{ast.FormatHTML, "<!--[if lt IE 9]><script src=\"a.js\"></script><![endif]-->", ""},
+	{ast.FormatHTML, "<!-- <style>a { b: c }</style> -->", ""},
+	{ast.FormatHTML, "<!-- <script>{{ \"</script>\" }}</script> -->", ""},
+	{ast.FormatHTML, "<!-- a --> <script>b --> c</script>", ""},
+	{ast.FormatHTML, "<!--> <script>a --> b</script>", ""},
+	{ast.FormatHTML, "<!---> <script>a --> b</script>", ""},
+	{ast.FormatHTML, "<!-- <script>a</script> --> <script>b --> c</script>", ""},
+	{ast.FormatHTML, "<!-- <script type=\"text/plain\">a --> b</script>", ""},
+	{ast.FormatHTML, "<p>a<!-- b</p><script>c</script>", ""},
+	{ast.FormatHTML, "<script>var a = \"<!--\";</script><script>b --> c</script>", ""},
+	{ast.FormatHTML, "<a title=\"<!--\"><script>a --> b</script>", ""},
+	{ast.FormatHTML, "<script>a</script><!-- <script>b</script> --> <script>c --> d</script>", ""},
+	{ast.FormatHTML, "<!-- a --!> <script>b --> c</script>", ":1:13: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "<textarea><!--</textarea><script>a --> b</script>", ":1:26: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "{% raw %}<!--{% end raw %}<script>a --> b</script>", ":1:27: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "{% macro M html %}<!-- <script> -->{% end %}", ":1:24: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	// Comments in the branches of a statement.
+	{ast.FormatHTML, "{% if a %}<!--{% end %}<script>b --> c</script>", ":1:24: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "{% if a %}<!--{% else %}-->{% end %}<script>b --> c</script>", ":1:37: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatHTML, "{% if a %}<!-- {% end %}<script>b</script>{% if a %} -->{% end %}", ""},
+	// Comments in the body of a for statement.
+	{ast.FormatHTML, "{% for x in xs %}<script>a --> b</script><!--{% end %}", ":1:49: syntax error: for branches end in different contexts"},
+	{ast.FormatHTML, "{% for x in xs %}<!-- {{ x }} -->{% end %}<script>a --> b</script>", ""},
+	{ast.FormatHTML, "{% for x in xs %}<b>a --> b</b><!--{% end %}", ""},
+	{ast.FormatHTML, "{% for x in xs %}<script>a</script><!--{% break %}-->{% end %}", ""},
+	// Markdown.
+	{ast.FormatMarkdown, "<!-- <script> -->\n\nIt is a ` character.\n\n<a title={{ v }}>x</a>\n", ":1:6: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "<!-- <script> -->\n\nIt's here.\n\n<a title={{ v }}>x</a>\n", ":1:6: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "Use `<!--` to start a comment.\n\n<script>\n// a --> b\n</script>\n", ":3:1: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "<!-- <script src=\"a.js\"></script> -->\n", ""},
+	{ast.FormatMarkdown, "<!-- a -->\n\n<script>b</script>\n", ""},
+	{ast.FormatMarkdown, "\\<!-- <script>a --> b</script>", ""},
+	// In Markdown, a "-->" does not end a comment, because the converter
+	// escapes it when it is not in raw HTML.
+	{ast.FormatMarkdown, "<div>\n<!-- old\n\nUse --> to end a comment.\n\n<script>\nvar a = 1; // -->\nvar b = `<a title={{ v }}>x</a>`;\n</script>\n", ":6:1: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "<div>\n<!-- old\n\nUse `-->` to end a comment.\n\n<script>// -->\n</script>\n", ":6:1: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "- <!-- old\n\nUse --> here.\n\n<script>// -->\n</script>\n", ":5:1: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "> <!-- old\n\nUse --> here.\n\n<script>// -->\n</script>\n", ":5:1: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "<!-- a\n`-->`\n<script>b --> c</script>", ":3:1: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "<!-- a -->\n\n<script>\n<!--\nb();\n//-->\n</script>\n", ":3:1: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	// In Markdown, a "<!--" is also considered in code spans and code blocks.
+	{ast.FormatMarkdown, "<div>\n```\n<!-- a\n```\n</div>\n\n<script>// -->\n`<a title={{ v }}>x</a>`</script>\n", ":7:1: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "<pre>\n\n    <!-- a\n</pre>\n\n<script>// -->\n`<a title={{ v }}>x</a>`</script>\n", ":6:1: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "```html\n<!--\n```\n<script>a --> b</script>", ":4:1: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "    <!--\n\n<script>a --> b</script>", ":3:1: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "<!--\n```\n-->\n```\n<script>a --> b</script>", ":5:1: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "{% macro M html %}<!-- <script> -->{% end %}", ":1:24: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "{% macro M html %}<!-- a --> <script>b --> c</script>{% end %}", ""},
+	// In Markdown, the elements in the body of a for statement are checked as
+	// if a comment were open.
+	{ast.FormatMarkdown, "{% for _, s := range []string{\"a.js\", \"b.js\"} %}\n<!-- {{ s }} -->\n<script src=\"{{ s }}\"></script>\n{% end %}\n", ""},
+	{ast.FormatMarkdown, "{% for x in xs %}<script>a --> b</script><!--{% end %}", ":1:18: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "{% for x in xs %}<script>a --> b</script>{% end %}", ":1:18: syntax error: script element could be in an HTML comment that ends before its end tag"},
+	{ast.FormatMarkdown, "{% for x in xs %}<style>a</style>{% end %}<script>b --> c</script>", ""},
+}
+
+func TestLexerElementsInComments(t *testing.T) {
+	for _, test := range commentTests {
 		lex := scanTemplate([]byte(test.src), test.format, false)
 		for range lex.Tokens() {
 		}

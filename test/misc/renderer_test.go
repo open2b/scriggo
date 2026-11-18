@@ -924,6 +924,90 @@ func TestElementsInMarkdownCode(t *testing.T) {
 	}
 }
 
+// TestElementsInHTMLComments tests that a script or style element that could
+// be in an HTML comment that ends before its end tag is rejected, so that the
+// values shown after the comment are not escaped as the content of the
+// element.
+func TestElementsInHTMLComments(t *testing.T) {
+	tests := []struct {
+		name     string
+		file     string
+		src      string
+		expected string
+		err      string
+	}{
+		{
+			name: "template literal in HTML",
+			file: "index.html",
+			src:  "<!-- <script> -->\n<p>Write `<a title={{ v }}>x</a>` here.</p>\n",
+			err:  "index.html:1:6: syntax error: script element could be in an HTML comment that ends before its end tag",
+		},
+		{
+			name: "string in HTML",
+			file: "index.html",
+			src:  "<!-- <script> -->\n<p>It's <a title={{ v }}>x</a>, isn't it?</p>\n",
+			err:  "index.html:1:6: syntax error: script element could be in an HTML comment that ends before its end tag",
+		},
+		{
+			name: "template literal in Markdown",
+			file: "index.md",
+			src:  "<!-- <script> -->\n\nIt is a ` character.\n\n<a title={{ v }}>x</a>\n",
+			err:  "index.md:1:6: syntax error: script element could be in an HTML comment that ends before its end tag",
+		},
+		{
+			name: "comment end in a Markdown paragraph",
+			file: "index.md",
+			src:  "<div>\n<!-- old\n\nUse --> to end a comment.\n\n<script>\nvar a = 1; // -->\nvar b = `<a title={{ v }}>x</a>`;\n</script>\n",
+			err:  "index.md:6:1: syntax error: script element could be in an HTML comment that ends before its end tag",
+		},
+		{
+			name:     "comment and script in a for statement in Markdown",
+			file:     "index.md",
+			src:      "{% for _, s := range []string{\"a.js\", \"b.js\"} %}\n<!-- {{ s }} -->\n<script src=\"{{ s }}\"></script>\n{% end %}\n",
+			expected: "<!-- a\\.js -->\n<script src=\"a.js\"></script>\n<!-- b\\.js -->\n<script src=\"b.js\"></script>\n",
+		},
+		{
+			name:     "script in a comment",
+			file:     "index.html",
+			src:      "<!-- <script src=\"a.js\"></script> -->\n<p>It's <a title={{ v }}>x</a>, isn't it?</p>\n",
+			expected: "<!-- <script src=\"a.js\"></script> -->\n<p>It's <a title=x&#32;onmouseover&#61;alert(1)>x</a>, isn't it?</p>\n",
+		},
+		{
+			name:     "script after a comment",
+			file:     "index.html",
+			src:      "<!-- a --><script>var a = 1; // --></script>\n<p>It's <a title={{ v }}>x</a>, isn't it?</p>\n",
+			expected: "<!-- a --><script>var a = 1; // --></script>\n<p>It's <a title=x&#32;onmouseover&#61;alert(1)>x</a>, isn't it?</p>\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := "x onmouseover=alert(1)"
+			opts := &scriggo.BuildOptions{Globals: native.Declarations{"v": &v}}
+			template, err := scriggo.BuildTemplate(fstest.Files{tt.file: tt.src}, tt.file, opts)
+			if tt.err != "" {
+				if err == nil {
+					t.Fatalf("expecting build error %q, got no error", tt.err)
+				}
+				if got := err.Error(); got != tt.err {
+					t.Fatalf("expecting build error %q, got %q", tt.err, got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected build error: %s", err)
+			}
+			var b bytes.Buffer
+			err = template.Run(&b, nil, nil)
+			if err != nil {
+				t.Fatalf("unexpected run error: %s", err)
+			}
+			if got := b.String(); got != tt.expected {
+				t.Fatalf("expecting %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
 // TestTypeAttributeNotKnown tests that the content of a script or style
 // element whose type attribute is not known at compile time is escaped as
 // JavaScript or CSS.
