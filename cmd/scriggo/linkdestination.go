@@ -40,8 +40,8 @@ func (s *htmlState) openTag(tag string) {
 }
 
 func (s *htmlState) closeTag(tag string) {
-	for i := len(s.stack) - 1; i >= 0; i-- {
-		if s.stack[i] == tag {
+	for i, v := range slices.Backward(s.stack) {
+		if v == tag {
 			s.stack = s.stack[:i]
 			break
 		}

@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"slices"
 	"strings"
-	"sync/atomic"
 	"unicode"
 
 	"github.com/open2b/scriggo/ast"
@@ -27,7 +26,7 @@ func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
 			select {
 			case <-stop:
 			case <-vm.env.ctx.Done():
-				atomic.StoreInt32(&vm.env.done, 1)
+				vm.env.done.Store(1)
 			}
 		}()
 	}
@@ -53,7 +52,7 @@ func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
 	}
 	if stop != nil {
 		close(stop)
-		if atomic.LoadInt32(&vm.env.done) == 1 {
+		if vm.env.done.Load() == 1 {
 			return vm.env.ctx.Err()
 		}
 	}
@@ -90,7 +89,7 @@ func (vm *VM) run() (Addr, bool) {
 
 	for {
 
-		if done != nil && atomic.LoadInt32(&vm.env.done) == 1 {
+		if done != nil && vm.env.done.Load() == 1 {
 			return vm.stop()
 		}
 

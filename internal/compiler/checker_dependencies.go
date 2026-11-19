@@ -179,8 +179,8 @@ func declareLocally(scopes depScopes, name string) depScopes {
 
 // isLocallyDefined reports whether name is locally defined in scopes.
 func isLocallyDefined(scopes depScopes, name string) bool {
-	for i := len(scopes) - 1; i >= 0; i-- {
-		if _, ok := scopes[i][name]; ok {
+	for _, scope := range slices.Backward(scopes) {
+		if _, ok := scope[name]; ok {
 			return true
 		}
 	}

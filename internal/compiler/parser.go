@@ -7,6 +7,7 @@ package compiler
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -1703,8 +1704,8 @@ func lastImportOrExtends(nodes []ast.Node) bool {
 	if len(nodes) == 0 {
 		return true
 	}
-	for i := len(nodes) - 1; i >= 0; i-- {
-		switch n := nodes[i].(type) {
+	for _, node := range slices.Backward(nodes) {
+		switch n := node.(type) {
 		case *ast.Extends, *ast.Import:
 			return true
 		case *ast.Statements:
@@ -1934,8 +1935,7 @@ func cutSpaces(first, last *ast.Text) {
 		// So that spaces can be cut, first.Text must only contain '', '\t' and '\r',
 		// or after the last '\n' must only contain '', '\t' and '\r'.
 		txt := first.Text
-		for i := len(txt) - 1; i >= 0; i-- {
-			c := txt[i]
+		for i, c := range slices.Backward(txt) {
 			if c == '\n' {
 				firstCut = i + 1
 				break

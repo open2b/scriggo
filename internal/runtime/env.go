@@ -8,6 +8,7 @@ import (
 	"context"
 	"reflect"
 	"sync"
+	"sync/atomic"
 )
 
 type PrintFunc func(any)
@@ -23,7 +24,7 @@ type env struct {
 	typeof  TypeOfFunc      // typeof function.
 	conv    Converter       // Markdown converter
 
-	done     int32
+	done     atomic.Int32
 	doneChan <-chan struct{}
 	doneCase reflect.SelectCase
 

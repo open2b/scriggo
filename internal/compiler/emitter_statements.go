@@ -6,6 +6,7 @@ package compiler
 
 import (
 	"reflect"
+	"slices"
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/runtime"
@@ -876,8 +877,8 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 		em.fb.enterScope()
 		em.emitNodes(cas.Body)
 		hasFallthrough := false
-		for i := len(cas.Body) - 1; i >= 0; i-- {
-			if _, ok := cas.Body[i].(*ast.Fallthrough); ok {
+		for _, n := range slices.Backward(cas.Body) {
+			if _, ok := n.(*ast.Fallthrough); ok {
 				hasFallthrough = true
 				break
 			}

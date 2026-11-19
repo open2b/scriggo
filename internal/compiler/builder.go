@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"slices"
 	"strconv"
 
 	"github.com/open2b/scriggo/ast"
@@ -291,8 +292,8 @@ func (fb *functionBuilder) declaredInCurrentScope(v string) (int8, bool) {
 
 // declaredInFunc reports whether v is a variable declared within a function.
 func (fb *functionBuilder) declaredInFunc(v string) bool {
-	for i := len(fb.scopes) - 1; i >= 0; i-- {
-		_, ok := fb.scopes[i][v]
+	for _, scope := range slices.Backward(fb.scopes) {
+		_, ok := scope[v]
 		if ok {
 			return true
 		}
@@ -302,8 +303,8 @@ func (fb *functionBuilder) declaredInFunc(v string) bool {
 
 // scopeLookup returns n's register.
 func (fb *functionBuilder) scopeLookup(n string) int8 {
-	for i := len(fb.scopes) - 1; i >= 0; i-- {
-		reg, ok := fb.scopes[i][n]
+	for _, scope := range slices.Backward(fb.scopes) {
+		reg, ok := scope[n]
 		if ok {
 			return reg
 		}
