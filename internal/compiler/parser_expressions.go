@@ -6,6 +6,7 @@ package compiler
 
 import (
 	"bytes"
+	"slices"
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
@@ -505,8 +506,8 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, canElideType, mustBeTyp
 
 			// For all unary operators, set the start at the end of the path.
 			start := operand.Pos().Start
-			for i := len(path) - 1; i >= 0; i-- {
-				if o, ok := path[i].(*ast.UnaryOperator); ok {
+			for _, node := range slices.Backward(path) {
+				if o, ok := node.(*ast.UnaryOperator); ok {
 					o.Position.Start = start
 				} else {
 					break

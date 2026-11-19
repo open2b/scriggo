@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/native"
@@ -131,7 +130,7 @@ func (vm *VM) Reset() {
 // stop is called in the vm.run method to stop the execution.
 func (vm *VM) stop() (Addr, bool) {
 	const maxAddr = 1<<32 - 1
-	atomic.StoreInt32(&vm.env.done, 1)
+	vm.env.done.Store(1)
 	return maxAddr, false
 }
 

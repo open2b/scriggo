@@ -190,7 +190,7 @@ func hasStdlibPrefix(path string) bool {
 		"strconv", "strings", "sync", "syscall", "testing", "text",
 		"time", "unicode", "unsafe",
 	}
-	first := strings.Split(path, "/")[0]
+	first, _, _ := strings.Cut(path, "/")
 	return slices.Contains(stdlibPrefixes, first)
 }
 
