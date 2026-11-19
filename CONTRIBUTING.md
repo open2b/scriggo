@@ -7,6 +7,7 @@ Any help is appreciated, whether it's code, documentation or spelling correction
 - [Contributing Code](#contributing-code)
   - [Format of the Commit Message](#format-of-the-commit-message)
 - [Testing Scriggo](#testing-scriggo)
+  - [Running all checks quickly](#running-all-checks-quickly)
   - [Running existing tests](#running-existing-tests)
 
 ## Contributor Checklist
@@ -45,6 +46,15 @@ When making changes to Scriggo, it is important that:
 - all existing tests pass
 - new tests are added over fixed bugs and newly implemented features
 
+
+### Running all checks quickly
+
+If you have [just](https://github.com/casey/just) installed, run `just` in the root
+of the repository. It installs the `scriggo` command, formats the code, and runs
+all the tests, including the comparison tests.
+
+Note that it may modify files (for example, through `go fmt`), so review the changes
+before committing.
 
 ### Running existing tests
 
