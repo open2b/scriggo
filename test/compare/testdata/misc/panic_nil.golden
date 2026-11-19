@@ -1,1 +1,1 @@
-panic: panic called with nil argument
+panic: runtime error: panic called with nil argument
