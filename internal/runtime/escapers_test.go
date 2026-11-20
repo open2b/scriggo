@@ -104,7 +104,7 @@ func TestJSEscapesInMarkdown(t *testing.T) {
 	// The sources are the ASCII characters, alone and after a '\' and a
 	// '*', and the characters U+2028 and U+2029.
 	var srcs []string
-	for c := 0; c < 128; c++ {
+	for c := range 128 {
 		srcs = append(srcs, string(rune(c)), `\`+string(rune(c)), "*"+string(rune(c)))
 	}
 	srcs = append(srcs, "\u2028", "\u2029")
