@@ -1443,8 +1443,7 @@ func TestLexerStateFields(t *testing.T) {
 		{reflect.TypeFor[mdState](), []string{"backtick", "lineText", "lineStart", "quote", "fence"}, nil},
 	} {
 		var fields, slices []string
-		for i := 0; i < test.typ.NumField(); i++ {
-			f := test.typ.Field(i)
+		for f := range test.typ.Fields() {
 			fields = append(fields, f.Name)
 			if f.Type.Kind() == reflect.Slice {
 				slices = append(slices, f.Name)

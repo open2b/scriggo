@@ -208,8 +208,8 @@ func disassembleFunction(b *bytes.Buffer, globals []Global, fn *runtime.Function
 		b.WriteByte('(')
 		if nIn > 0 {
 			out := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
-			for i := 0; i < fn.Type.NumOut(); i++ {
-				out[kindToType(fn.Type.Out(i).Kind())]++
+			for typ := range fn.Type.Outs() {
+				out[kindToType(typ.Kind())]++
 			}
 			in := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
 			for i := range nIn {
@@ -754,13 +754,13 @@ func funcNameType(fn *runtime.Function, index int8, addr runtime.Addr, op runtim
 // funcHasParameterInRegister reports whether the given function has at least
 // one parameter (input or output) that is stored into the given register type.
 func funcHasParameterInRegister(fn reflect.Type, reg registerType) bool {
-	for i := 0; i < fn.NumIn(); i++ {
-		if kindToType(fn.In(i).Kind()) == reg {
+	for in := range fn.Ins() {
+		if kindToType(in.Kind()) == reg {
 			return true
 		}
 	}
-	for i := 0; i < fn.NumOut(); i++ {
-		if kindToType(fn.Out(i).Kind()) == reg {
+	for out := range fn.Outs() {
+		if kindToType(out.Kind()) == reg {
 			return true
 		}
 	}
