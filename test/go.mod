@@ -1,6 +1,6 @@
 module github.com/open2b/scriggo/test
 
-go 1.25.0
+go 1.26.0
 
 replace github.com/open2b/scriggo => ../
 
