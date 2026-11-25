@@ -704,6 +704,9 @@ func stdLibPaths(version string) []string {
 // stdlibPaths contains the paths of the packages of the Go standard library
 // except the packages "database", "plugin", "testing", "runtime/cgo",
 // "runtime/race",  "syscall", "unsafe" and their sub packages.
+//
+// When a package is added, also add the first element of its path to
+// stdlibPrefixes in hasStdlibPrefix in util.go, if it is missing.
 var stdlibPaths = []string{
 	"archive/tar",
 	"archive/zip",
