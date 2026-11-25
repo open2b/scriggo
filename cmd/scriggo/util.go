@@ -181,10 +181,9 @@ func goLanguageVersion() (string, error) {
 // hasStdlibPrefix reports whether the prefix of path conflicts with the path of
 // a package of the Go standard library.
 func hasStdlibPrefix(path string) bool {
-	// stdlibPrefixes contains the first path element of every package of the
-	// Go standard library, including those not in stdlibPaths. When a package
-	// is added to stdlibPaths in main.go, also add its first path element
-	// here, if it is missing.
+	// stdlibPrefixes contains the first path element of every package in the Go standard library,
+	// including those not listed in stdlibPaths. Packages that require setting GOEXPERIMENT are excluded.
+	// When a package is added to stdlibPaths in main.go, also add its first path element here if it is missing.
 	stdlibPrefixes := []string{
 		"archive", "bufio", "bytes", "cmp", "compress", "container",
 		"context", "crypto", "database", "debug", "embed", "encoding",
