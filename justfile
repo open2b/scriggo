@@ -1,10 +1,15 @@
-# Install scriggo, format and test all modules, and run the comparison tests
+# Build scriggo, format and test all modules, and run the comparison tests
 all:
     #!/usr/bin/env bash
     set -euxo pipefail
 
-    # Install the scriggo command, used by 'go generate' in the test module.
-    (cd cmd/scriggo && go generate ./... && go install)
+    # Build the scriggo command, used by 'go generate' in the test module,
+    # into a temporary directory placed first in PATH, so that it does not
+    # replace any scriggo command already installed on the system.
+    bin="$(mktemp -d)"
+    trap 'rm -rf "$bin"' EXIT
+    (cd cmd/scriggo && go generate ./... && go build -o "$bin/scriggo" .)
+    export PATH="$bin:$PATH"
     scriggo version
 
     for module in . test; do
@@ -25,6 +30,5 @@ all:
     done
 
     cd test/compare
-    go generate
     go build
     ./compare -s
